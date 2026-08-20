@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   @distribution/english — global stylesheet.
+
+   Two jobs (identical mechanics to @distribution/maths, different theme):
+
+   1. CONTINUOUS DOCUMENT FLOW
+      The app is a normal, vertically-growing web page: nothing in the
+      html/body/#root chain locks height or clips overflow, so when the
+      worksheet pages make the document taller than the window the BROWSER'S
+      own vertical scrollbar appears and the whole page scrolls as one
+      continuous document — exactly like the browser's native print preview,
+      where A4 sheets flow down the page and the window scrolls them. The
+      header, toolbar and English-type rail are position:sticky so they stay
+      reachable while scrolling, and the zoom dock is position:fixed.
+
+   2. PRINT RULES
+      Printing is a plain window.print() call. Under @media print the app UI
+      (`.app-chrome`) is hidden and the hidden `.print-doc` tree is revealed:
+      one 210mm × 297mm block per worksheet page, each breaking onto its own
+      A4 sheet — so multi-page worksheets print page-for-page with zero JS
+      involved in the actual print job.
+
+   THEME: the English distribution uses a TEAL palette (vs the maths
+   distribution's indigo): body/app background #eef5f3, accent #0d9488,
+   tints #ccfbf1/#99f6e4 and hairline borders #d9e6e2.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+body {
+    margin: 0;
+    /* No `height: 100%` / `overflow: hidden` here: the document is allowed to
+       grow vertically and the window-level vertical scrollbar handles
+       scrolling (job 1). */
+    background: #eef5f3;
+    color: #0f172a;
+    font-family: 'Inter', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* The app fills at least the viewport when the document is short (a single
+   small sheet). dvh tracks dynamic viewports (mobile URL bars); browsers
+   without dvh keep the 100vh fallback line above it. Longer documents grow
+   #root and with it the whole window — the browser shows its vertical
+   scrollbar for the overflow. */
+#root {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* Hide the scrollbar on decorative scroll strips (the grade-pill rail, the
+   English-type rail) while keeping the content keyboard/scroll-wheel
+   accessible. */
+.scrollbar-hidden {
+    scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+}
+
+/* The printable document exists only for the print media — invisible on screen. */
+.print-doc {
+    display: none;
+}
+
+/* ── Printing ────────────────────────────────────────────────────────────────
+   @page pins the paper to A4 with zero margins; each sheet already carries
+   its own 12mm internal padding (see PrintableSheet). */
+@page {
+    size: A4;
+    margin: 0;
+}
+
+@media print {
+    html,
+    body {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+    }
+
+    /* Defensive un-clip of the app shell for printing: on screen the shell is
+       already a non-clipping, content-height document (job 1), but if a
+       future screen rule reintroduces height/overflow locking, these
+       overrides keep the .print-doc tree flowing onto one physical sheet per
+       worksheet page instead of being clipped to the viewport. */
+    #root,
+    .app-root {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Hide the entire interactive app (header, sidebar, canvas, zoom
+       controls) so the printed pages are the only output. */
+    .app-chrome {
+        display: none !important;
+    }
+
+    .print-doc {
+        display: block !important;
+    }
+
+    /* One exact A4 block per worksheet page; each continues on a new sheet. */
+    .print-page {
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
+        background: #ffffff;
+        break-after: page;
+        page-break-after: always; /* legacy engines */
+    }
+
+    .print-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+}
