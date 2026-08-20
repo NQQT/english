@@ -21,7 +21,9 @@ export type TypeSidebarProps = {
 };
 
 // One compact glyph per sheet type, shown in the button's icon chip.
-const TYPE_ICONS: Record<EnglishTypeId, string> = {
+// Exported so the dashboard test can pin the rail's EXACT text
+// (icon glyph + label per button, no count badges).
+export const TYPE_ICONS: Record<EnglishTypeId, string> = {
     sight: 'A',
     blend: 'ab',
     sounds: '♪',
