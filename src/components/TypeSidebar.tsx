@@ -41,7 +41,12 @@ export const TYPE_ICONS: Record<EnglishTypeId, string> = {
     spelling: '✎',
     syllable: '∿',
     grammar: '&',
-    tense: '→'
+    tense: '→',
+    // Tracing glyphs: ⌗ (viewdata square) reads as a "dotted grid to trace
+    // over"; 'a' echoes lowercase word shapes; '12' stands in for digits.
+    letterTrace: '⌗',
+    wordTrace: 'a',
+    numberTrace: '12'
 };
 
 // Left rail: content-height box (align-self: flex-start — it does NOT stretch

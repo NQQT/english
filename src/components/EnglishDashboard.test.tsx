@@ -14,6 +14,9 @@
 //     (refresh=1 / refresh=2 streams pinned in src/lib/problems.test.ts via
 //     seedFrom([grade, type, refresh]));
 //   - zoom control switches the preview between Fit / 50% / 75% / 100%;
+//   - tracing worksheets (Prep only): Letter Tracing (A–Z model + faded
+//     copies), Word Tracing (letter + beginning word) and Number Tracing
+//     (0–9) generate the fixed ordered sheets pinned in problems.test.ts;
 //   - Print opens the browser-NATIVE print dialog IMMEDIATELY (plain
 //     window.print(), no in-app review screen — the preview canvas IS the
 //     print preview). The screen-hidden .print-doc tree is what the dialog
@@ -85,6 +88,17 @@ const r1sightRow1 = '1.Which is a real word? (pig, shira, haa, maa)';
 const r1sightRow2 = '2.Which is a real word? (plana, appla, trea, rat)';
 const r2sightRow1 = '1.Which is a real word? (housa, rat, wia, traia)';
 const r2sightRow2 = '2.Which is a real word? (bua, haa, ligha, pig)';
+// Pinned PREP TRACING rows (fixed ordered sheets — no seed involved, see
+// problems.test.ts): a trace row's visible text is the id + solid model +
+// faded copies concatenated WITHOUT separator spaces between elements, e.g.
+// row 1 of letter tracing reads "1." + "A" + "A A A" = "1.AA A A".
+const g0letterRow1 = '1.AA A A';
+const g0letterRow26 = '26.ZZ Z Z';
+const g0wordRow1 = '1.Aapple';
+const g0wordRow24 = '24.Xxylophone';
+const g0numRow1 = '1.00 0 0';
+const g0numRow9 = '9.88 8 8';
+const g0numRow10 = '10.99 9 9';
 
 describe('EnglishDashboard — layout', () => {
     it('renders the app title and year-1 sight-word preview by default', () => {
@@ -203,6 +217,53 @@ describe('EnglishDashboard — grade selection (top-right)', () => {
         // Right canvas shows the empty state instead of a preview.
         expect(screen.getByTestId('empty-state')).toBeDefined();
         expect(screen.queryByTestId('sheet-preview')).toBeNull();
+    });
+});
+
+describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
+    it('the default Year 1 rail does not offer the tracing types', () => {
+        // Tracing is Prep-only: none of the three buttons exist on the Y1 rail.
+        expect(screen.queryByRole('button', { name: 'Letter Tracing' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Word Tracing' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Number Tracing' })).toBeNull();
+    });
+
+    it('Prep offers the three tracing types in the rail', () => {
+        fireEvent.click(gradeRadio('P'));
+        expect(screen.getByRole('button', { name: 'Letter Tracing' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Word Tracing' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Number Tracing' })).toBeDefined();
+    });
+
+    it('Letter Tracing previews the A–Z model + faded-copy rows', () => {
+        fireEvent.click(gradeRadio('P'));
+        fireEvent.click(screen.getByRole('button', { name: 'Letter Tracing' }));
+        // Title + pinned tier scope subtitle (see problems.test.ts).
+        expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Letter Tracing');
+        const page = text(screen.getByTestId('sheet-preview-page1'));
+        // First and last alphabet rows (rows are the id + model + 3 copies).
+        expect(page).toContain(g0letterRow1);
+        expect(page).toContain(g0letterRow26);
+    });
+
+    it('Word Tracing previews the letter + beginning-word rows', () => {
+        fireEvent.click(gradeRadio('P'));
+        fireEvent.click(screen.getByRole('button', { name: 'Word Tracing' }));
+        expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Word Tracing');
+        const page = text(screen.getByTestId('sheet-preview-page1'));
+        // Row 1 = model "A" + faded "apple"; row 24 = "X" + "xylophone".
+        expect(page).toContain(g0wordRow1);
+        expect(page).toContain(g0wordRow24);
+    });
+
+    it('Number Tracing previews the 0–9 model + faded-copy rows', () => {
+        fireEvent.click(gradeRadio('P'));
+        fireEvent.click(screen.getByRole('button', { name: 'Number Tracing' }));
+        expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Number Tracing');
+        const page = text(screen.getByTestId('sheet-preview-page1'));
+        expect(page).toContain(g0numRow1);
+        expect(page).toContain(g0numRow9);
+        expect(page).toContain(g0numRow10);
     });
 });
 

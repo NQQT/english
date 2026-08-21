@@ -21,6 +21,12 @@
 // uses explicit px/mm STRING values (not numbers) on purpose: when a value is
 // static or a function in @presource/react's styledComponent, numbers are
 // converted to rem, which we do not want for print-accurate spacing.
+//
+// PROBLEM LAYOUT: a normal row is `<index> <prompt text with __ > blanks`;
+// a TRACING row (Problem.trace set — letter/word/number sheets) is
+// `<index> [model] [dashed copies on a dashed rule]` instead of prompt text:
+// the model exemplar is solid grey, the three (or one, for words) faded
+// dashed shapes are what the child traces, sharing one writing line.
 import React, { Fragment } from 'react';
 import { styledComponent } from '@presource/react';
 import { SINGLE_COLUMN_TYPES, type Problem } from '../lib/problems';
@@ -123,6 +129,52 @@ const ProblemText = styledComponent('span', {
     whiteSpace: 'pre-wrap'
 });
 
+// Tracing rows (letterTrace / wordTrace / numberTrace): a solid grey model
+// exemplar plus faded dashed copies the child traces over, all riding on one
+// dashed "stay-on-the-line" rule. `flex: 1` stretches the line to the rest of
+// the problem row so the rule reads as a full writing line (wide full-width
+// lines on single-column number sheets, half-page lines on the letter/word
+// two-column sheets).
+const TraceLine = styledComponent('div', {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '18px',
+    flex: 1,
+    minWidth: '0',
+    paddingBottom: '4px',
+    borderBottom: '2px dashed #b7c9c4',
+    whiteSpace: 'nowrap'
+});
+
+// The solid model shape to copy from: mid-grey so it is clearly readable
+// yet distinct from the child's own (dashed) work. Same 44px face as the
+// trace target so the two share one baseline in TraceLine.
+const ModelText = styledComponent('span', {
+    display: 'inline-block',
+    fontSize: '44px',
+    fontWeight: 600,
+    lineHeight: '1.1',
+    color: '#64748b',
+    userSelect: 'none'
+});
+
+// The faded trace target. The glyphs print as pale-outlined shapes via
+// -webkit-text-stroke (supported by all evergreen engines, screen AND print —
+// the preview tree and the hidden print tree share this exact markup). The
+// almost-invisible pale fill is the graceful fallback: an engine without
+// text-stroke still paints a light solid shape a child can trace, never an
+// empty gap.
+const TraceText = styledComponent('span', {
+    display: 'inline-block',
+    fontSize: '44px',
+    fontWeight: 600,
+    lineHeight: '1.1',
+    letterSpacing: '0.05em',
+    color: '#f1f5f4',
+    WebkitTextStroke: '2.5px #94a3b8',
+    userSelect: 'none'
+});
+
 // A fill-in blank. Big blanks (name/date) are wider; question blanks are short.
 const Blank = styledComponent<{ big?: boolean }>('span', {
     display: 'inline-block',
@@ -184,9 +236,22 @@ export function PrintableSheet({ title, subtitle, problems, pageLabel, testId }:
                 {problems.map((p) => (
                     <ProblemRow key={p.id}>
                         <ProblemIndex>{p.id}.</ProblemIndex>
-                        <ProblemText>
-                            <PromptText prompt={p.prompt} />
-                        </ProblemText>
+                        {p.trace ? (
+                            // Tracing row: solid model + faded dashed target on
+                            // a dashed writing rule (see TraceLine/ModelText/
+                            // TraceText above). The row announces the printed
+                            // prompt to screen readers.
+                            <TraceLine aria-label={p.prompt}>
+                                {p.model && (
+                                    <ModelText aria-hidden="true">{p.model}</ModelText>
+                                )}
+                                <TraceText>{p.trace}</TraceText>
+                            </TraceLine>
+                        ) : (
+                            <ProblemText>
+                                <PromptText prompt={p.prompt} />
+                            </ProblemText>
+                        )}
                     </ProblemRow>
                 ))}
             </ProblemGrid>
