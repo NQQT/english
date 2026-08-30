@@ -34,13 +34,40 @@
 // All expected sheet contents match the deterministic generator outputs
 // pinned in the per-plugin test files (Year 1 + Sight & Real Words is the
 // default selection, refresh 0).
+//
+// PLUGIN LOADING ORDER: the dashboard renders FIRST (shell + the first
+// plugin, Sight & Real Words, in the initial paint); the remaining plugins
+// are then loaded ONE BY ONE after mount (framework/loader.ts). Tests that
+// touch a non-default rail entry therefore AWAIT that entry (findByRole)
+// before clicking it; `allVisiblePluginsLoaded()` below awaits the last
+// Year-1 entry when an assertion needs the FULL rail.
 
 import React from 'react';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EnglishDashboard } from './EnglishDashboard';
 import { PLUGINS } from '../plugins';
-import { getGradeConfig } from '../framework';
+import { DASHBOARD_FRAMEWORK, getGradeConfig, type DashboardPlugin } from '../framework';
+
+// Generous timeout for loader awaits: the loads are chained macrotasks (one
+// per plugin), so a cold test run under load can exceed the 1s default.
+const LOAD_TIMEOUT = 5000;
+
+// The plugin list, built through the same pipeline usePluginLoader uses.
+const WORKSHEETS: DashboardPlugin[] = PLUGINS.map((load) => load(DASHBOARD_FRAMEWORK));
+
+// Await the END of the progressive load. The rail shows a "Loading…" hint
+// while factories are still pending (framework/loader.ts) — it disappears
+// only when EVERY factory has been loaded, which makes it the deterministic
+// "all plugins loaded" signal (rail buttons can't be used for this: the last
+// factories — syllables/tense/tracing — are Year-2/Prep-only and stay hidden
+// on the Year 1 rail even after loading).
+function allPluginsLoaded() {
+    return waitFor(
+        () => expect(screen.queryByText('Loading…')).toBeNull(),
+        { timeout: LOAD_TIMEOUT }
+    );
+}
 
 // Each test renders a fresh dashboard (initially on Year 1 + Sight & Real
 // Words, 1 page, refresh 0).
@@ -107,7 +134,11 @@ const g0numRow9 = '9.88 8 8';
 const g0numRow10 = '10.99 9 9';
 
 describe('EnglishDashboard — layout', () => {
-    it('renders the app title and year-1 sight-word preview by default', () => {
+    it('renders the app title and year-1 sight-word preview by default', async () => {
+        // Wait for the progressive plugin load to finish before judging the
+        // full rail (the first plugin — Sight & Real Words — is available
+        // immediately; the rest stream in one by one).
+        await allPluginsLoaded();
         // App title in the header (the "Aa" brand chip is aria-hidden).
         expect(screen.getByText('English Sheets')).toBeDefined();
         // Grade selector present (P + 1..12 = 13 radios; 1 is selected by default).
@@ -128,7 +159,9 @@ describe('EnglishDashboard — layout', () => {
         expect(page).toContain(g1sightRow2);
     });
 
-    it('the type rail lists icon + label only (no per-type count badges)', () => {
+    it('the type rail lists icon + label only (no per-type count badges)', async () => {
+        // Full rail first (progressive one-by-one plugin loading).
+        await allPluginsLoaded();
         // The rail text is exactly the heading followed by each Year 1 button's
         // RAW "icon glyph + label" (adjacent spans, no whitespace). Pinned
         // exactly — so any extra text (e.g. a per-type "questions per page"
@@ -141,9 +174,10 @@ describe('EnglishDashboard — layout', () => {
         // The framework rail = the registered plugins' entries, grade-gated in
         // registration order (PluginSidebarHost). Each button renders its icon
         // chip + label as adjacent spans, so the raw text is icon + label.
+        // (WORKSHEETS = the factory list built through the loader pipeline.)
         const expected =
             'English Type' +
-            PLUGINS.filter((p) => {
+            WORKSHEETS.filter((p) => {
                 const offered = p.isOffered;
                 return offered ? offered(getGradeConfig(1)) : true;
             })
@@ -158,13 +192,16 @@ describe('EnglishDashboard — layout', () => {
 });
 
 describe('EnglishDashboard — english type selection (left)', () => {
-    it('switches the sheet when a different english type is chosen', () => {
+    it('switches the sheet when a different english type is chosen', async () => {
         // Start on Sight & Real Words.
         expect(text(screen.getByTestId('sheet-preview-page1'))).toContain(g1sightRow1);
 
-        // Pick Blending. Row 1 is "Finish the word: l e __" — the trailing
-        // blank renders as an empty fill-in line (no underscores in text).
-        fireEvent.click(screen.getByRole('button', { name: 'Blending' }));
+        // Pick Blending (awaited — plugins load one by one after mount).
+        // Row 1 is "Finish the word: l e __" — the trailing blank renders as
+        // an empty fill-in line (no underscores in text).
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Blending' }, { timeout: LOAD_TIMEOUT })
+        );
 
         // Preview now reflects the (Year 1, Blending) sheet.
         expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word: l e');
@@ -172,8 +209,11 @@ describe('EnglishDashboard — english type selection (left)', () => {
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Blending');
     });
 
-    it('Sentence Building switches the sheet to scrambled prose lines', () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Sentence Building' }));
+    it('Sentence Building switches the sheet to scrambled prose lines', async () => {
+        // Awaited — plugins load one by one after the dashboard renders.
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Sentence Building' }, { timeout: LOAD_TIMEOUT })
+        );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
         // Year 1 sentence, row 1 (pins: shown scramble "(reads, Ben)", the
         // blanks print as empty fill-in lines).
@@ -182,8 +222,11 @@ describe('EnglishDashboard — english type selection (left)', () => {
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Sentence Building');
     });
 
-    it('Rhyming Words switches the sheet to rhyme choices', () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Rhyming Words' }));
+    it('Rhyming Words switches the sheet to rhyme choices', async () => {
+        // Awaited — plugins load one by one after the dashboard renders.
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Rhyming Words' }, { timeout: LOAD_TIMEOUT })
+        );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
         // Year 1 rhyme, row 1 (pin: base "rat", options king/hat/duck).
         expect(pageText).toContain('1.Which word rhymes with "rat"?');
@@ -191,14 +234,20 @@ describe('EnglishDashboard — english type selection (left)', () => {
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Rhyming Words');
     });
 
-    it('Grade 2 offers the Past Tense worksheet (Y2-only type)', () => {
+    it('Grade 2 offers the Past Tense worksheet (Y2-only type)', async () => {
         fireEvent.click(gradeRadio('2'));
-        // Year 2 rail includes the tricky-set types.
-        expect(screen.getByRole('button', { name: 'Past Tense' })).toBeDefined();
+        // Year 2 rail includes the tricky-set types (awaited — plugins load
+        // one by one after the dashboard renders; the factory loads
+        // regardless of grade, the gate only controls visibility).
+        const pastTense = await screen.findByRole(
+            'button',
+            { name: 'Past Tense' },
+            { timeout: LOAD_TIMEOUT }
+        );
 
         // Pick it; the sheet matches the pinned Year 2 tense stream (row 1
         // base verb "take" -> "took").
-        fireEvent.click(screen.getByRole('button', { name: 'Past Tense' }));
+        fireEvent.click(pastTense);
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 2 — Past Tense');
         expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.What is the past tense of "take"?');
     });
@@ -233,23 +282,31 @@ describe('EnglishDashboard — grade selection (top-right)', () => {
 });
 
 describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
-    it('the default Year 1 rail does not offer the tracing types', () => {
+    it('the default Year 1 rail does not offer the tracing types', async () => {
+        // Full rail first (progressive one-by-one plugin loading) so the
+        // absence is meaningful, not just "not loaded yet".
+        await allPluginsLoaded();
         // Tracing is Prep-only: none of the three buttons exist on the Y1 rail.
         expect(screen.queryByRole('button', { name: 'Letter Tracing' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Word Tracing' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Number Tracing' })).toBeNull();
     });
 
-    it('Prep offers the three tracing types in the rail', () => {
+    it('Prep offers the three tracing types in the rail', async () => {
         fireEvent.click(gradeRadio('P'));
+        // Awaited — the tracing factories are the LAST in the loading order.
+        await screen.findByRole('button', { name: 'Number Tracing' }, { timeout: LOAD_TIMEOUT });
         expect(screen.getByRole('button', { name: 'Letter Tracing' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Word Tracing' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Number Tracing' })).toBeDefined();
     });
 
-    it('Letter Tracing previews the A–Z model + faded-copy rows', () => {
+    it('Letter Tracing previews the A–Z model + faded-copy rows', async () => {
         fireEvent.click(gradeRadio('P'));
-        fireEvent.click(screen.getByRole('button', { name: 'Letter Tracing' }));
+        // Awaited — plugins load one by one after the dashboard renders.
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Letter Tracing' }, { timeout: LOAD_TIMEOUT })
+        );
         // Title + pinned tier scope subtitle (see LetterTracingWorksheet.test.ts).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Letter Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
@@ -258,9 +315,12 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
         expect(page).toContain(g0letterRow26);
     });
 
-    it('Word Tracing previews the letter + beginning-word rows', () => {
+    it('Word Tracing previews the letter + beginning-word rows', async () => {
         fireEvent.click(gradeRadio('P'));
-        fireEvent.click(screen.getByRole('button', { name: 'Word Tracing' }));
+        // Awaited — plugins load one by one after the dashboard renders.
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Word Tracing' }, { timeout: LOAD_TIMEOUT })
+        );
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Word Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
         // Row 1 = model "A" + faded "apple"; row 24 = "X" + "xylophone".
@@ -268,9 +328,12 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
         expect(page).toContain(g0wordRow24);
     });
 
-    it('Number Tracing previews the 0–9 model + faded-copy rows', () => {
+    it('Number Tracing previews the 0–9 model + faded-copy rows', async () => {
         fireEvent.click(gradeRadio('P'));
-        fireEvent.click(screen.getByRole('button', { name: 'Number Tracing' }));
+        // Awaited — plugins load one by one after the dashboard renders.
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Number Tracing' }, { timeout: LOAD_TIMEOUT })
+        );
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Number Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
         expect(page).toContain(g0numRow1);

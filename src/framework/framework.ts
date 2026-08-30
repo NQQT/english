@@ -30,6 +30,12 @@ import { definePlugin, type DashboardPlugin, type DashboardSession, type Workshe
 
 export type { DashboardFrameworkConfig } from './worksheet-kit';
 
+// A plugin FACTORY — the uninvoked function a plugin module exports. The
+// plugin list (plugins/index.ts) stores factories UNINVOKED so the dashboard
+// can render first and then load them ONE BY ONE after mount (loader.ts);
+// loading = calling the factory with the framework bundle.
+export type PluginFactory = (dashboard: DashboardFramework) => DashboardPlugin;
+
 export type DashboardFramework = {
     // This instance's subject-specific chrome configuration.
     config: DashboardFrameworkConfig;
