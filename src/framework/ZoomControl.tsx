@@ -1,12 +1,14 @@
-// Segmented zoom switcher (Fit / 50% / 75% / 100%). Pins to the preview
-// canvas (the zoom preference a teacher sets is exactly what they'll see when
-// the browser-native print dialog shows the same A4 pages).
+// Segmented zoom switcher (Fit / 50% / 75% / 100%) — framework layout
+// component. Pins to the preview canvas (the zoom preference a teacher sets is
+// exactly what they'll see when the browser-native print dialog shows the same
+// A4 pages).
 //
-// THEME: the English distribution's teal palette (vs maths' indigo) — the
-// group pill sits on #e6efec and the selected segment lifts to a white chip.
+// THEME: the group pill sits on the distribution's soft fill (theme.ts) and
+// the selected segment lifts to a white chip.
 import React from 'react';
 import { styledComponent } from '@presource/react';
 import { ZOOM_OPTIONS, type ZoomMode } from './page-scale';
+import { THEME } from './theme';
 
 export type ZoomControlProps = {
     // Accessible group label, e.g. "Preview zoom".
@@ -22,9 +24,9 @@ const ZoomGroup = styledComponent('div', {
     gap: '2px',
     padding: '3px',
     borderRadius: '10px',
-    border: '1px solid #d9e6e2',
+    border: `1px solid ${THEME.hairline}`,
     flexShrink: 0,
-    background: '#e6efec'
+    background: THEME.pillBg
 });
 
 // One zoom segment; the selected one lifts to a solid chip.

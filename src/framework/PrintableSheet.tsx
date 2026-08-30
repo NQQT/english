@@ -1,5 +1,5 @@
-// Printable A4 worksheet page. This is the canonical "what gets printed"
-// content.
+// Printable A4 worksheet page (framework layout component). This is the
+// canonical "what gets printed" content.
 //
 // It is rendered in TWO on-screen-identical places plus the hidden print
 // tree:
@@ -7,12 +7,12 @@
 //      this view doubles as the print preview (toolbar Print goes straight
 //      to the browser-native dialog).
 //   2. Inside the screen-hidden `.print-doc` tree that window.print()
-//      actually prints (one <PrintableSheet> per A4 page, see
-//      EnglishDashboard), which is what makes the native dialog list every
-//      page (a 5-page document => 5 pages in the dialog).
+//      actually prints (one <PrintableSheet> per A4 page, see worksheet-kit),
+//      which is what makes the native dialog list every page (a 5-page
+//      document => 5 pages in the dialog).
 //
 // The component receives one page's `problems` (problem ids are numbered
-// across the whole document, so a 2-page sheet continues 1..36). When the
+// across the whole document, so a 2-page sheet continues 1..54). When the
 // document has more than one page, `pageLabel` (e.g. "Page 2 of 3") is shown
 // in a small footer — both on screen (as the page badge) and in print.
 //
@@ -29,18 +29,26 @@
 // dashed shapes are what the child traces, sharing one writing line.
 import React, { Fragment } from 'react';
 import { styledComponent } from '@presource/react';
-import { SINGLE_COLUMN_TYPES, type Problem } from '../lib/problems';
+import type { Problem } from './document';
 
 export type PrintableSheetProps = {
     // Large heading, e.g. "Year 1 — Blending".
     title: string;
-    // Small line under the title, e.g. "Blending — letters of the tier-2 word set".
+    // Small line under the title, e.g. "Blending — letters, word set 2".
     subtitle: string;
-    // The problems to lay out on THIS page (one page of one English type).
+    // The problems to lay out on THIS page (one page of one worksheet).
     problems: Problem[];
     // Optional footer label — set to "Page i of n" for multi-page documents so
     // printed pages can be ordered physically. Omitted for single-page sheets.
     pageLabel?: string;
+    // Prose-style sheets (sentence building, word gaps, twin words, number
+    // tracing) render in a SINGLE column so every row has the full page
+    // width. Default: two-column grid.
+    single?: boolean;
+    // Brand line printed in the multi-page footer ("English Sheets"). Comes
+    // from the dashboard framework's configuration, so the sheet component
+    // itself stays subject-neutral. Defaults to "Worksheets" for direct use.
+    brand?: string;
     // Stable test id for the root element.
     testId?: string;
 };
@@ -88,14 +96,14 @@ const Rule = styledComponent('hr', {
 });
 
 // Two-column grid for compact sheets; single column for long prose (sentence
-// building, word gaps, twin-word sentences).
-// `single` is a custom prop read by the function value for gridTemplateColumns.
+// building, word gaps, twin-word sentences). `single` is a custom prop read
+// by the function value for gridTemplateColumns.
 //
 // FILLING THE WHOLE PAGE: SheetRoot is a flex column on a fixed A4 height, so
 // `flex: 1` grows this grid to exactly the space left below the title/metaline
 // (and above the footer). `gridAutoRows: 1fr` divides that space into EVEN
 // rows and `alignItems: center` vertically centres each question in its row —
-// so no matter how many problems a type generates, the LAST question row
+// so no matter how many problems a worksheet generates, the LAST question row
 // always lands at the bottom of the page: there is never a blank band between
 // the questions and the page foot (screen preview and print share this layout).
 const ProblemGrid = styledComponent<{ single: boolean }>('div', {
@@ -217,12 +225,15 @@ function PromptText({ prompt }: { prompt: string }) {
     );
 }
 
-export function PrintableSheet({ title, subtitle, problems, pageLabel, testId }: PrintableSheetProps) {
-    // Sentence-building / word-gap / twin-word rows are prose that reads
-    // better in one column. Every problem on a page shares one type, so the
-    // first problem tells us which layout to use.
-    const single = problems.length > 0 && SINGLE_COLUMN_TYPES.includes(problems[0].type);
-
+export function PrintableSheet({
+    title,
+    subtitle,
+    problems,
+    pageLabel,
+    single,
+    brand,
+    testId
+}: PrintableSheetProps) {
     return (
         <SheetRoot data-testid={testId}>
             <SheetTitle>{title}</SheetTitle>
@@ -232,7 +243,7 @@ export function PrintableSheet({ title, subtitle, problems, pageLabel, testId }:
                 Date: <Blank big />
             </MetaLine>
             <Rule />
-            <ProblemGrid single={single}>
+            <ProblemGrid single={single ?? false}>
                 {problems.map((p) => (
                     <ProblemRow key={p.id}>
                         <ProblemIndex>{p.id}.</ProblemIndex>
@@ -256,10 +267,11 @@ export function PrintableSheet({ title, subtitle, problems, pageLabel, testId }:
                 ))}
             </ProblemGrid>
             {/* Multi-page documents get a page-position footer in print so a
-                class set of copies can be reordered physically. */}
+                class set of copies can be reordered physically. The brand line
+                comes from the dashboard configuration (framework.config). */}
             {pageLabel && (
                 <SheetFooter>
-                    <FooterText>English Sheets</FooterText>
+                    <FooterText>{brand ?? 'Worksheets'}</FooterText>
                     <FooterText>{pageLabel}</FooterText>
                 </SheetFooter>
             )}

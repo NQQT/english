@@ -1,8 +1,8 @@
-// Continuous stack of A4 pages rendered at the requested zoom. Lives in the
-// dashboard's preview canvas, which doubles as the print preview: the A4
-// blocks shown here are exactly what the hidden .print-doc tree (app.css)
-// feeds the browser-native print dialog, so screen and print can never
-// disagree.
+// Continuous stack of A4 pages rendered at the requested zoom (framework
+// layout component). Lives in the dashboard's preview canvas, which doubles as
+// the print preview: the A4 blocks shown here are exactly what the hidden
+// .print-doc tree (app.css) feeds the browser-native print dialog, so screen
+// and print can never disagree.
 //
 // Each page is a fixed A4-sized box (794×1123px, see page-scale.ts) that is
 // scaled with `transform: scale(...)` and clipped to the scaled footprint.
@@ -15,13 +15,14 @@
 // dot-grid backdrop and is what usePageScale measures (its width = the
 // canvas width) for the 'fit' zoom.
 //
-// THEME: the page field uses the English distribution's teal-tinted
-// dot-grid (vs maths' slate), #e6f0ed with #cfe3de dots.
+// THEME: the page field uses the distribution's palette from theme.ts
+// (teal-tinted dot grid for this distribution).
 import React, { useRef } from 'react';
 import { styledComponent } from '@presource/react';
 import { A4_H, A4_W, usePageScale, type ZoomMode } from './page-scale';
 import { PrintableSheet } from './PrintableSheet';
-import type { Problem } from '../lib/problems';
+import { THEME } from './theme';
+import type { Problem } from './document';
 
 export type PageSpec = {
     // The problems printed on this page (ids run across the whole document).
@@ -38,6 +39,10 @@ export type PageStackProps = {
     pages: PageSpec[];
     // 'fit' or a fixed percentage zoom (50/75/100).
     zoom: ZoomMode;
+    // Prose-style sheets print one question per row (sentence building etc.).
+    single?: boolean;
+    // Brand line for the in-sheet multi-page print footer (framework config).
+    brand?: string;
     // Test id for the page field root (e.g. "sheet-preview").
     testId?: string;
     // Per-page test id prefix; page i+1 gets `${pageTestId}${i+1}`.
@@ -56,9 +61,9 @@ const StackViewport = styledComponent('div', {
     // Match the canvas frame's corners (the canvas no longer clips its
     // content with overflow:hidden, so the grid background must round itself).
     borderRadius: 'inherit',
-    // Pale teal with a subtle dot grid (PDF-viewer vibe, English theme).
-    background: '#e6f0ed',
-    backgroundImage: 'radial-gradient(circle, #cfe3de 1px, transparent 1px)',
+    // Pale teal with a subtle dot grid (PDF-viewer vibe, from THEME).
+    background: THEME.canvasBg,
+    backgroundImage: `radial-gradient(circle, ${THEME.canvasDot} 1px, transparent 1px)`,
     backgroundSize: '22px 22px'
 }) as unknown as React.ForwardRefExoticComponent<
     React.RefAttributes<HTMLDivElement> &
@@ -115,14 +120,14 @@ const PageBadge = styledComponent('div', {
     bottom: '10px',
     padding: '3px 10px',
     borderRadius: '999px',
-    border: '1px solid #d9e6e2',
+    border: `1px solid ${THEME.hairline}`,
     background: 'rgba(255,255,255,0.92)',
     color: '#64748b',
     fontSize: '11px',
     fontWeight: 600
 });
 
-export function PageStack({ title, subtitle, pages, zoom, testId, pageTestId }: PageStackProps) {
+export function PageStack({ title, subtitle, pages, zoom, single, brand, testId, pageTestId }: PageStackProps) {
     // Ref to the page field — measured live (its width) for the 'fit' zoom.
     const viewportRef = useRef<HTMLDivElement>(null);
     const scale = usePageScale(viewportRef, zoom);
@@ -143,6 +148,8 @@ export function PageStack({ title, subtitle, pages, zoom, testId, pageTestId }: 
                                 subtitle={subtitle}
                                 problems={page.problems}
                                 pageLabel={page.pageLabel}
+                                single={single}
+                                brand={brand}
                             />
                         </PageScaleBox>
                         {/* On-screen multi-page position badge. */}

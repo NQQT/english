@@ -1,22 +1,29 @@
-// Integration tests for the english dashboard.
+// Integration tests for the worksheet PLUGINS, mounted in the framework host.
+//
+// This test file lives with the dashboard host: it exercises the whole
+// worksheet family end-to-end through the real dashboard, exactly as a
+// teacher uses it. (Each worksheet's generator has its own pinned unit tests
+// next to the plugin file; this suite covers the composed behaviour.)
 //
 // Verifies the layout and its behaviour:
-//   - grade selector (top-right) switches grade and, for unimplemented grades,
-//     shows the "coming soon" placeholder + empty canvas state;
-//   - english-type rail (left) switches the generated sheet; it shows icon +
-//     label only — NO per-type "questions per page" count badges (removed:
-//     the page stepper + Randomize make document size fully user-driven);
+//   - grade selector (framework header component) switches grade and, for
+//     unimplemented grades, shows the "coming soon" notice in the rail plus
+//     the empty canvas state;
+//   - the unified plugin rail (left) switches the generated sheet; it shows
+//     icon + label only — NO per-type "questions per page" count badges
+//     (removed: the page stepper + Randomize make document size fully
+//     user-driven);
 //   - page-count STEPPER (toolbar, −/n/+) is an unbounded number: type or
 //     increment to 3, 4, 12... pages — generated A4 sheets are numbered
 //     continuously (Year 1 sight: 18 per page, page 2 starts at id 19,
-//     page 3 at id 37 — streams pinned in src/lib/problems.test.ts);
+//     page 3 at id 37 — streams pinned in SightWordsWorksheet.test.ts);
 //   - "Randomize" re-rolls the seed in place: same page count, new problems
-//     (refresh=1 / refresh=2 streams pinned in src/lib/problems.test.ts via
-//     seedFrom([grade, type, refresh]));
+//     (pinned refresh=1 / refresh=2 streams below, seedFrom([grade, type,
+//     refresh]));
 //   - zoom control switches the preview between Fit / 50% / 75% / 100%;
 //   - tracing worksheets (Prep only): Letter Tracing (A–Z model + faded
 //     copies), Word Tracing (letter + beginning word) and Number Tracing
-//     (0–9) generate the fixed ordered sheets pinned in problems.test.ts;
+//     (0–9) generate the fixed ordered sheets pinned in the plugin tests;
 //   - Print opens the browser-NATIVE print dialog IMMEDIATELY (plain
 //     window.print(), no in-app review screen — the preview canvas IS the
 //     print preview). The screen-hidden .print-doc tree is what the dialog
@@ -25,16 +32,15 @@
 //     app.css un-clip the shell so every page flows onto its own sheet).
 //
 // All expected sheet contents match the deterministic generator outputs
-// pinned in src/lib/problems.test.ts (Year 1 + Sight & Real Words is the
+// pinned in the per-plugin test files (Year 1 + Sight & Real Words is the
 // default selection, refresh 0).
 
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EnglishDashboard } from './EnglishDashboard';
-import { TYPE_ICONS } from './TypeSidebar';
-import { ENGLISH_TYPES } from '../lib/problems';
-import { getGradeConfig } from '../lib/grades';
+import { PLUGINS } from '../plugins';
+import { getGradeConfig } from '../framework';
 
 // Each test renders a fresh dashboard (initially on Year 1 + Sight & Real
 // Words, 1 page, refresh 0).
@@ -73,7 +79,7 @@ function text(el: Element | null | undefined) {
     return el?.textContent ?? '';
 }
 
-// Pinned rows (see src/lib/problems.test.ts, seedFrom([grade, type, 0])):
+// Pinned rows (see SightWordsWorksheet.test.ts, seedFrom([grade, type, 0])):
 //   Year 1 sight — page 1 rows 1..2, page 2 head (id 19), page 3 head (id 37)
 //   Year 2 sight — page 1 row 1   |  Prep sight — page 1 row 1
 //   Randomize streams: refresh 1 rows 1..2, refresh 2 rows 1..2
@@ -88,8 +94,8 @@ const r1sightRow1 = '1.Which is a real word? (pig, shira, haa, maa)';
 const r1sightRow2 = '2.Which is a real word? (plana, appla, trea, rat)';
 const r2sightRow1 = '1.Which is a real word? (housa, rat, wia, traia)';
 const r2sightRow2 = '2.Which is a real word? (bua, haa, ligha, pig)';
-// Pinned PREP TRACING rows (fixed ordered sheets — no seed involved, see
-// problems.test.ts): a trace row's visible text is the id + solid model +
+// Pinned PREP TRACING rows (fixed ordered sheets — no seed involved, see the
+// tracing plugin tests): a trace row's visible text is the id + solid model +
 // faded copies concatenated WITHOUT separator spaces between elements, e.g.
 // row 1 of letter tracing reads "1." + "A" + "A A A" = "1.AA A A".
 const g0letterRow1 = '1.AA A A';
@@ -116,7 +122,7 @@ describe('EnglishDashboard — layout', () => {
     });
 
     it('shows the exact first problems of the Year 1 sight-word sheet in the preview', () => {
-        // Year 1 sight, rows 1-2 (see problems.test.ts pins).
+        // Year 1 sight, rows 1-2 (see SightWordsWorksheet.test.ts pins).
         const page = text(screen.getByTestId('sheet-preview-page1'));
         expect(page).toContain(g1sightRow1);
         expect(page).toContain(g1sightRow2);
@@ -132,10 +138,16 @@ describe('EnglishDashboard — layout', () => {
         // rail" check doesn't apply here.
         const heading = screen.getByRole('heading', { name: 'English Type' });
         const rail = heading.parentElement!; // <Sidebar> wraps heading + buttons
+        // The framework rail = the registered plugins' entries, grade-gated in
+        // registration order (PluginSidebarHost). Each button renders its icon
+        // chip + label as adjacent spans, so the raw text is icon + label.
         const expected =
             'English Type' +
-            ENGLISH_TYPES.filter((t) => getGradeConfig(1).available.includes(t.id))
-                .map((t) => TYPE_ICONS[t.id] + t.label)
+            PLUGINS.filter((p) => {
+                const offered = p.isOffered;
+                return offered ? offered(getGradeConfig(1)) : true;
+            })
+                .map((p) => (p.entries[0].icon ?? '') + p.entries[0].label)
                 .join('');
         expect(text(rail)).toBe(expected);
         // The Blending button renders exactly icon glyph + label (raw
@@ -238,7 +250,7 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
     it('Letter Tracing previews the A–Z model + faded-copy rows', () => {
         fireEvent.click(gradeRadio('P'));
         fireEvent.click(screen.getByRole('button', { name: 'Letter Tracing' }));
-        // Title + pinned tier scope subtitle (see problems.test.ts).
+        // Title + pinned tier scope subtitle (see LetterTracingWorksheet.test.ts).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Letter Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
         // First and last alphabet rows (rows are the id + model + 3 copies).
@@ -299,8 +311,9 @@ describe('EnglishDashboard — page count (unbounded −/n/+ stepper)', () => {
         expect(screen.queryByTestId('sheet-preview-page4')).toBeNull();
 
         // Page 1 keeps the original first rows; pages 2 and 3 continue the
-        // exact deterministic stream pinned in problems.test.ts (sight is
-        // 18 rows/page, so page 2 starts at id 19 and page 3 at id 37).
+        // exact deterministic stream pinned in SightWordsWorksheet.test.ts
+        // (sight is 18 rows/page, so page 2 starts at id 19 and page 3 at
+        // id 37).
         expect(text(screen.getByTestId('sheet-preview-page1'))).toContain(g1sightRow1);
         expect(text(screen.getByTestId('sheet-preview-page2'))).toContain(g1sightP2row1);
         expect(text(screen.getByTestId('sheet-preview-page3'))).toContain(g1sightP3row1);
@@ -334,7 +347,8 @@ describe('EnglishDashboard — page count (unbounded −/n/+ stepper)', () => {
 
 describe('EnglishDashboard — randomize (re-roll the seed in place)', () => {
     it('regenerates the sheet with a new seed, preserving the page count', () => {
-        // Initial (refresh 0) deterministic sheet pinned in problems.test.ts.
+        // Initial (refresh 0) deterministic sheet pinned in
+        // SightWordsWorksheet.test.ts.
         const page1 = () => text(screen.getByTestId('sheet-preview-page1'));
         expect(page1()).toContain(g1sightRow1);
         expect(page1()).toContain(g1sightRow2);
@@ -444,6 +458,29 @@ describe('EnglishDashboard — print flow (native dialog, preview IS the preview
         // The on-screen preview (the print preview) shows the same 5 pages.
         expect(screen.getByTestId('sheet-preview-page5')).toBeDefined();
         expect(screen.queryByTestId('sheet-preview-page6')).toBeNull();
+    });
+
+    it('the print tree lives OUTSIDE .app-chrome (print media hides the shell)', () => {
+        // CRITICAL placement pin: @media print hides .app-chrome WHOLESALE, so
+        // the .print-doc tree MUST be a sibling/descendant-outside of that
+        // shell — if a refactor ever moves it back inside the interactive
+        // chrome, printing would emit NOTHING (blank pages). The framework
+        // mounts the active plugin's print surface exactly there.
+        const printDoc = document.querySelector('.print-doc');
+        expect(printDoc).not.toBeNull();
+        let cursor: Element | null = printDoc;
+        let insideChrome = false;
+        while (cursor) {
+            if (cursor.classList?.contains('app-chrome')) {
+                insideChrome = true;
+                break;
+            }
+            cursor = cursor.parentElement;
+        }
+        expect(insideChrome).toBe(false);
+        // (Screen invisibility (.print-doc { display: none }) comes from
+        // app.css, which the jsdom test environment does not load — the
+        // placement pin above is what guards the print flow end-to-end.)
     });
 
     it('the print tree follows the page stepper (1 page => 1 A4 block)', () => {
