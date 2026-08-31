@@ -43,38 +43,38 @@ describe('tense plugin — declarative spec', () => {
 describe('tense — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"tense","prompt":"What is the past tense of \"take\"?","answer":"took"},
-        {"id":2,"type":"tense","prompt":"What is the past tense of \"drive\"?","answer":"drove"},
+        {"id":1,"type":"tense","prompt":"What is the past tense of \"point\"?","answer":"pointed"},
+        {"id":2,"type":"tense","prompt":"What is the past tense of \"hop\"? (called, hopped, loved)","answer":"hopped"},
         {"id":3,"type":"tense","prompt":"What is the past tense of \"walk\"?","answer":"walked"},
-        {"id":4,"type":"tense","prompt":"What is the past tense of \"eat\"?","answer":"ate"},
-        {"id":5,"type":"tense","prompt":"What is the past tense of \"take\"?","answer":"took"},
-        {"id":6,"type":"tense","prompt":"What is the past tense of \"drive\"?","answer":"drove"},
-        {"id":7,"type":"tense","prompt":"What is the past tense of \"write\"?","answer":"wrote"},
-        {"id":8,"type":"tense","prompt":"What is the past tense of \"jump\"?","answer":"jumped"},
-        {"id":9,"type":"tense","prompt":"What is the past tense of \"eat\"?","answer":"ate"},
-        {"id":10,"type":"tense","prompt":"What is the past tense of \"run\"?","answer":"ran"},
-        {"id":11,"type":"tense","prompt":"What is the past tense of \"see\"?","answer":"saw"},
-        {"id":12,"type":"tense","prompt":"What is the past tense of \"go\"?","answer":"went"},
-        {"id":13,"type":"tense","prompt":"What is the past tense of \"run\"?","answer":"ran"},
-        {"id":14,"type":"tense","prompt":"What is the past tense of \"take\"?","answer":"took"},
-        {"id":15,"type":"tense","prompt":"What is the past tense of \"kick\"?","answer":"kicked"},
-        {"id":16,"type":"tense","prompt":"What is the past tense of \"walk\"?","answer":"walked"},
+        {"id":4,"type":"tense","prompt":"What is the past tense of \"help\"?","answer":"helped"},
+        {"id":5,"type":"tense","prompt":"What is the past tense of \"wash\"?","answer":"washed"},
+        {"id":6,"type":"tense","prompt":"What is the past tense of \"use\"? (grabbed, walked, used)","answer":"used"},
+        {"id":7,"type":"tense","prompt":"What is the past tense of \"live\"?","answer":"lived"},
+        {"id":8,"type":"tense","prompt":"What is the past tense of \"run\"?","answer":"ran"},
+        {"id":9,"type":"tense","prompt":"What is the past tense of \"make\"? (wanted, took, made)","answer":"made"},
+        {"id":10,"type":"tense","prompt":"What is the past tense of \"swim\"? (ran, swam, took)","answer":"swam"},
+        {"id":11,"type":"tense","prompt":"What is the past tense of \"drive\"? (drove, pointed, hopped)","answer":"drove"},
+        {"id":12,"type":"tense","prompt":"What is the past tense of \"ask\"? (took, helped, asked)","answer":"asked"},
+        {"id":13,"type":"tense","prompt":"What is the past tense of \"see\"?","answer":"saw"},
+        {"id":14,"type":"tense","prompt":"What is the past tense of \"clap\"?","answer":"clapped"},
+        {"id":15,"type":"tense","prompt":"What is the past tense of \"sit\"?","answer":"sat"},
+        {"id":16,"type":"tense","prompt":"What is the past tense of \"stop\"? (ate, swam, stopped)","answer":"stopped"},
         {"id":17,"type":"tense","prompt":"What is the past tense of \"jump\"?","answer":"jumped"},
-        {"id":18,"type":"tense","prompt":"What is the past tense of \"walk\"?","answer":"walked"},
+        {"id":18,"type":"tense","prompt":"What is the past tense of \"look\"?","answer":"looked"},
         {"id":19,"type":"tense","prompt":"What is the past tense of \"kick\"?","answer":"kicked"},
         {"id":20,"type":"tense","prompt":"What is the past tense of \"play\"?","answer":"played"},
-        {"id":21,"type":"tense","prompt":"What is the past tense of \"eat\"?","answer":"ate"},
-        {"id":22,"type":"tense","prompt":"What is the past tense of \"see\"?","answer":"saw"},
-        {"id":23,"type":"tense","prompt":"What is the past tense of \"make\"?","answer":"made"},
-        {"id":24,"type":"tense","prompt":"What is the past tense of \"eat\"?","answer":"ate"}
+        {"id":21,"type":"tense","prompt":"What is the past tense of \"love\"?","answer":"loved"},
+        {"id":22,"type":"tense","prompt":"What is the past tense of \"smile\"?","answer":"smiled"},
+        {"id":23,"type":"tense","prompt":"What is the past tense of \"go\"? (made, loved, went)","answer":"went"},
+        {"id":24,"type":"tense","prompt":"What is the past tense of \"open\"?","answer":"opened"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(tenseSpec, g2, seedFrom([2, 'tense', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"tense","prompt":"What is the past tense of \"jump\"?","answer":"jumped"},
-        {"id":26,"type":"tense","prompt":"What is the past tense of \"go\"?","answer":"went"},
-        {"id":27,"type":"tense","prompt":"What is the past tense of \"see\"?","answer":"saw"}
+        {"id":25,"type":"tense","prompt":"What is the past tense of \"like\"? (hopped, liked, stopped)","answer":"liked"},
+        {"id":26,"type":"tense","prompt":"What is the past tense of \"grab\"?","answer":"grabbed"},
+        {"id":27,"type":"tense","prompt":"What is the past tense of \"write\"?","answer":"wrote"}
 ]);
     });
 

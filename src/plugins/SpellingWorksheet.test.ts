@@ -53,33 +53,33 @@ function checkOptionsContainAnswer(grade: GradeConfig) {
 describe('spelling — Year 1 (short words)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"spelling","prompt":"Which word is spelled correctly? (doog, doge, dog)","answer":"dog"},
-        {"id":2,"type":"spelling","prompt":"Which word is spelled correctly? (bired, bird, brid)","answer":"bird"},
-        {"id":3,"type":"spelling","prompt":"Which word is spelled correctly? (bired, brid, bird)","answer":"bird"},
-        {"id":4,"type":"spelling","prompt":"Which word is spelled correctly? (brid, bired, bird)","answer":"bird"},
-        {"id":5,"type":"spelling","prompt":"Which word is spelled correctly? (freog, frog, froge)","answer":"frog"},
-        {"id":6,"type":"spelling","prompt":"Which word is spelled correctly? (fish, fush, fissh)","answer":"fish"},
-        {"id":7,"type":"spelling","prompt":"Which word is spelled correctly? (sun, suun, syun)","answer":"sun"},
-        {"id":8,"type":"spelling","prompt":"Which word is spelled correctly? (fush, fish, fissh)","answer":"fish"},
-        {"id":9,"type":"spelling","prompt":"Which word is spelled correctly? (cadt, cat, catt)","answer":"cat"},
-        {"id":10,"type":"spelling","prompt":"Which word is spelled correctly? (cat, cadt, catt)","answer":"cat"},
-        {"id":11,"type":"spelling","prompt":"Which word is spelled correctly? (brid, bired, bird)","answer":"bird"},
-        {"id":12,"type":"spelling","prompt":"Which word is spelled correctly? (catt, cat, cadt)","answer":"cat"},
-        {"id":13,"type":"spelling","prompt":"Which word is spelled correctly? (froge, frog, freog)","answer":"frog"},
-        {"id":14,"type":"spelling","prompt":"Which word is spelled correctly? (bired, brid, bird)","answer":"bird"},
-        {"id":15,"type":"spelling","prompt":"Which word is spelled correctly? (brid, bired, bird)","answer":"bird"},
-        {"id":16,"type":"spelling","prompt":"Which word is spelled correctly? (huse, hous, house)","answer":"house"},
-        {"id":17,"type":"spelling","prompt":"Which word is spelled correctly? (froge, frog, freog)","answer":"frog"},
-        {"id":18,"type":"spelling","prompt":"Which word is spelled correctly? (appple, apple, applee)","answer":"apple"}
+        {"id":1,"type":"spelling","prompt":"Which word is spelled correctly? (cubp, csup, cup)","answer":"cup"},
+        {"id":2,"type":"spelling","prompt":"Which word is spelled correctly? (red, rend, rewd)","answer":"red"},
+        {"id":3,"type":"spelling","prompt":"Which word is spelled correctly? (bus, bhus, bucs)","answer":"bus"},
+        {"id":4,"type":"spelling","prompt":"Which word is spelled correctly? (lge, lbeg, leg)","answer":"leg"},
+        {"id":5,"type":"spelling","prompt":"Which word is spelled correctly? (log, lolg, lofg)","answer":"log"},
+        {"id":6,"type":"spelling","prompt":"Which word is spelled correctly? (pvig, pzig, pig)","answer":"pig"},
+        {"id":7,"type":"spelling","prompt":"Which word is spelled correctly? (pvin, pin, plin)","answer":"pin"},
+        {"id":8,"type":"spelling","prompt":"Which word is spelled correctly? (sun, sugn, sucn)","answer":"sun"},
+        {"id":9,"type":"spelling","prompt":"Which word is spelled correctly? (night, nikght, nivght)","answer":"night"},
+        {"id":10,"type":"spelling","prompt":"Which word is spelled correctly? (grasvs, grass, grasfs)","answer":"grass"},
+        {"id":11,"type":"spelling","prompt":"Which word is spelled correctly? (purle, purpsle, purple)","answer":"purple"},
+        {"id":12,"type":"spelling","prompt":"Which word is spelled correctly? (pecn, pevn, pen)","answer":"pen"},
+        {"id":13,"type":"spelling","prompt":"Which word is spelled correctly? (wawter, wvater, water)","answer":"water"},
+        {"id":14,"type":"spelling","prompt":"Which word is spelled correctly? (bevd, bed, berd)","answer":"bed"},
+        {"id":15,"type":"spelling","prompt":"Which word is spelled correctly? (maap, mhap, map)","answer":"map"},
+        {"id":16,"type":"spelling","prompt":"Which word is spelled correctly? (light, lignht, ltight)","answer":"light"},
+        {"id":17,"type":"spelling","prompt":"Which word is spelled correctly? (bamg, bacg, bag)","answer":"bag"},
+        {"id":18,"type":"spelling","prompt":"Which word is spelled correctly? (ficsh, finsh, fish)","answer":"fish"}
 ]);
         checkOptionsContainAnswer(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(spellingSpec, g1, seedFrom([1, 'spelling', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"spelling","prompt":"Which word is spelled correctly? (syun, sun, suun)","answer":"sun"},
-        {"id":20,"type":"spelling","prompt":"Which word is spelled correctly? (huse, hous, house)","answer":"house"},
-        {"id":21,"type":"spelling","prompt":"Which word is spelled correctly? (sun, suun, syun)","answer":"sun"}
+        {"id":19,"type":"spelling","prompt":"Which word is spelled correctly? (smhirt, shirt, shijrt)","answer":"shirt"},
+        {"id":20,"type":"spelling","prompt":"Which word is spelled correctly? (rat, ramt, rhat)","answer":"rat"},
+        {"id":21,"type":"spelling","prompt":"Which word is spelled correctly? (net, neft, nert)","answer":"net"}
 ]);
     });
 });
@@ -87,33 +87,33 @@ describe('spelling — Year 1 (short words)', () => {
 describe('spelling — Year 2 (adds the tricky long words)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"spelling","prompt":"Which word is spelled correctly? (elephant, elephent, elphant)","answer":"elephant"},
-        {"id":2,"type":"spelling","prompt":"Which word is spelled correctly? (teacher, tocher, techer)","answer":"teacher"},
-        {"id":3,"type":"spelling","prompt":"Which word is spelled correctly? (hous, huse, house)","answer":"house"},
-        {"id":4,"type":"spelling","prompt":"Which word is spelled correctly? (family, familie, familly)","answer":"family"},
-        {"id":5,"type":"spelling","prompt":"Which word is spelled correctly? (fish, fush, fissh)","answer":"fish"},
-        {"id":6,"type":"spelling","prompt":"Which word is spelled correctly? (brid, bired, bird)","answer":"bird"},
-        {"id":7,"type":"spelling","prompt":"Which word is spelled correctly? (doge, dog, doog)","answer":"dog"},
-        {"id":8,"type":"spelling","prompt":"Which word is spelled correctly? (family, familie, familly)","answer":"family"},
-        {"id":9,"type":"spelling","prompt":"Which word is spelled correctly? (elphant, elephent, elephant)","answer":"elephant"},
-        {"id":10,"type":"spelling","prompt":"Which word is spelled correctly? (tocher, techer, teacher)","answer":"teacher"},
-        {"id":11,"type":"spelling","prompt":"Which word is spelled correctly? (bannana, bananna, banana)","answer":"banana"},
-        {"id":12,"type":"spelling","prompt":"Which word is spelled correctly? (froge, frog, freog)","answer":"frog"},
-        {"id":13,"type":"spelling","prompt":"Which word is spelled correctly? (elephent, elephant, elphant)","answer":"elephant"},
-        {"id":14,"type":"spelling","prompt":"Which word is spelled correctly? (doge, doog, dog)","answer":"dog"},
-        {"id":15,"type":"spelling","prompt":"Which word is spelled correctly? (butrefly, butterfly, buterfly)","answer":"butterfly"},
-        {"id":16,"type":"spelling","prompt":"Which word is spelled correctly? (techer, teacher, tocher)","answer":"teacher"},
-        {"id":17,"type":"spelling","prompt":"Which word is spelled correctly? (banana, bannana, bananna)","answer":"banana"},
-        {"id":18,"type":"spelling","prompt":"Which word is spelled correctly? (scoool, school, scool)","answer":"school"}
+        {"id":1,"type":"spelling","prompt":"Which word is spelled correctly? (chicken, chicksen, chicsken)","answer":"chicken"},
+        {"id":2,"type":"spelling","prompt":"Which word is spelled correctly? (lemon, lsemon, ljemon)","answer":"lemon"},
+        {"id":3,"type":"spelling","prompt":"Which word is spelled correctly? (chocolsate, chocolate, chmocolate)","answer":"chocolate"},
+        {"id":4,"type":"spelling","prompt":"Which word is spelled correctly? (shirt, sdhirt, sjhirt)","answer":"shirt"},
+        {"id":5,"type":"spelling","prompt":"Which word is spelled correctly? (siip, ssip, sip)","answer":"sip"},
+        {"id":6,"type":"spelling","prompt":"Which word is spelled correctly? (beauftiful, beautiful, beautigful)","answer":"beautiful"},
+        {"id":7,"type":"spelling","prompt":"Which word is spelled correctly? (fan, fgan, fadn)","answer":"fan"},
+        {"id":8,"type":"spelling","prompt":"Which word is spelled correctly? (cugp, cupp, cup)","answer":"cup"},
+        {"id":9,"type":"spelling","prompt":"Which word is spelled correctly? (lseg, leg, lepg)","answer":"leg"},
+        {"id":10,"type":"spelling","prompt":"Which word is spelled correctly? (grkeen, green, gren)","answer":"green"},
+        {"id":11,"type":"spelling","prompt":"Which word is spelled correctly? (chair, chailr, chanir)","answer":"chair"},
+        {"id":12,"type":"spelling","prompt":"Which word is spelled correctly? (hougse, ohuse, house)","answer":"house"},
+        {"id":13,"type":"spelling","prompt":"Which word is spelled correctly? (mahp, mzap, map)","answer":"map"},
+        {"id":14,"type":"spelling","prompt":"Which word is spelled correctly? (gardlen, garden, gwarden)","answer":"garden"},
+        {"id":15,"type":"spelling","prompt":"Which word is spelled correctly? (tapble, table, tabrle)","answer":"table"},
+        {"id":16,"type":"spelling","prompt":"Which word is spelled correctly? (pwen, pzen, pen)","answer":"pen"},
+        {"id":17,"type":"spelling","prompt":"Which word is spelled correctly? (bpanana, banapna, banana)","answer":"banana"},
+        {"id":18,"type":"spelling","prompt":"Which word is spelled correctly? (elephant, ehlephant, elephfant)","answer":"elephant"}
 ]);
         checkOptionsContainAnswer(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(spellingSpec, g2, seedFrom([2, 'spelling', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"spelling","prompt":"Which word is spelled correctly? (catt, cat, cadt)","answer":"cat"},
-        {"id":20,"type":"spelling","prompt":"Which word is spelled correctly? (tocher, techer, teacher)","answer":"teacher"},
-        {"id":21,"type":"spelling","prompt":"Which word is spelled correctly? (teacher, tocher, techer)","answer":"teacher"}
+        {"id":19,"type":"spelling","prompt":"Which word is spelled correctly? (dbog, dlog, dog)","answer":"dog"},
+        {"id":20,"type":"spelling","prompt":"Which word is spelled correctly? (trece, treve, tree)","answer":"tree"},
+        {"id":21,"type":"spelling","prompt":"Which word is spelled correctly? (widnow, window, wintdow)","answer":"window"}
 ]);
     });
 

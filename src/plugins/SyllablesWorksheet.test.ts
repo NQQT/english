@@ -43,32 +43,32 @@ describe('syllable plugin — declarative spec', () => {
 describe('syllable — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"syllable","prompt":"How many syllables are in \"butter\"?","answer":"2"},
-        {"id":2,"type":"syllable","prompt":"How many syllables are in \"rabbit\"?","answer":"2"},
-        {"id":3,"type":"syllable","prompt":"How many syllables are in \"helmet\"?","answer":"2"},
-        {"id":4,"type":"syllable","prompt":"How many syllables are in \"pumpkin\"?","answer":"2"},
-        {"id":5,"type":"syllable","prompt":"How many syllables are in \"button\"?","answer":"2"},
-        {"id":6,"type":"syllable","prompt":"How many syllables are in \"pumpkin\"?","answer":"2"},
-        {"id":7,"type":"syllable","prompt":"How many syllables are in \"helmet\"?","answer":"2"},
-        {"id":8,"type":"syllable","prompt":"How many syllables are in \"helmet\"?","answer":"2"},
-        {"id":9,"type":"syllable","prompt":"How many syllables are in \"pumpkin\"?","answer":"2"},
-        {"id":10,"type":"syllable","prompt":"How many syllables are in \"button\"?","answer":"2"},
-        {"id":11,"type":"syllable","prompt":"How many syllables are in \"window\"?","answer":"2"},
-        {"id":12,"type":"syllable","prompt":"How many syllables are in \"rabbit\"?","answer":"2"},
-        {"id":13,"type":"syllable","prompt":"How many syllables are in \"water\"?","answer":"2"},
-        {"id":14,"type":"syllable","prompt":"How many syllables are in \"pumpkin\"?","answer":"2"},
-        {"id":15,"type":"syllable","prompt":"How many syllables are in \"button\"?","answer":"2"},
-        {"id":16,"type":"syllable","prompt":"How many syllables are in \"computer\"?","answer":"3"},
-        {"id":17,"type":"syllable","prompt":"How many syllables are in \"garden\"?","answer":"2"},
-        {"id":18,"type":"syllable","prompt":"How many syllables are in \"apple\"?","answer":"2"}
+        {"id":1,"type":"syllable","prompt":"How many syllables are in \"helmet\"?","answer":"2"},
+        {"id":2,"type":"syllable","prompt":"How many syllables are in \"napkin\"?","answer":"2"},
+        {"id":3,"type":"syllable","prompt":"How many syllables are in \"together\"?","answer":"3"},
+        {"id":4,"type":"syllable","prompt":"How many syllables are in \"potato\"?","answer":"3"},
+        {"id":5,"type":"syllable","prompt":"How many syllables are in \"music\"?","answer":"2"},
+        {"id":6,"type":"syllable","prompt":"How many syllables are in \"winter\"?","answer":"2"},
+        {"id":7,"type":"syllable","prompt":"How many syllables are in \"piano\"?","answer":"3"},
+        {"id":8,"type":"syllable","prompt":"How many syllables are in \"tomato\"?","answer":"3"},
+        {"id":9,"type":"syllable","prompt":"How many syllables are in \"basket\"?","answer":"2"},
+        {"id":10,"type":"syllable","prompt":"How many syllables are in \"lady\"?","answer":"2"},
+        {"id":11,"type":"syllable","prompt":"How many syllables are in \"pumpkin\"?","answer":"2"},
+        {"id":12,"type":"syllable","prompt":"How many syllables are in \"baby\"?","answer":"2"},
+        {"id":13,"type":"syllable","prompt":"How many syllables are in \"window\"?","answer":"2"},
+        {"id":14,"type":"syllable","prompt":"How many syllables are in \"pencil\"?","answer":"2"},
+        {"id":15,"type":"syllable","prompt":"How many syllables are in \"tiger\"?","answer":"2"},
+        {"id":16,"type":"syllable","prompt":"How many syllables are in \"animal\"?","answer":"3"},
+        {"id":17,"type":"syllable","prompt":"How many syllables are in \"yellow\"?","answer":"3"},
+        {"id":18,"type":"syllable","prompt":"How many syllables are in \"water\"?","answer":"2"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(syllableSpec, g2, seedFrom([2, 'syllable', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"syllable","prompt":"How many syllables are in \"helmet\"?","answer":"2"},
-        {"id":20,"type":"syllable","prompt":"How many syllables are in \"water\"?","answer":"2"},
-        {"id":21,"type":"syllable","prompt":"How many syllables are in \"happy\"?","answer":"2"}
+        {"id":19,"type":"syllable","prompt":"How many syllables are in \"market\"?","answer":"2"},
+        {"id":20,"type":"syllable","prompt":"How many syllables are in \"happy\"?","answer":"2"},
+        {"id":21,"type":"syllable","prompt":"How many syllables are in \"summer\"?","answer":"2"}
 ]);
     });
 

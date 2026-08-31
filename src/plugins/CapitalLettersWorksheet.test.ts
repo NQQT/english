@@ -52,39 +52,39 @@ function checkCapitalisation(grade: GradeConfig) {
 describe('capital — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"capital","prompt":"Write it with a capital letter: dog","answer":"Dog"},
-        {"id":2,"type":"capital","prompt":"Write it with a capital letter: chair","answer":"Chair"},
-        {"id":3,"type":"capital","prompt":"Write it with a capital letter: bread","answer":"Bread"},
-        {"id":4,"type":"capital","prompt":"Write it with a capital letter: chair","answer":"Chair"},
-        {"id":5,"type":"capital","prompt":"Write it with a capital letter: plane","answer":"Plane"},
-        {"id":6,"type":"capital","prompt":"Write it with a capital letter: pen","answer":"Pen"},
-        {"id":7,"type":"capital","prompt":"Write it with a capital letter: pot","answer":"Pot"},
-        {"id":8,"type":"capital","prompt":"Write it with a capital letter: tree","answer":"Tree"},
-        {"id":9,"type":"capital","prompt":"Write it with a capital letter: cat","answer":"Cat"},
-        {"id":10,"type":"capital","prompt":"Write it with a capital letter: cat","answer":"Cat"},
-        {"id":11,"type":"capital","prompt":"Write it with a capital letter: chair","answer":"Chair"},
-        {"id":12,"type":"capital","prompt":"Write it with a capital letter: cat","answer":"Cat"},
-        {"id":13,"type":"capital","prompt":"Write it with a capital letter: net","answer":"Net"},
-        {"id":14,"type":"capital","prompt":"Write it with a capital letter: light","answer":"Light"},
-        {"id":15,"type":"capital","prompt":"Write it with a capital letter: plane","answer":"Plane"},
-        {"id":16,"type":"capital","prompt":"Write it with a capital letter: moon","answer":"Moon"},
-        {"id":17,"type":"capital","prompt":"Write it with a capital letter: sun","answer":"Sun"},
-        {"id":18,"type":"capital","prompt":"Write it with a capital letter: tree","answer":"Tree"},
-        {"id":19,"type":"capital","prompt":"Write it with a capital letter: bag","answer":"Bag"},
-        {"id":20,"type":"capital","prompt":"Write it with a capital letter: cup","answer":"Cup"},
-        {"id":21,"type":"capital","prompt":"Write it with a capital letter: bus","answer":"Bus"},
-        {"id":22,"type":"capital","prompt":"Write it with a capital letter: bread","answer":"Bread"},
-        {"id":23,"type":"capital","prompt":"Write it with a capital letter: chair","answer":"Chair"},
-        {"id":24,"type":"capital","prompt":"Write it with a capital letter: dog","answer":"Dog"}
+        {"id":1,"type":"capital","prompt":"Write it with a capital letter: elf","answer":"Elf"},
+        {"id":2,"type":"capital","prompt":"Write it with a capital letter: they","answer":"They"},
+        {"id":3,"type":"capital","prompt":"Write it with a capital letter: tank","answer":"Tank"},
+        {"id":4,"type":"capital","prompt":"Write it with a capital letter: torn","answer":"Torn"},
+        {"id":5,"type":"capital","prompt":"Write it with a capital letter: pound","answer":"Pound"},
+        {"id":6,"type":"capital","prompt":"Write it with a capital letter: old","answer":"Old"},
+        {"id":7,"type":"capital","prompt":"Write it with a capital letter: keep","answer":"Keep"},
+        {"id":8,"type":"capital","prompt":"Write it with a capital letter: road","answer":"Road"},
+        {"id":9,"type":"capital","prompt":"Write it with a capital letter: bug","answer":"Bug"},
+        {"id":10,"type":"capital","prompt":"Write it with a capital letter: bun","answer":"Bun"},
+        {"id":11,"type":"capital","prompt":"Write it with a capital letter: tent","answer":"Tent"},
+        {"id":12,"type":"capital","prompt":"Write it with a capital letter: car","answer":"Car"},
+        {"id":13,"type":"capital","prompt":"Write it with a capital letter: glow","answer":"Glow"},
+        {"id":14,"type":"capital","prompt":"Write it with a capital letter: wind","answer":"Wind"},
+        {"id":15,"type":"capital","prompt":"Write it with a capital letter: onion","answer":"Onion"},
+        {"id":16,"type":"capital","prompt":"Write it with a capital letter: apple","answer":"Apple"},
+        {"id":17,"type":"capital","prompt":"Write it with a capital letter: hat","answer":"Hat"},
+        {"id":18,"type":"capital","prompt":"Write it with a capital letter: rice","answer":"Rice"},
+        {"id":19,"type":"capital","prompt":"Write it with a capital letter: way","answer":"Way"},
+        {"id":20,"type":"capital","prompt":"Write it with a capital letter: jog","answer":"Jog"},
+        {"id":21,"type":"capital","prompt":"Write it with a capital letter: got","answer":"Got"},
+        {"id":22,"type":"capital","prompt":"Write it with a capital letter: tail","answer":"Tail"},
+        {"id":23,"type":"capital","prompt":"Write it with a capital letter: task","answer":"Task"},
+        {"id":24,"type":"capital","prompt":"Write it with a capital letter: die","answer":"Die"}
 ]);
         checkCapitalisation(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(capitalSpec, g1, seedFrom([1, 'capital', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"capital","prompt":"Write it with a capital letter: bread","answer":"Bread"},
-        {"id":26,"type":"capital","prompt":"Write it with a capital letter: bus","answer":"Bus"},
-        {"id":27,"type":"capital","prompt":"Write it with a capital letter: cup","answer":"Cup"}
+        {"id":25,"type":"capital","prompt":"Write it with a capital letter: swim","answer":"Swim"},
+        {"id":26,"type":"capital","prompt":"Write it with a capital letter: fox","answer":"Fox"},
+        {"id":27,"type":"capital","prompt":"Write it with a capital letter: lab","answer":"Lab"}
 ]);
     });
 });
@@ -92,39 +92,39 @@ describe('capital — Year 1 (tier-2 common word set)', () => {
 describe('capital — Year 2 (tier-3 extended set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"capital","prompt":"Write it with a capital letter: chicken","answer":"Chicken"},
-        {"id":2,"type":"capital","prompt":"Write it with a capital letter: train","answer":"Train"},
-        {"id":3,"type":"capital","prompt":"Write it with a capital letter: tree","answer":"Tree"},
-        {"id":4,"type":"capital","prompt":"Write it with a capital letter: butterfly","answer":"Butterfly"},
-        {"id":5,"type":"capital","prompt":"Write it with a capital letter: green","answer":"Green"},
-        {"id":6,"type":"capital","prompt":"Write it with a capital letter: shirt","answer":"Shirt"},
-        {"id":7,"type":"capital","prompt":"Write it with a capital letter: beautiful","answer":"Beautiful"},
-        {"id":8,"type":"capital","prompt":"Write it with a capital letter: family","answer":"Family"},
-        {"id":9,"type":"capital","prompt":"Write it with a capital letter: teacher","answer":"Teacher"},
-        {"id":10,"type":"capital","prompt":"Write it with a capital letter: log","answer":"Log"},
-        {"id":11,"type":"capital","prompt":"Write it with a capital letter: chocolate","answer":"Chocolate"},
-        {"id":12,"type":"capital","prompt":"Write it with a capital letter: jam","answer":"Jam"},
-        {"id":13,"type":"capital","prompt":"Write it with a capital letter: chair","answer":"Chair"},
-        {"id":14,"type":"capital","prompt":"Write it with a capital letter: red","answer":"Red"},
-        {"id":15,"type":"capital","prompt":"Write it with a capital letter: bag","answer":"Bag"},
-        {"id":16,"type":"capital","prompt":"Write it with a capital letter: jam","answer":"Jam"},
-        {"id":17,"type":"capital","prompt":"Write it with a capital letter: pin","answer":"Pin"},
-        {"id":18,"type":"capital","prompt":"Write it with a capital letter: house","answer":"House"},
-        {"id":19,"type":"capital","prompt":"Write it with a capital letter: water","answer":"Water"},
-        {"id":20,"type":"capital","prompt":"Write it with a capital letter: bird","answer":"Bird"},
-        {"id":21,"type":"capital","prompt":"Write it with a capital letter: tree","answer":"Tree"},
-        {"id":22,"type":"capital","prompt":"Write it with a capital letter: computer","answer":"Computer"},
-        {"id":23,"type":"capital","prompt":"Write it with a capital letter: hat","answer":"Hat"},
-        {"id":24,"type":"capital","prompt":"Write it with a capital letter: train","answer":"Train"}
+        {"id":1,"type":"capital","prompt":"Write it with a capital letter: watch","answer":"Watch"},
+        {"id":2,"type":"capital","prompt":"Write it with a capital letter: seat","answer":"Seat"},
+        {"id":3,"type":"capital","prompt":"Write it with a capital letter: jazz","answer":"Jazz"},
+        {"id":4,"type":"capital","prompt":"Write it with a capital letter: enjoy","answer":"Enjoy"},
+        {"id":5,"type":"capital","prompt":"Write it with a capital letter: nine","answer":"Nine"},
+        {"id":6,"type":"capital","prompt":"Write it with a capital letter: pole","answer":"Pole"},
+        {"id":7,"type":"capital","prompt":"Write it with a capital letter: fruit","answer":"Fruit"},
+        {"id":8,"type":"capital","prompt":"Write it with a capital letter: being","answer":"Being"},
+        {"id":9,"type":"capital","prompt":"Write it with a capital letter: work","answer":"Work"},
+        {"id":10,"type":"capital","prompt":"Write it with a capital letter: was","answer":"Was"},
+        {"id":11,"type":"capital","prompt":"Write it with a capital letter: jelly","answer":"Jelly"},
+        {"id":12,"type":"capital","prompt":"Write it with a capital letter: tag","answer":"Tag"},
+        {"id":13,"type":"capital","prompt":"Write it with a capital letter: luck","answer":"Luck"},
+        {"id":14,"type":"capital","prompt":"Write it with a capital letter: mow","answer":"Mow"},
+        {"id":15,"type":"capital","prompt":"Write it with a capital letter: owe","answer":"Owe"},
+        {"id":16,"type":"capital","prompt":"Write it with a capital letter: tap","answer":"Tap"},
+        {"id":17,"type":"capital","prompt":"Write it with a capital letter: bend","answer":"Bend"},
+        {"id":18,"type":"capital","prompt":"Write it with a capital letter: swam","answer":"Swam"},
+        {"id":19,"type":"capital","prompt":"Write it with a capital letter: lead","answer":"Lead"},
+        {"id":20,"type":"capital","prompt":"Write it with a capital letter: have","answer":"Have"},
+        {"id":21,"type":"capital","prompt":"Write it with a capital letter: idea","answer":"Idea"},
+        {"id":22,"type":"capital","prompt":"Write it with a capital letter: nurse","answer":"Nurse"},
+        {"id":23,"type":"capital","prompt":"Write it with a capital letter: doe","answer":"Doe"},
+        {"id":24,"type":"capital","prompt":"Write it with a capital letter: same","answer":"Same"}
 ]);
         checkCapitalisation(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(capitalSpec, g2, seedFrom([2, 'capital', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"capital","prompt":"Write it with a capital letter: bird","answer":"Bird"},
-        {"id":26,"type":"capital","prompt":"Write it with a capital letter: hat","answer":"Hat"},
-        {"id":27,"type":"capital","prompt":"Write it with a capital letter: log","answer":"Log"}
+        {"id":25,"type":"capital","prompt":"Write it with a capital letter: gray","answer":"Gray"},
+        {"id":26,"type":"capital","prompt":"Write it with a capital letter: dip","answer":"Dip"},
+        {"id":27,"type":"capital","prompt":"Write it with a capital letter: who","answer":"Who"}
 ]);
     });
 

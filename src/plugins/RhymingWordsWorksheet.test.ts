@@ -54,33 +54,33 @@ function checkOptionsContainAnswer(grade: GradeConfig) {
 describe('rhyme — Year 1 (short + tier-2 families)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"rhyme","prompt":"Which word rhymes with \"rat\"? (king, hat, duck)","answer":"hat"},
-        {"id":2,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (rock, tree, man)","answer":"man"},
-        {"id":3,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (door, tree, ten)","answer":"ten"},
-        {"id":4,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (door, duck, man)","answer":"man"},
-        {"id":5,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (got, bird, fish)","answer":"got"},
-        {"id":6,"type":"rhyme","prompt":"Which word rhymes with \"light\"? (star, night, duck)","answer":"night"},
-        {"id":7,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (duck, star, hot)","answer":"hot"},
-        {"id":8,"type":"rhyme","prompt":"Which word rhymes with \"red\"? (fed, bird, king)","answer":"fed"},
-        {"id":9,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (king, bird, man)","answer":"man"},
-        {"id":10,"type":"rhyme","prompt":"Which word rhymes with \"chair\"? (king, hair, tree)","answer":"hair"},
-        {"id":11,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (door, rock, got)","answer":"got"},
-        {"id":12,"type":"rhyme","prompt":"Which word rhymes with \"hat\"? (door, bat, duck)","answer":"bat"},
-        {"id":13,"type":"rhyme","prompt":"Which word rhymes with \"top\"? (fish, hop, king)","answer":"hop"},
-        {"id":14,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (star, ten, king)","answer":"ten"},
-        {"id":15,"type":"rhyme","prompt":"Which word rhymes with \"night\"? (tree, light, bird)","answer":"light"},
-        {"id":16,"type":"rhyme","prompt":"Which word rhymes with \"chair\"? (tree, hair, milk)","answer":"hair"},
-        {"id":17,"type":"rhyme","prompt":"Which word rhymes with \"pig\"? (star, leaf, big)","answer":"big"},
-        {"id":18,"type":"rhyme","prompt":"Which word rhymes with \"cat\"? (hat, fish, duck)","answer":"hat"}
+        {"id":1,"type":"rhyme","prompt":"Which word rhymes with \"rat\"? (fat, leaf, hand)","answer":"fat"},
+        {"id":2,"type":"rhyme","prompt":"Which word rhymes with \"bed\"? (milk, fed, star)","answer":"fed"},
+        {"id":3,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (tin, west, star)","answer":"tin"},
+        {"id":4,"type":"rhyme","prompt":"Which word rhymes with \"light\"? (moon, night, nest)","answer":"night"},
+        {"id":5,"type":"rhyme","prompt":"Which word rhymes with \"hat\"? (bird, bat, spoon)","answer":"bat"},
+        {"id":6,"type":"rhyme","prompt":"Which word rhymes with \"cup\"? (rock, pup, spoon)","answer":"pup"},
+        {"id":7,"type":"rhyme","prompt":"Which word rhymes with \"pig\"? (moon, dig, leaf)","answer":"dig"},
+        {"id":8,"type":"rhyme","prompt":"Which word rhymes with \"red\"? (tree, bed, duck)","answer":"bed"},
+        {"id":9,"type":"rhyme","prompt":"Which word rhymes with \"top\"? (spoon, duck, hop)","answer":"hop"},
+        {"id":10,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (hand, sand, can)","answer":"can"},
+        {"id":11,"type":"rhyme","prompt":"Which word rhymes with \"cat\"? (bat, corn, nest)","answer":"bat"},
+        {"id":12,"type":"rhyme","prompt":"Which word rhymes with \"green\"? (moon, king, clean)","answer":"clean"},
+        {"id":13,"type":"rhyme","prompt":"Which word rhymes with \"night\"? (flight, star, king)","answer":"flight"},
+        {"id":14,"type":"rhyme","prompt":"Which word rhymes with \"dog\"? (cloud, log, tree)","answer":"log"},
+        {"id":15,"type":"rhyme","prompt":"Which word rhymes with \"sun\"? (fun, west, star)","answer":"fun"},
+        {"id":16,"type":"rhyme","prompt":"Which word rhymes with \"chair\"? (bird, hair, duck)","answer":"hair"},
+        {"id":17,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (bird, hen, moon)","answer":"hen"},
+        {"id":18,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (fish, hot, king)","answer":"hot"}
 ]);
         checkOptionsContainAnswer(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(rhymeSpec, g1, seedFrom([1, 'rhyme', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (leaf, cot, rock)","answer":"cot"},
-        {"id":20,"type":"rhyme","prompt":"Which word rhymes with \"night\"? (duck, sight, leaf)","answer":"sight"},
-        {"id":21,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (ten, rock, door)","answer":"ten"}
+        {"id":19,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (west, bin, nest)","answer":"bin"},
+        {"id":20,"type":"rhyme","prompt":"Which word rhymes with \"green\"? (moon, screen, door)","answer":"screen"},
+        {"id":21,"type":"rhyme","prompt":"Which word rhymes with \"light\"? (tree, night, corn)","answer":"night"}
 ]);
     });
 });
@@ -88,33 +88,33 @@ describe('rhyme — Year 1 (short + tier-2 families)', () => {
 describe('rhyme — Year 2 (adds the apple family)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"rhyme","prompt":"Which word rhymes with \"apple\"? (leaf, star, maple)","answer":"maple"},
-        {"id":2,"type":"rhyme","prompt":"Which word rhymes with \"dog\"? (hog, door, duck)","answer":"hog"},
-        {"id":3,"type":"rhyme","prompt":"Which word rhymes with \"dog\"? (hog, leaf, bird)","answer":"hog"},
-        {"id":4,"type":"rhyme","prompt":"Which word rhymes with \"pig\"? (fish, rock, wig)","answer":"wig"},
-        {"id":5,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (rock, king, cot)","answer":"cot"},
-        {"id":6,"type":"rhyme","prompt":"Which word rhymes with \"dog\"? (leaf, log, king)","answer":"log"},
-        {"id":7,"type":"rhyme","prompt":"Which word rhymes with \"top\"? (lop, star, milk)","answer":"lop"},
-        {"id":8,"type":"rhyme","prompt":"Which word rhymes with \"rat\"? (bird, leaf, cat)","answer":"cat"},
-        {"id":9,"type":"rhyme","prompt":"Which word rhymes with \"sun\"? (star, bird, run)","answer":"run"},
-        {"id":10,"type":"rhyme","prompt":"Which word rhymes with \"red\"? (tree, duck, led)","answer":"led"},
-        {"id":11,"type":"rhyme","prompt":"Which word rhymes with \"rat\"? (mat, duck, rock)","answer":"mat"},
-        {"id":12,"type":"rhyme","prompt":"Which word rhymes with \"chair\"? (door, pair, rock)","answer":"pair"},
-        {"id":13,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (fish, door, pan)","answer":"pan"},
-        {"id":14,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (rock, tin, tree)","answer":"tin"},
-        {"id":15,"type":"rhyme","prompt":"Which word rhymes with \"cat\"? (mat, duck, milk)","answer":"mat"},
-        {"id":16,"type":"rhyme","prompt":"Which word rhymes with \"green\"? (mean, tree, door)","answer":"mean"},
-        {"id":17,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (duck, bin, rock)","answer":"bin"},
-        {"id":18,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (leaf, duck, hen)","answer":"hen"}
+        {"id":1,"type":"rhyme","prompt":"Which word rhymes with \"apple\"? (gift, west, happy)","answer":"happy"},
+        {"id":2,"type":"rhyme","prompt":"Which word rhymes with \"chair\"? (hand, pair, gift)","answer":"pair"},
+        {"id":3,"type":"rhyme","prompt":"Which word rhymes with \"rat\"? (tree, leaf, fat)","answer":"fat"},
+        {"id":4,"type":"rhyme","prompt":"Which word rhymes with \"fan\"? (can, door, sand)","answer":"can"},
+        {"id":5,"type":"rhyme","prompt":"Which word rhymes with \"pen\"? (hen, sand, rock)","answer":"hen"},
+        {"id":6,"type":"rhyme","prompt":"Which word rhymes with \"night\"? (star, gift, light)","answer":"light"},
+        {"id":7,"type":"rhyme","prompt":"Which word rhymes with \"dog\"? (star, log, west)","answer":"log"},
+        {"id":8,"type":"rhyme","prompt":"Which word rhymes with \"green\"? (hand, moon, screen)","answer":"screen"},
+        {"id":9,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (tin, corn, leaf)","answer":"tin"},
+        {"id":10,"type":"rhyme","prompt":"Which word rhymes with \"bed\"? (fed, spoon, leaf)","answer":"fed"},
+        {"id":11,"type":"rhyme","prompt":"Which word rhymes with \"red\"? (hand, rock, led)","answer":"led"},
+        {"id":12,"type":"rhyme","prompt":"Which word rhymes with \"hat\"? (fish, spoon, cat)","answer":"cat"},
+        {"id":13,"type":"rhyme","prompt":"Which word rhymes with \"cat\"? (west, star, bat)","answer":"bat"},
+        {"id":14,"type":"rhyme","prompt":"Which word rhymes with \"pig\"? (big, cloud, fish)","answer":"big"},
+        {"id":15,"type":"rhyme","prompt":"Which word rhymes with \"pot\"? (cot, west, moon)","answer":"cot"},
+        {"id":16,"type":"rhyme","prompt":"Which word rhymes with \"cup\"? (up, sand, hand)","answer":"up"},
+        {"id":17,"type":"rhyme","prompt":"Which word rhymes with \"light\"? (spoon, flight, nest)","answer":"flight"},
+        {"id":18,"type":"rhyme","prompt":"Which word rhymes with \"sun\"? (cloud, gift, fun)","answer":"fun"}
 ]);
         checkOptionsContainAnswer(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(rhymeSpec, g2, seedFrom([2, 'rhyme', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"rhyme","prompt":"Which word rhymes with \"night\"? (fish, sight, leaf)","answer":"sight"},
-        {"id":20,"type":"rhyme","prompt":"Which word rhymes with \"apple\"? (door, star, maple)","answer":"maple"},
-        {"id":21,"type":"rhyme","prompt":"Which word rhymes with \"pin\"? (star, fin, door)","answer":"fin"}
+        {"id":19,"type":"rhyme","prompt":"Which word rhymes with \"top\"? (cloud, moon, lop)","answer":"lop"},
+        {"id":20,"type":"rhyme","prompt":"Which word rhymes with \"cup\"? (bird, nest, up)","answer":"up"},
+        {"id":21,"type":"rhyme","prompt":"Which word rhymes with \"green\"? (west, door, mean)","answer":"mean"}
 ]);
     });
 

@@ -62,39 +62,39 @@ function checkReconstitutes(grade: GradeConfig) {
 describe('blend — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"blend","prompt":"Finish the word: l e __","answer":"leg"},
-        {"id":2,"type":"blend","prompt":"What word is: h o u s e?","answer":"house"},
-        {"id":3,"type":"blend","prompt":"Finish the word: c u __","answer":"cup"},
-        {"id":4,"type":"blend","prompt":"What word is: r e d?","answer":"red"},
-        {"id":5,"type":"blend","prompt":"Finish the word: t o __","answer":"top"},
-        {"id":6,"type":"blend","prompt":"Finish the word: t r a i __","answer":"train"},
-        {"id":7,"type":"blend","prompt":"Finish the word: s u __","answer":"sun"},
-        {"id":8,"type":"blend","prompt":"Finish the word: __ a t e r","answer":"water"},
-        {"id":9,"type":"blend","prompt":"What word is: f a n?","answer":"fan"},
-        {"id":10,"type":"blend","prompt":"What word is: n i g h t?","answer":"night"},
-        {"id":11,"type":"blend","prompt":"What word is: m o o n?","answer":"moon"},
-        {"id":12,"type":"blend","prompt":"What word is: c a t?","answer":"cat"},
-        {"id":13,"type":"blend","prompt":"What word is: b u s?","answer":"bus"},
-        {"id":14,"type":"blend","prompt":"What word is: w a t e r?","answer":"water"},
-        {"id":15,"type":"blend","prompt":"What word is: b i r d?","answer":"bird"},
-        {"id":16,"type":"blend","prompt":"Finish the word: g r e e __","answer":"green"},
-        {"id":17,"type":"blend","prompt":"Finish the word: b o __","answer":"box"},
-        {"id":18,"type":"blend","prompt":"Finish the word: __ h i r t","answer":"shirt"},
-        {"id":19,"type":"blend","prompt":"Finish the word: t o __","answer":"top"},
-        {"id":20,"type":"blend","prompt":"Finish the word: p i __","answer":"pig"},
-        {"id":21,"type":"blend","prompt":"Finish the word: w i __","answer":"wig"},
-        {"id":22,"type":"blend","prompt":"What word is: n e t?","answer":"net"},
-        {"id":23,"type":"blend","prompt":"What word is: p o t?","answer":"pot"},
-        {"id":24,"type":"blend","prompt":"Finish the word: h o u s __","answer":"house"}
+        {"id":1,"type":"blend","prompt":"Finish the word: __ e g","answer":"leg"},
+        {"id":2,"type":"blend","prompt":"What word is: l e m o n?","answer":"lemon"},
+        {"id":3,"type":"blend","prompt":"Finish the word: p l a __ e","answer":"plane"},
+        {"id":4,"type":"blend","prompt":"Finish the word: r e __","answer":"red"},
+        {"id":5,"type":"blend","prompt":"What word is: h a t?","answer":"hat"},
+        {"id":6,"type":"blend","prompt":"Finish the word: t i __ e r","answer":"tiger"},
+        {"id":7,"type":"blend","prompt":"Finish the word: p i __","answer":"pig"},
+        {"id":8,"type":"blend","prompt":"Finish the word: p e __","answer":"pen"},
+        {"id":9,"type":"blend","prompt":"What word is: w a t e r?","answer":"water"},
+        {"id":10,"type":"blend","prompt":"What word is: s h i r t?","answer":"shirt"},
+        {"id":11,"type":"blend","prompt":"Finish the word: a p p l __","answer":"apple"},
+        {"id":12,"type":"blend","prompt":"What word is: s u n?","answer":"sun"},
+        {"id":13,"type":"blend","prompt":"Finish the word: __ h a i r","answer":"chair"},
+        {"id":14,"type":"blend","prompt":"What word is: p o t?","answer":"pot"},
+        {"id":15,"type":"blend","prompt":"What word is: n e t?","answer":"net"},
+        {"id":16,"type":"blend","prompt":"Finish the word: t r __ i n","answer":"train"},
+        {"id":17,"type":"blend","prompt":"What word is: g r e e n?","answer":"green"},
+        {"id":18,"type":"blend","prompt":"Finish the word: __ r e a d","answer":"bread"},
+        {"id":19,"type":"blend","prompt":"Finish the word: g r a s __","answer":"grass"},
+        {"id":20,"type":"blend","prompt":"What word is: m o o n?","answer":"moon"},
+        {"id":21,"type":"blend","prompt":"Finish the word: t r e __","answer":"tree"},
+        {"id":22,"type":"blend","prompt":"What word is: w i g?","answer":"wig"},
+        {"id":23,"type":"blend","prompt":"Finish the word: __ o g","answer":"dog"},
+        {"id":24,"type":"blend","prompt":"Finish the word: c a __","answer":"cat"}
 ]);
         checkReconstitutes(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(blendSpec, g1, seedFrom([1, 'blend', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"blend","prompt":"What word is: c h a i r?","answer":"chair"},
-        {"id":26,"type":"blend","prompt":"Finish the word: __ i g e r","answer":"tiger"},
-        {"id":27,"type":"blend","prompt":"Finish the word: __ r e e n","answer":"green"}
+        {"id":25,"type":"blend","prompt":"Finish the word: t __ p","answer":"top"},
+        {"id":26,"type":"blend","prompt":"Finish the word: __ a g","answer":"bag"},
+        {"id":27,"type":"blend","prompt":"What word is: f i s h?","answer":"fish"}
 ]);
     });
 });
@@ -103,38 +103,38 @@ describe('blend — Year 2 (tier-3 extended set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
         {"id":1,"type":"blend","prompt":"What word is: l e m o n?","answer":"lemon"},
-        {"id":2,"type":"blend","prompt":"What word is: w a t e r?","answer":"water"},
-        {"id":3,"type":"blend","prompt":"Finish the word: __ a n","answer":"fan"},
-        {"id":4,"type":"blend","prompt":"Finish the word: s u __","answer":"sun"},
-        {"id":5,"type":"blend","prompt":"Finish the word: __ r e e n","answer":"green"},
-        {"id":6,"type":"blend","prompt":"What word is: a p p l e?","answer":"apple"},
-        {"id":7,"type":"blend","prompt":"What word is: b a g?","answer":"bag"},
-        {"id":8,"type":"blend","prompt":"What word is: b a n a n a?","answer":"banana"},
-        {"id":9,"type":"blend","prompt":"Finish the word: __ i g e r","answer":"tiger"},
-        {"id":10,"type":"blend","prompt":"Finish the word: __ a b l e","answer":"table"},
-        {"id":11,"type":"blend","prompt":"Finish the word: b u t t o __","answer":"button"},
-        {"id":12,"type":"blend","prompt":"Finish the word: __ i n","answer":"pin"},
-        {"id":13,"type":"blend","prompt":"Finish the word: __ i s h","answer":"fish"},
-        {"id":14,"type":"blend","prompt":"What word is: p i n?","answer":"pin"},
-        {"id":15,"type":"blend","prompt":"Finish the word: m o o __","answer":"moon"},
-        {"id":16,"type":"blend","prompt":"Finish the word: __ r a i n","answer":"train"},
-        {"id":17,"type":"blend","prompt":"Finish the word: b a __","answer":"bag"},
-        {"id":18,"type":"blend","prompt":"Finish the word: __ o g","answer":"log"},
-        {"id":19,"type":"blend","prompt":"Finish the word: __ o p","answer":"top"},
-        {"id":20,"type":"blend","prompt":"Finish the word: t i g e __","answer":"tiger"},
-        {"id":21,"type":"blend","prompt":"What word is: c u p?","answer":"cup"},
-        {"id":22,"type":"blend","prompt":"Finish the word: __ a m i l y","answer":"family"},
-        {"id":23,"type":"blend","prompt":"What word is: c u p?","answer":"cup"},
-        {"id":24,"type":"blend","prompt":"What word is: r a t?","answer":"rat"}
+        {"id":2,"type":"blend","prompt":"Finish the word: p i __","answer":"pig"},
+        {"id":3,"type":"blend","prompt":"Finish the word: a p __ l e","answer":"apple"},
+        {"id":4,"type":"blend","prompt":"Finish the word: c a __","answer":"cat"},
+        {"id":5,"type":"blend","prompt":"What word is: b o x?","answer":"box"},
+        {"id":6,"type":"blend","prompt":"What word is: w i n d o w?","answer":"window"},
+        {"id":7,"type":"blend","prompt":"What word is: s u n?","answer":"sun"},
+        {"id":8,"type":"blend","prompt":"Finish the word: __ r a s s","answer":"grass"},
+        {"id":9,"type":"blend","prompt":"Finish the word: __ r e e","answer":"tree"},
+        {"id":10,"type":"blend","prompt":"Finish the word: b u __ t o n","answer":"button"},
+        {"id":11,"type":"blend","prompt":"Finish the word: __ i p","answer":"sip"},
+        {"id":12,"type":"blend","prompt":"What word is: r a b b i t?","answer":"rabbit"},
+        {"id":13,"type":"blend","prompt":"Finish the word: g a r __ e n","answer":"garden"},
+        {"id":14,"type":"blend","prompt":"Finish the word: p l a n __","answer":"plane"},
+        {"id":15,"type":"blend","prompt":"What word is: n i g h t?","answer":"night"},
+        {"id":16,"type":"blend","prompt":"What word is: m a p?","answer":"map"},
+        {"id":17,"type":"blend","prompt":"Finish the word: __ i s h","answer":"fish"},
+        {"id":18,"type":"blend","prompt":"What word is: n e t?","answer":"net"},
+        {"id":19,"type":"blend","prompt":"Finish the word: t o __","answer":"top"},
+        {"id":20,"type":"blend","prompt":"What word is: l o g?","answer":"log"},
+        {"id":21,"type":"blend","prompt":"Finish the word: __ r e a d","answer":"bread"},
+        {"id":22,"type":"blend","prompt":"Finish the word: s c h o o __","answer":"school"},
+        {"id":23,"type":"blend","prompt":"Finish the word: b __ d","answer":"bed"},
+        {"id":24,"type":"blend","prompt":"Finish the word: __ i n","answer":"pin"}
 ]);
         checkReconstitutes(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(blendSpec, g2, seedFrom([2, 'blend', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"blend","prompt":"What word is: b u s?","answer":"bus"},
-        {"id":26,"type":"blend","prompt":"Finish the word: __ u n","answer":"sun"},
-        {"id":27,"type":"blend","prompt":"Finish the word: __ i n d o w","answer":"window"}
+        {"id":25,"type":"blend","prompt":"Finish the word: f a __ i l y","answer":"family"},
+        {"id":26,"type":"blend","prompt":"What word is: f a n?","answer":"fan"},
+        {"id":27,"type":"blend","prompt":"What word is: t r a i n?","answer":"train"}
 ]);
     });
 

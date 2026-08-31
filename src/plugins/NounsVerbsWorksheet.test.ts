@@ -43,38 +43,38 @@ describe('grammar plugin — declarative spec', () => {
 describe('grammar — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"grammar","prompt":"Is the word \"sleep\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":2,"type":"grammar","prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":3,"type":"grammar","prompt":"Is the word \"sleep\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":4,"type":"grammar","prompt":"Is the word \"apple\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":5,"type":"grammar","prompt":"Is the word \"apple\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":6,"type":"grammar","prompt":"Is the word \"eat\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":7,"type":"grammar","prompt":"Is the word \"run\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":8,"type":"grammar","prompt":"Is the word \"eat\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":9,"type":"grammar","prompt":"Is the word \"dog\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":10,"type":"grammar","prompt":"Is the word \"tree\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":11,"type":"grammar","prompt":"Is the word \"sing\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":12,"type":"grammar","prompt":"Is the word \"cat\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":13,"type":"grammar","prompt":"Is the word \"ball\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":14,"type":"grammar","prompt":"Is the word \"house\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":15,"type":"grammar","prompt":"Is the word \"sing\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":16,"type":"grammar","prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":17,"type":"grammar","prompt":"Is the word \"read\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":18,"type":"grammar","prompt":"Is the word \"sleep\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":19,"type":"grammar","prompt":"Is the word \"read\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":20,"type":"grammar","prompt":"Is the word \"run\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":21,"type":"grammar","prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":22,"type":"grammar","prompt":"Is the word \"tree\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":23,"type":"grammar","prompt":"Is the word \"jump\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":24,"type":"grammar","prompt":"Is the word \"run\" a noun (thing) or a verb (action)?","answer":"verb"}
+        {"id":1,"type":"grammar","prompt":"Is the word \"sing\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":2,"type":"grammar","prompt":"Is the word \"button\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":3,"type":"grammar","prompt":"Is the word \"write\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":4,"type":"grammar","prompt":"Is the word \"fly\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":5,"type":"grammar","prompt":"Is the word \"garden\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":6,"type":"grammar","prompt":"Is the word \"window\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":7,"type":"grammar","prompt":"Is the word \"grass\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":8,"type":"grammar","prompt":"Is the word \"play\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":9,"type":"grammar","prompt":"Is the word \"plane\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":10,"type":"grammar","prompt":"Is the word \"walk\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":11,"type":"grammar","prompt":"Is the word \"wash\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":12,"type":"grammar","prompt":"Is the word \"chair\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":13,"type":"grammar","prompt":"Is the word \"rabbit\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":14,"type":"grammar","prompt":"Is the word \"cat\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":15,"type":"grammar","prompt":"Is the word \"drive\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":16,"type":"grammar","prompt":"Is the word \"dog\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":17,"type":"grammar","prompt":"Is the word \"school\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":18,"type":"grammar","prompt":"Is the word \"clap\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":19,"type":"grammar","prompt":"Is the word \"fish\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":20,"type":"grammar","prompt":"Is the word \"house\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":21,"type":"grammar","prompt":"Is the word \"drink\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":22,"type":"grammar","prompt":"Is the word \"tiger\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":23,"type":"grammar","prompt":"Is the word \"apple\" a noun (thing) or a verb (action)?","answer":"noun"},
+        {"id":24,"type":"grammar","prompt":"Is the word \"book\" a noun (thing) or a verb (action)?","answer":"noun"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(grammarSpec, g2, seedFrom([2, 'grammar', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"grammar","prompt":"Is the word \"sing\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":26,"type":"grammar","prompt":"Is the word \"house\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":27,"type":"grammar","prompt":"Is the word \"eat\" a noun (thing) or a verb (action)?","answer":"verb"}
+        {"id":25,"type":"grammar","prompt":"Is the word \"sleep\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":26,"type":"grammar","prompt":"Is the word \"run\" a noun (thing) or a verb (action)?","answer":"verb"},
+        {"id":27,"type":"grammar","prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb"}
 ]);
     });
 

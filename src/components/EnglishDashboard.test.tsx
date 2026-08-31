@@ -100,7 +100,7 @@ function randomizeButton() {
 // prompt text (blank "__" spans render as empty fill-in lines, so their
 // underscores never appear in textContent). The concatenation is exact —
 // e.g. row 1 of the default Year 1 sight sheet reads
-// "1.Which is a real word? (raa, housa, table, sia)" — and each row's id
+// "1.Which is a real word? (jaa, table, boa, mooa)" — and each row's id
 // prefix makes it uniquely addressable inside a page's text.
 function text(el: Element | null | undefined) {
     return el?.textContent ?? '';
@@ -110,17 +110,17 @@ function text(el: Element | null | undefined) {
 //   Year 1 sight — page 1 rows 1..2, page 2 head (id 19), page 3 head (id 37)
 //   Year 2 sight — page 1 row 1   |  Prep sight — page 1 row 1
 //   Randomize streams: refresh 1 rows 1..2, refresh 2 rows 1..2
-const g1sightRow1 = '1.Which is a real word? (raa, housa, table, sia)';
-const g1sightRow2 = '2.Which is a real word? (traia, sia, map, bea)';
-const g1sightP2row1 = '19.Which is a real word? (watea, chaia, appla, rat)';
-const g1sightP3row1 = '37.Which is a real word? (plane, appla, loa, raa)';
-const g1sightP2prompt = 'Which is a real word? (watea, chaia, appla, rat)';
-const g2sightRow1 = '1.Which is a real word? (butterfly, trea, beautifua, ligha)';
-const g0sightRow1 = '1.Which is a real word? (wia, rea, pig, faa)';
-const r1sightRow1 = '1.Which is a real word? (pig, shira, haa, maa)';
-const r1sightRow2 = '2.Which is a real word? (plana, appla, trea, rat)';
-const r2sightRow1 = '1.Which is a real word? (housa, rat, wia, traia)';
-const r2sightRow2 = '2.Which is a real word? (bua, haa, ligha, pig)';
+const g1sightRow1 = '1.Which is a real word? (jaa, table, boa, mooa)';
+const g1sightRow2 = '2.Which is a real word? (pia, housa, rat, shira)';
+const g1sightP2row1 = '19.Which is a real word? (bira, caa, cua, purple)';
+const g1sightP3row1 = '37.Which is a real word? (doa, trea, top, plana)';
+const g1sightP2prompt = 'Which is a real word? (bira, caa, cua, purple)';
+const g2sightRow1 = '1.Which is a real word? (chickea, doa, butterfly, housa)';
+const g0sightRow1 = '1.Which is a real word? (doa, pig, mooa, jaa)';
+const r1sightRow1 = '1.Which is a real word? (trea, raa, boa, pig)';
+const r1sightRow2 = '2.Which is a real word? (night, rabbia, lea, nigha)';
+const r2sightRow1 = '1.Which is a real word? (rat, boa, lea, trea)';
+const r2sightRow2 = '2.Which is a real word? (caa, poa, faa, grass)';
 // Pinned PREP TRACING rows (fixed ordered sheets — no seed involved, see the
 // tracing plugin tests): a trace row's visible text is the id + solid model +
 // faded copies concatenated WITHOUT separator spaces between elements, e.g.
@@ -203,8 +203,11 @@ describe('EnglishDashboard — english type selection (left)', () => {
             await screen.findByRole('button', { name: 'Blending' }, { timeout: LOAD_TIMEOUT })
         );
 
-        // Preview now reflects the (Year 1, Blending) sheet.
-        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word: l e');
+        // Preview now reflects the (Year 1, Blending) sheet. Row 1 is
+        // "Finish the word: __ e g" — the LEADING blank renders as an empty
+        // fill-in span (no underscores in text), so the raw text is
+        // "…word: " + blank + " e g" = a double space before "e g".
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word:  e g');
         // Toolbar title updates to the new type (+ pinned tier-2 scope label).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Blending');
     });
@@ -215,10 +218,10 @@ describe('EnglishDashboard — english type selection (left)', () => {
             await screen.findByRole('button', { name: 'Sentence Building' }, { timeout: LOAD_TIMEOUT })
         );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
-        // Year 1 sentence, row 1 (pins: shown scramble "(reads, Ben)", the
+        // Year 1 sentence, row 1 (pins: shown scramble "(skips, Sue)", the
         // blanks print as empty fill-in lines).
         expect(pageText).toContain('1.Put the words in the correct order');
-        expect(pageText).toContain('(reads, Ben)');
+        expect(pageText).toContain('(skips, Sue)');
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Sentence Building');
     });
 
@@ -228,9 +231,9 @@ describe('EnglishDashboard — english type selection (left)', () => {
             await screen.findByRole('button', { name: 'Rhyming Words' }, { timeout: LOAD_TIMEOUT })
         );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
-        // Year 1 rhyme, row 1 (pin: base "rat", options king/hat/duck).
+        // Year 1 rhyme, row 1 (pin: base "rat", options fat/leaf/hand).
         expect(pageText).toContain('1.Which word rhymes with "rat"?');
-        expect(pageText).toContain('(king, hat, duck)');
+        expect(pageText).toContain('(fat, leaf, hand)');
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Rhyming Words');
     });
 
@@ -246,10 +249,10 @@ describe('EnglishDashboard — english type selection (left)', () => {
         );
 
         // Pick it; the sheet matches the pinned Year 2 tense stream (row 1
-        // base verb "take" -> "took").
+        // base verb "point" -> "pointed").
         fireEvent.click(pastTense);
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 2 — Past Tense');
-        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.What is the past tense of "take"?');
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.What is the past tense of "point"?');
     });
 });
 

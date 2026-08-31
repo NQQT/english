@@ -43,38 +43,38 @@ describe('punct plugin — declarative spec', () => {
 describe('punct — Year 1', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"punct","prompt":"Add the right punctuation: We won the game __","answer":"!"},
-        {"id":2,"type":"punct","prompt":"Add the right punctuation: What a big dog __","answer":"!"},
-        {"id":3,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
-        {"id":4,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":5,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"},
+        {"id":1,"type":"punct","prompt":"Add the right punctuation: What a great idea __","answer":"!"},
+        {"id":2,"type":"punct","prompt":"Add the right punctuation: I love this book __","answer":"!"},
+        {"id":3,"type":"punct","prompt":"Add the right punctuation: My friend is here __","answer":"."},
+        {"id":4,"type":"punct","prompt":"Add the right punctuation: Do you have the cat __","answer":"?"},
+        {"id":5,"type":"punct","prompt":"Add the right punctuation: The cat likes school __","answer":"."},
         {"id":6,"type":"punct","prompt":"Add the right punctuation: The cat is sleeping __","answer":"."},
-        {"id":7,"type":"punct","prompt":"Add the right punctuation: What is your name __","answer":"?"},
-        {"id":8,"type":"punct","prompt":"Add the right punctuation: The cat is sleeping __","answer":"."},
-        {"id":9,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"},
-        {"id":10,"type":"punct","prompt":"Add the right punctuation: We won the game __","answer":"!"},
-        {"id":11,"type":"punct","prompt":"Add the right punctuation: We won the game __","answer":"!"},
-        {"id":12,"type":"punct","prompt":"Add the right punctuation: Where is the dog __","answer":"?"},
-        {"id":13,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"},
-        {"id":14,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
-        {"id":15,"type":"punct","prompt":"Add the right punctuation: We eat lunch __","answer":"."},
-        {"id":16,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"},
-        {"id":17,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"},
-        {"id":18,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"},
-        {"id":19,"type":"punct","prompt":"Add the right punctuation: What is your name __","answer":"?"},
-        {"id":20,"type":"punct","prompt":"Add the right punctuation: What a big dog __","answer":"!"},
-        {"id":21,"type":"punct","prompt":"Add the right punctuation: Mia has a red hat __","answer":"."},
-        {"id":22,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"},
-        {"id":23,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"},
-        {"id":24,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"}
+        {"id":7,"type":"punct","prompt":"Add the right punctuation: Can you see the milk __","answer":"?"},
+        {"id":8,"type":"punct","prompt":"Add the right punctuation: I am so hungry __","answer":"!"},
+        {"id":9,"type":"punct","prompt":"Add the right punctuation: The teacher found the ball __","answer":"."},
+        {"id":10,"type":"punct","prompt":"Add the right punctuation: The bird is sleeping __","answer":"."},
+        {"id":11,"type":"punct","prompt":"Add the right punctuation: Can you see your book __","answer":"?"},
+        {"id":12,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
+        {"id":13,"type":"punct","prompt":"Add the right punctuation: Do you have your book __","answer":"?"},
+        {"id":14,"type":"punct","prompt":"Add the right punctuation: Do you have a pencil __","answer":"?"},
+        {"id":15,"type":"punct","prompt":"Add the right punctuation: The boy likes school __","answer":"."},
+        {"id":16,"type":"punct","prompt":"Add the right punctuation: Who is a bird __","answer":"?"},
+        {"id":17,"type":"punct","prompt":"Add the right punctuation: The bird sings loudly __","answer":"."},
+        {"id":18,"type":"punct","prompt":"Add the right punctuation: Do you have my hat __","answer":"?"},
+        {"id":19,"type":"punct","prompt":"Add the right punctuation: We won the game __","answer":"!"},
+        {"id":20,"type":"punct","prompt":"Add the right punctuation: Can you see the dog __","answer":"?"},
+        {"id":21,"type":"punct","prompt":"Add the right punctuation: My dad is hungry __","answer":"."},
+        {"id":22,"type":"punct","prompt":"Add the right punctuation: Who is your book __","answer":"?"},
+        {"id":23,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
+        {"id":24,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(punctSpec, g1, seedFrom([1, 'punct', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"punct","prompt":"Add the right punctuation: The cat is sleeping __","answer":"."},
-        {"id":26,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":27,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"}
+        {"id":25,"type":"punct","prompt":"Add the right punctuation: The dog is here __","answer":"."},
+        {"id":26,"type":"punct","prompt":"Add the right punctuation: The boy found the ball __","answer":"."},
+        {"id":27,"type":"punct","prompt":"Add the right punctuation: We did it __","answer":"!"}
 ]);
     });
 });
@@ -82,38 +82,38 @@ describe('punct — Year 1', () => {
 describe('punct — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":2,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"},
-        {"id":3,"type":"punct","prompt":"Add the right punctuation: What is your name __","answer":"?"},
-        {"id":4,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"},
-        {"id":5,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":6,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"},
-        {"id":7,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":8,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
-        {"id":9,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"},
-        {"id":10,"type":"punct","prompt":"Add the right punctuation: The sun is up __","answer":"."},
-        {"id":11,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"},
-        {"id":12,"type":"punct","prompt":"Add the right punctuation: What a big dog __","answer":"!"},
-        {"id":13,"type":"punct","prompt":"Add the right punctuation: The sun is up __","answer":"."},
-        {"id":14,"type":"punct","prompt":"Add the right punctuation: The cat is sleeping __","answer":"."},
-        {"id":15,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
-        {"id":16,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":17,"type":"punct","prompt":"Add the right punctuation: The sun is up __","answer":"."},
-        {"id":18,"type":"punct","prompt":"Add the right punctuation: I love ice cream __","answer":"!"},
-        {"id":19,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"},
-        {"id":20,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
-        {"id":21,"type":"punct","prompt":"Add the right punctuation: We eat lunch __","answer":"."},
-        {"id":22,"type":"punct","prompt":"Add the right punctuation: I like school __","answer":"."},
-        {"id":23,"type":"punct","prompt":"Add the right punctuation: Mia has a red hat __","answer":"."},
-        {"id":24,"type":"punct","prompt":"Add the right punctuation: Why is the sky blue __","answer":"?"}
+        {"id":1,"type":"punct","prompt":"Add the right punctuation: Look at the moon __","answer":"!"},
+        {"id":2,"type":"punct","prompt":"Add the right punctuation: Look at that bird __","answer":"!"},
+        {"id":3,"type":"punct","prompt":"Add the right punctuation: Who is your book __","answer":"?"},
+        {"id":4,"type":"punct","prompt":"Add the right punctuation: Can you see the ball __","answer":"?"},
+        {"id":5,"type":"punct","prompt":"Add the right punctuation: The bird is hungry __","answer":"."},
+        {"id":6,"type":"punct","prompt":"Add the right punctuation: Can you see the milk __","answer":"?"},
+        {"id":7,"type":"punct","prompt":"Add the right punctuation: I love this book __","answer":"!"},
+        {"id":8,"type":"punct","prompt":"Add the right punctuation: The baby is sleeping __","answer":"."},
+        {"id":9,"type":"punct","prompt":"Add the right punctuation: The cat is here __","answer":"."},
+        {"id":10,"type":"punct","prompt":"Add the right punctuation: What a sunny day __","answer":"!"},
+        {"id":11,"type":"punct","prompt":"Add the right punctuation: The baby found the ball __","answer":"."},
+        {"id":12,"type":"punct","prompt":"Add the right punctuation: We did it __","answer":"!"},
+        {"id":13,"type":"punct","prompt":"Add the right punctuation: The teacher is sleeping __","answer":"."},
+        {"id":14,"type":"punct","prompt":"Add the right punctuation: The cat found the ball __","answer":"."},
+        {"id":15,"type":"punct","prompt":"Add the right punctuation: Do you have the cat __","answer":"?"},
+        {"id":16,"type":"punct","prompt":"Add the right punctuation: Do you have the milk __","answer":"?"},
+        {"id":17,"type":"punct","prompt":"Add the right punctuation: The dog is happy __","answer":"."},
+        {"id":18,"type":"punct","prompt":"Add the right punctuation: My dad is sleeping __","answer":"."},
+        {"id":19,"type":"punct","prompt":"Add the right punctuation: What a big dog __","answer":"!"},
+        {"id":20,"type":"punct","prompt":"Add the right punctuation: Who is the ball __","answer":"?"},
+        {"id":21,"type":"punct","prompt":"Add the right punctuation: Do you have a bird __","answer":"?"},
+        {"id":22,"type":"punct","prompt":"Add the right punctuation: Where is my hat __","answer":"?"},
+        {"id":23,"type":"punct","prompt":"Add the right punctuation: Do you have your book __","answer":"?"},
+        {"id":24,"type":"punct","prompt":"Add the right punctuation: The bird runs fast __","answer":"."}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(punctSpec, g2, seedFrom([2, 'punct', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"punct","prompt":"Add the right punctuation: We eat lunch __","answer":"."},
-        {"id":26,"type":"punct","prompt":"Add the right punctuation: We won the game __","answer":"!"},
-        {"id":27,"type":"punct","prompt":"Add the right punctuation: Who is that girl __","answer":"?"}
+        {"id":25,"type":"punct","prompt":"Add the right punctuation: Do you have the ball __","answer":"?"},
+        {"id":26,"type":"punct","prompt":"Add the right punctuation: Where is a bird __","answer":"?"},
+        {"id":27,"type":"punct","prompt":"Add the right punctuation: Can you see my hat __","answer":"?"}
 ]);
     });
 

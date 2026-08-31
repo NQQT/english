@@ -330,7 +330,7 @@ describe('the real worksheet plugins — register through the same pipeline', ()
         // renders the Year 1 sight preview (pinned first row, see
         // SightWordsWorksheet.test.ts).
         expect(screen.getByTestId('sheet-preview-page1').textContent).toContain(
-            '1.Which is a real word? (raa, housa, table, sia)'
+            '1.Which is a real word? (jaa, table, boa, mooa)'
         );
     });
 

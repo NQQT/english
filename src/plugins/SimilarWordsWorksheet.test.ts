@@ -53,33 +53,33 @@ function checkOptionsContainAnswer(grade: GradeConfig) {
 describe('similar — Year 1 (base quadruples)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"similar","prompt":"Which word means the same as \"cold\"? (hot, warm, chilly)","answer":"chilly"},
-        {"id":2,"type":"similar","prompt":"Which word means the same as \"big\"? (large, new, small)","answer":"large"},
-        {"id":3,"type":"similar","prompt":"Which word means the same as \"big\"? (new, large, small)","answer":"large"},
-        {"id":4,"type":"similar","prompt":"Which word means the same as \"hot\"? (cool, cold, warm)","answer":"warm"},
-        {"id":5,"type":"similar","prompt":"Which word means the same as \"small\"? (big, tiny, new)","answer":"tiny"},
-        {"id":6,"type":"similar","prompt":"Which word means the same as \"sad\"? (tired, unhappy, happy)","answer":"unhappy"},
-        {"id":7,"type":"similar","prompt":"Which word means the same as \"happy\"? (sad, angry, glad)","answer":"glad"},
-        {"id":8,"type":"similar","prompt":"Which word means the same as \"big\"? (large, new, small)","answer":"large"},
-        {"id":9,"type":"similar","prompt":"Which word means the same as \"fast\"? (cold, quick, slow)","answer":"quick"},
-        {"id":10,"type":"similar","prompt":"Which word means the same as \"hot\"? (cool, cold, warm)","answer":"warm"},
-        {"id":11,"type":"similar","prompt":"Which word means the same as \"happy\"? (sad, angry, glad)","answer":"glad"},
-        {"id":12,"type":"similar","prompt":"Which word means the same as \"sad\"? (unhappy, tired, happy)","answer":"unhappy"},
-        {"id":13,"type":"similar","prompt":"Which word means the same as \"cold\"? (chilly, warm, hot)","answer":"chilly"},
-        {"id":14,"type":"similar","prompt":"Which word means the same as \"big\"? (small, new, large)","answer":"large"},
-        {"id":15,"type":"similar","prompt":"Which word means the same as \"sad\"? (happy, unhappy, tired)","answer":"unhappy"},
-        {"id":16,"type":"similar","prompt":"Which word means the same as \"happy\"? (angry, sad, glad)","answer":"glad"},
-        {"id":17,"type":"similar","prompt":"Which word means the same as \"hot\"? (warm, cool, cold)","answer":"warm"},
-        {"id":18,"type":"similar","prompt":"Which word means the same as \"big\"? (new, large, small)","answer":"large"}
+        {"id":1,"type":"similar","prompt":"Which word means the same as \"good\"? (sad, new, nice)","answer":"nice"},
+        {"id":2,"type":"similar","prompt":"Which word means the same as \"small\"? (noisy, tiny, large)","answer":"tiny"},
+        {"id":3,"type":"similar","prompt":"Which word means the same as \"look\"? (happy, quick, see)","answer":"see"},
+        {"id":4,"type":"similar","prompt":"Which word means the same as \"big\"? (small, large, hear)","answer":"large"},
+        {"id":5,"type":"similar","prompt":"Which word means the same as \"cold\"? (happy, chilly, angry)","answer":"chilly"},
+        {"id":6,"type":"similar","prompt":"Which word means the same as \"loud\"? (noisy, slow, new)","answer":"noisy"},
+        {"id":7,"type":"similar","prompt":"Which word means the same as \"sad\"? (happy, tiny, unhappy)","answer":"unhappy"},
+        {"id":8,"type":"similar","prompt":"Which word means the same as \"hot\"? (walk, see, warm)","answer":"warm"},
+        {"id":9,"type":"similar","prompt":"Which word means the same as \"happy\"? (glad, unhappy, big)","answer":"glad"},
+        {"id":10,"type":"similar","prompt":"Which word means the same as \"fast\"? (small, quick, see)","answer":"quick"},
+        {"id":11,"type":"similar","prompt":"Which word means the same as \"small\"? (little, angry, hot)","answer":"little"},
+        {"id":12,"type":"similar","prompt":"Which word means the same as \"cold\"? (happy, walk, chilly)","answer":"chilly"},
+        {"id":13,"type":"similar","prompt":"Which word means the same as \"hot\"? (hear, warm, good)","answer":"warm"},
+        {"id":14,"type":"similar","prompt":"Which word means the same as \"good\"? (nice, warm, fast)","answer":"nice"},
+        {"id":15,"type":"similar","prompt":"Which word means the same as \"look\"? (happy, see, sad)","answer":"see"},
+        {"id":16,"type":"similar","prompt":"Which word means the same as \"big\"? (little, bad, large)","answer":"large"},
+        {"id":17,"type":"similar","prompt":"Which word means the same as \"fast\"? (happy, quick, hot)","answer":"quick"},
+        {"id":18,"type":"similar","prompt":"Which word means the same as \"loud\"? (hear, big, noisy)","answer":"noisy"}
 ]);
         checkOptionsContainAnswer(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(similarSpec, g1, seedFrom([1, 'similar', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"similar","prompt":"Which word means the same as \"fast\"? (cold, slow, quick)","answer":"quick"},
-        {"id":20,"type":"similar","prompt":"Which word means the same as \"good\"? (nice, sad, bad)","answer":"nice"},
-        {"id":21,"type":"similar","prompt":"Which word means the same as \"hot\"? (cold, warm, cool)","answer":"warm"}
+        {"id":19,"type":"similar","prompt":"Which word means the same as \"small\"? (tall, little, sad)","answer":"little"},
+        {"id":20,"type":"similar","prompt":"Which word means the same as \"happy\"? (large, new, glad)","answer":"glad"},
+        {"id":21,"type":"similar","prompt":"Which word means the same as \"small\"? (unhappy, warm, tiny)","answer":"tiny"}
 ]);
     });
 });
@@ -87,33 +87,33 @@ describe('similar — Year 1 (base quadruples)', () => {
 describe('similar — Year 2 (adds the extended quadruples)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"similar","prompt":"Which word means the same as \"quiet\"? (loud, silent, noisy)","answer":"silent"},
-        {"id":2,"type":"similar","prompt":"Which word means the same as \"happy\"? (angry, glad, sad)","answer":"glad"},
-        {"id":3,"type":"similar","prompt":"Which word means the same as \"strong\"? (tiny, weak, mighty)","answer":"mighty"},
-        {"id":4,"type":"similar","prompt":"Which word means the same as \"cold\"? (chilly, warm, hot)","answer":"chilly"},
-        {"id":5,"type":"similar","prompt":"Which word means the same as \"tired\"? (happy, sleepy, awake)","answer":"sleepy"},
-        {"id":6,"type":"similar","prompt":"Which word means the same as \"fast\"? (quick, cold, slow)","answer":"quick"},
-        {"id":7,"type":"similar","prompt":"Which word means the same as \"easy\"? (tricky, hard, simple)","answer":"simple"},
-        {"id":8,"type":"similar","prompt":"Which word means the same as \"fast\"? (slow, quick, cold)","answer":"quick"},
-        {"id":9,"type":"similar","prompt":"Which word means the same as \"strong\"? (tiny, mighty, weak)","answer":"mighty"},
-        {"id":10,"type":"similar","prompt":"Which word means the same as \"small\"? (new, tiny, big)","answer":"tiny"},
-        {"id":11,"type":"similar","prompt":"Which word means the same as \"tired\"? (happy, sleepy, awake)","answer":"sleepy"},
-        {"id":12,"type":"similar","prompt":"Which word means the same as \"happy\"? (glad, angry, sad)","answer":"glad"},
-        {"id":13,"type":"similar","prompt":"Which word means the same as \"sad\"? (tired, happy, unhappy)","answer":"unhappy"},
-        {"id":14,"type":"similar","prompt":"Which word means the same as \"small\"? (big, new, tiny)","answer":"tiny"},
-        {"id":15,"type":"similar","prompt":"Which word means the same as \"tired\"? (awake, happy, sleepy)","answer":"sleepy"},
-        {"id":16,"type":"similar","prompt":"Which word means the same as \"hot\"? (warm, cool, cold)","answer":"warm"},
-        {"id":17,"type":"similar","prompt":"Which word means the same as \"quiet\"? (silent, noisy, loud)","answer":"silent"},
-        {"id":18,"type":"similar","prompt":"Which word means the same as \"fast\"? (cold, slow, quick)","answer":"quick"}
+        {"id":1,"type":"similar","prompt":"Which word means the same as \"quiet\"? (angry, silent, tall)","answer":"silent"},
+        {"id":2,"type":"similar","prompt":"Which word means the same as \"strong\"? (angry, mighty, hot)","answer":"mighty"},
+        {"id":3,"type":"similar","prompt":"Which word means the same as \"happy\"? (strong, see, glad)","answer":"glad"},
+        {"id":4,"type":"similar","prompt":"Which word means the same as \"scared\"? (calm, afraid, happy)","answer":"afraid"},
+        {"id":5,"type":"similar","prompt":"Which word means the same as \"good\"? (nice, loud, big)","answer":"nice"},
+        {"id":6,"type":"similar","prompt":"Which word means the same as \"easy\"? (fast, angry, simple)","answer":"simple"},
+        {"id":7,"type":"similar","prompt":"Which word means the same as \"look\"? (cold, cross, see)","answer":"see"},
+        {"id":8,"type":"similar","prompt":"Which word means the same as \"angry\"? (cross, tired, bad)","answer":"cross"},
+        {"id":9,"type":"similar","prompt":"Which word means the same as \"small\"? (afraid, scared, little)","answer":"little"},
+        {"id":10,"type":"similar","prompt":"Which word means the same as \"small\"? (tiny, glad, hear)","answer":"tiny"},
+        {"id":11,"type":"similar","prompt":"Which word means the same as \"fast\"? (calm, quick, small)","answer":"quick"},
+        {"id":12,"type":"similar","prompt":"Which word means the same as \"tired\"? (sleepy, walk, look)","answer":"sleepy"},
+        {"id":13,"type":"similar","prompt":"Which word means the same as \"hot\"? (warm, quiet, afraid)","answer":"warm"},
+        {"id":14,"type":"similar","prompt":"Which word means the same as \"big\"? (happy, large, look)","answer":"large"},
+        {"id":15,"type":"similar","prompt":"Which word means the same as \"cold\"? (chilly, happy, hear)","answer":"chilly"},
+        {"id":16,"type":"similar","prompt":"Which word means the same as \"loud\"? (noisy, tiny, big)","answer":"noisy"},
+        {"id":17,"type":"similar","prompt":"Which word means the same as \"sad\"? (cool, little, unhappy)","answer":"unhappy"},
+        {"id":18,"type":"similar","prompt":"Which word means the same as \"happy\"? (tired, large, glad)","answer":"glad"}
 ]);
         checkOptionsContainAnswer(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(similarSpec, g2, seedFrom([2, 'similar', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"similar","prompt":"Which word means the same as \"happy\"? (glad, angry, sad)","answer":"glad"},
-        {"id":20,"type":"similar","prompt":"Which word means the same as \"big\"? (small, large, new)","answer":"large"},
-        {"id":21,"type":"similar","prompt":"Which word means the same as \"hot\"? (warm, cool, cold)","answer":"warm"}
+        {"id":19,"type":"similar","prompt":"Which word means the same as \"hot\"? (warm, angry, sad)","answer":"warm"},
+        {"id":20,"type":"similar","prompt":"Which word means the same as \"strong\"? (happy, unhappy, mighty)","answer":"mighty"},
+        {"id":21,"type":"similar","prompt":"Which word means the same as \"tired\"? (sleepy, small, cold)","answer":"sleepy"}
 ]);
     });
 

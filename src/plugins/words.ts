@@ -102,7 +102,25 @@ export const COMMON_WORDS: readonly string[] =
         'trim trip tube tuck tune turn twin type ugly unit upon urge vast verb very vest vine vote wade ' +
         'wage wait wake walk wall want ward warm warn wash wave wear weed week well went were west what ' +
         'when wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word wore work ' +
-        'worm worn wrap yard yarn year yell zero zone'
+        'worm worn wrap yard yarn year yell zero zone about beach begin being black block blood board ' +
+        'brain brave break brick bring brown brush build carry catch chalk cheese cherry chick chunk city ' +
+        'cliff climb clock close cloth color count cover cream crown dance dear dirty dream dress drink ' +
+        'drive early earth eight empty enjoy enter every fancy feast fence field fifth fifty fight final ' +
+        'flame flash floor flute forest forty found frame fresh front fruit funny giant glass grape great ' +
+        'group guard guess guest guide heart hobby honey horse human hurry jelly jolly juice knife label ' +
+        'large laugh layer learn level lucky lunch magic mango march match medal melon metal might money ' +
+        'month motor mouth movie nerve never night noise north nurse ocean often onion order other paint ' +
+        'party pasta peach pearl pedal penny pepper phone photo piece pilot place planet plant plate point ' +
+        'polar pound power press price pride prize proud quick quiet ranch range reach ready reply river ' +
+        'robot round royal salad sauce scale scare scene score scout sense serve seven shade shake shall ' +
+        'shame shape share shark sharp sheep sheet shelf shell shift shine short shout silly since sixty ' +
+        'skill skirt sleep slice slide slope smart smell smile smoke snack snake solid solve sound south ' +
+        'space spare spark speak speed spell spend spice spine sport spray stack staff stage stamp stand ' +
+        'stare start state steak steep stick stone stool store storm story stove straw strip study stuff ' +
+        'sugar sunny sweet swift swing taste teach thank thick thing think third three throw thumb toast ' +
+        'today tooth total touch towel tower track trade trail train treat trend trick trunk trust truth ' +
+        'twice uncle under until upset value video voice wagon waste watch whale wheat wheel whole world ' +
+        'worry worth wrist write wrong young zebra'
     ).split(' ');
 
 // Every word that can ever appear on a sheet (all banks across the plugins),

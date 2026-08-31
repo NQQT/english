@@ -47,38 +47,38 @@ describe('opposite plugin — declarative spec', () => {
 describe('opposite — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"opposite","prompt":"What is the opposite of \"in\"?","answer":"out"},
-        {"id":2,"type":"opposite","prompt":"What is the opposite of \"cold\"?","answer":"hot"},
-        {"id":3,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":4,"type":"opposite","prompt":"What is the opposite of \"down\"?","answer":"up"},
-        {"id":5,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":6,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
-        {"id":7,"type":"opposite","prompt":"What is the opposite of \"heavy\"?","answer":"light"},
-        {"id":8,"type":"opposite","prompt":"What is the opposite of \"early\"?","answer":"late"},
-        {"id":9,"type":"opposite","prompt":"What is the opposite of \"fast\"?","answer":"slow"},
-        {"id":10,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
-        {"id":11,"type":"opposite","prompt":"What is the opposite of \"big\"?","answer":"small"},
-        {"id":12,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
-        {"id":13,"type":"opposite","prompt":"What is the opposite of \"easy\"?","answer":"hard"},
-        {"id":14,"type":"opposite","prompt":"What is the opposite of \"easy\"?","answer":"hard"},
-        {"id":15,"type":"opposite","prompt":"What is the opposite of \"heavy\"?","answer":"light"},
-        {"id":16,"type":"opposite","prompt":"What is the opposite of \"out\"?","answer":"in"},
-        {"id":17,"type":"opposite","prompt":"What is the opposite of \"late\"?","answer":"early"},
-        {"id":18,"type":"opposite","prompt":"What is the opposite of \"heavy\"?","answer":"light"},
-        {"id":19,"type":"opposite","prompt":"What is the opposite of \"sad\"?","answer":"happy"},
-        {"id":20,"type":"opposite","prompt":"What is the opposite of \"old\"?","answer":"new"},
-        {"id":21,"type":"opposite","prompt":"What is the opposite of \"early\"?","answer":"late"},
-        {"id":22,"type":"opposite","prompt":"What is the opposite of \"hard\"?","answer":"easy"},
-        {"id":23,"type":"opposite","prompt":"What is the opposite of \"big\"?","answer":"small"},
-        {"id":24,"type":"opposite","prompt":"What is the opposite of \"down\"?","answer":"up"}
+        {"id":1,"type":"opposite","prompt":"What is the opposite of \"dry\"?","answer":"wet"},
+        {"id":2,"type":"opposite","prompt":"Which word means the opposite of \"down\"? (lose, up, sour)","answer":"up"},
+        {"id":3,"type":"opposite","prompt":"What is the opposite of \"big\"?","answer":"small"},
+        {"id":4,"type":"opposite","prompt":"Which word means the opposite of \"take\"? (give, happy, strong)","answer":"give"},
+        {"id":5,"type":"opposite","prompt":"What is the opposite of \"clean\"?","answer":"dirty"},
+        {"id":6,"type":"opposite","prompt":"Which word means the opposite of \"laugh\"? (cry, empty, out)","answer":"cry"},
+        {"id":7,"type":"opposite","prompt":"What is the opposite of \"long\"?","answer":"short"},
+        {"id":8,"type":"opposite","prompt":"What is the opposite of \"pull\"?","answer":"push"},
+        {"id":9,"type":"opposite","prompt":"Which word means the opposite of \"far\"? (last, long, near)","answer":"near"},
+        {"id":10,"type":"opposite","prompt":"Which word means the opposite of \"go\"? (weak, come, shut)","answer":"come"},
+        {"id":11,"type":"opposite","prompt":"What is the opposite of \"heavy\"?","answer":"light"},
+        {"id":12,"type":"opposite","prompt":"Which word means the opposite of \"quiet\"? (happy, pull, loud)","answer":"loud"},
+        {"id":13,"type":"opposite","prompt":"What is the opposite of \"night\"?","answer":"day"},
+        {"id":14,"type":"opposite","prompt":"What is the opposite of \"fast\"?","answer":"slow"},
+        {"id":15,"type":"opposite","prompt":"What is the opposite of \"lose\"?","answer":"win"},
+        {"id":16,"type":"opposite","prompt":"Which word means the opposite of \"happy\"? (first, sad, lose)","answer":"sad"},
+        {"id":17,"type":"opposite","prompt":"What is the opposite of \"empty\"?","answer":"full"},
+        {"id":18,"type":"opposite","prompt":"What is the opposite of \"sour\"?","answer":"sweet"},
+        {"id":19,"type":"opposite","prompt":"What is the opposite of \"below\"?","answer":"above"},
+        {"id":20,"type":"opposite","prompt":"What is the opposite of \"new\"?","answer":"old"},
+        {"id":21,"type":"opposite","prompt":"Which word means the opposite of \"weak\"? (strong, old, day)","answer":"strong"},
+        {"id":22,"type":"opposite","prompt":"Which word means the opposite of \"front\"? (strong, big, back)","answer":"back"},
+        {"id":23,"type":"opposite","prompt":"What is the opposite of \"open\"?","answer":"shut"},
+        {"id":24,"type":"opposite","prompt":"What is the opposite of \"late\"?","answer":"early"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(oppositeSpec, g1, seedFrom([1, 'opposite', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"opposite","prompt":"What is the opposite of \"down\"?","answer":"up"},
-        {"id":26,"type":"opposite","prompt":"What is the opposite of \"late\"?","answer":"early"},
-        {"id":27,"type":"opposite","prompt":"What is the opposite of \"small\"?","answer":"big"}
+        {"id":25,"type":"opposite","prompt":"Which word means the opposite of \"hard\"? (sweet, easy, go)","answer":"easy"},
+        {"id":26,"type":"opposite","prompt":"What is the opposite of \"hot\"?","answer":"cold"},
+        {"id":27,"type":"opposite","prompt":"Which word means the opposite of \"over\"? (short, give, under)","answer":"under"}
 ]);
     });
 });
@@ -86,38 +86,38 @@ describe('opposite — Year 1 (tier-2 common word set)', () => {
 describe('opposite — Year 2 (tricky set unused: same pair bank)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
-        {"id":2,"type":"opposite","prompt":"What is the opposite of \"easy\"?","answer":"hard"},
-        {"id":3,"type":"opposite","prompt":"What is the opposite of \"small\"?","answer":"big"},
-        {"id":4,"type":"opposite","prompt":"What is the opposite of \"hard\"?","answer":"easy"},
-        {"id":5,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":6,"type":"opposite","prompt":"What is the opposite of \"down\"?","answer":"up"},
-        {"id":7,"type":"opposite","prompt":"What is the opposite of \"out\"?","answer":"in"},
-        {"id":8,"type":"opposite","prompt":"What is the opposite of \"in\"?","answer":"out"},
-        {"id":9,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
-        {"id":10,"type":"opposite","prompt":"What is the opposite of \"down\"?","answer":"up"},
+        {"id":1,"type":"opposite","prompt":"What is the opposite of \"come\"?","answer":"go"},
+        {"id":2,"type":"opposite","prompt":"What is the opposite of \"push\"?","answer":"pull"},
+        {"id":3,"type":"opposite","prompt":"What is the opposite of \"strong\"?","answer":"weak"},
+        {"id":4,"type":"opposite","prompt":"Which word means the opposite of \"slow\"? (fast, sweet, back)","answer":"fast"},
+        {"id":5,"type":"opposite","prompt":"Which word means the opposite of \"dirty\"? (back, last, clean)","answer":"clean"},
+        {"id":6,"type":"opposite","prompt":"Which word means the opposite of \"over\"? (quiet, under, last)","answer":"under"},
+        {"id":7,"type":"opposite","prompt":"What is the opposite of \"below\"?","answer":"above"},
+        {"id":8,"type":"opposite","prompt":"Which word means the opposite of \"empty\"? (under, back, full)","answer":"full"},
+        {"id":9,"type":"opposite","prompt":"Which word means the opposite of \"wet\"? (quiet, dry, give)","answer":"dry"},
+        {"id":10,"type":"opposite","prompt":"Which word means the opposite of \"front\"? (old, empty, back)","answer":"back"},
         {"id":11,"type":"opposite","prompt":"What is the opposite of \"sad\"?","answer":"happy"},
-        {"id":12,"type":"opposite","prompt":"What is the opposite of \"open\"?","answer":"shut"},
-        {"id":13,"type":"opposite","prompt":"What is the opposite of \"hard\"?","answer":"easy"},
-        {"id":14,"type":"opposite","prompt":"What is the opposite of \"hot\"?","answer":"cold"},
-        {"id":15,"type":"opposite","prompt":"What is the opposite of \"small\"?","answer":"big"},
-        {"id":16,"type":"opposite","prompt":"What is the opposite of \"long\"?","answer":"short"},
-        {"id":17,"type":"opposite","prompt":"What is the opposite of \"hot\"?","answer":"cold"},
-        {"id":18,"type":"opposite","prompt":"What is the opposite of \"shut\"?","answer":"open"},
-        {"id":19,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":20,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":21,"type":"opposite","prompt":"What is the opposite of \"old\"?","answer":"new"},
-        {"id":22,"type":"opposite","prompt":"What is the opposite of \"light\"?","answer":"heavy"},
-        {"id":23,"type":"opposite","prompt":"What is the opposite of \"hot\"?","answer":"cold"},
-        {"id":24,"type":"opposite","prompt":"What is the opposite of \"hard\"?","answer":"easy"}
+        {"id":12,"type":"opposite","prompt":"Which word means the opposite of \"far\"? (near, under, go)","answer":"near"},
+        {"id":13,"type":"opposite","prompt":"What is the opposite of \"heavy\"?","answer":"light"},
+        {"id":14,"type":"opposite","prompt":"Which word means the opposite of \"old\"? (cold, new, lose)","answer":"new"},
+        {"id":15,"type":"opposite","prompt":"What is the opposite of \"open\"?","answer":"shut"},
+        {"id":16,"type":"opposite","prompt":"Which word means the opposite of \"cold\"? (big, dry, hot)","answer":"hot"},
+        {"id":17,"type":"opposite","prompt":"What is the opposite of \"short\"?","answer":"long"},
+        {"id":18,"type":"opposite","prompt":"What is the opposite of \"cry\"?","answer":"laugh"},
+        {"id":19,"type":"opposite","prompt":"Which word means the opposite of \"up\"? (loud, above, down)","answer":"down"},
+        {"id":20,"type":"opposite","prompt":"What is the opposite of \"day\"?","answer":"night"},
+        {"id":21,"type":"opposite","prompt":"Which word means the opposite of \"lose\"? (win, above, big)","answer":"win"},
+        {"id":22,"type":"opposite","prompt":"Which word means the opposite of \"in\"? (out, over, easy)","answer":"out"},
+        {"id":23,"type":"opposite","prompt":"What is the opposite of \"first\"?","answer":"last"},
+        {"id":24,"type":"opposite","prompt":"Which word means the opposite of \"early\"? (slow, late, out)","answer":"late"}
 ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(oppositeSpec, g2, seedFrom([2, 'opposite', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"opposite","prompt":"What is the opposite of \"shut\"?","answer":"open"},
-        {"id":26,"type":"opposite","prompt":"What is the opposite of \"open\"?","answer":"shut"},
-        {"id":27,"type":"opposite","prompt":"What is the opposite of \"early\"?","answer":"late"}
+        {"id":25,"type":"opposite","prompt":"Which word means the opposite of \"take\"? (long, far, give)","answer":"give"},
+        {"id":26,"type":"opposite","prompt":"What is the opposite of \"sweet\"?","answer":"sour"},
+        {"id":27,"type":"opposite","prompt":"What is the opposite of \"quiet\"?","answer":"loud"}
 ]);
     });
 

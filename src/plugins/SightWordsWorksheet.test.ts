@@ -58,24 +58,24 @@ function checkRealWordContract(grade: GradeConfig) {
 describe('sight — Prep (tier-1 starter word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g0)).toEqual([
-        {"id":1,"type":"sight","prompt":"Which is a real word? (wia, rea, pig, faa)","answer":"pig"},
-        {"id":2,"type":"sight","prompt":"Which is a real word? (fan, cua, caa, toa)","answer":"fan"},
-        {"id":3,"type":"sight","prompt":"Which is a real word? (pea, wig, haa, doa)","answer":"wig"},
-        {"id":4,"type":"sight","prompt":"Which is a real word? (doa, jam, mooa, poa)","answer":"jam"},
-        {"id":5,"type":"sight","prompt":"Which is a real word? (pig, boa, poa, doa)","answer":"pig"},
-        {"id":6,"type":"sight","prompt":"Which is a real word? (pea, sun, doa, caa)","answer":"sun"},
-        {"id":7,"type":"sight","prompt":"Which is a real word? (sia, bua, loa, red)","answer":"red"},
-        {"id":8,"type":"sight","prompt":"Which is a real word? (sia, lea, hat, mooa)","answer":"hat"},
-        {"id":9,"type":"sight","prompt":"Which is a real word? (faa, sun, raa, lea)","answer":"sun"},
-        {"id":10,"type":"sight","prompt":"Which is a real word? (wia, pia, moon, faa)","answer":"moon"},
-        {"id":11,"type":"sight","prompt":"Which is a real word? (jam, pea, toa, rea)","answer":"jam"},
-        {"id":12,"type":"sight","prompt":"Which is a real word? (doa, bua, cup, wia)","answer":"cup"},
-        {"id":13,"type":"sight","prompt":"Which is a real word? (hat, baa, lea, sua)","answer":"hat"},
-        {"id":14,"type":"sight","prompt":"Which is a real word? (cua, boa, sun, mooa)","answer":"sun"},
-        {"id":15,"type":"sight","prompt":"Which is a real word? (pin, bua, wia, sua)","answer":"pin"},
-        {"id":16,"type":"sight","prompt":"Which is a real word? (bus, poa, jaa, loa)","answer":"bus"},
-        {"id":17,"type":"sight","prompt":"Which is a real word? (sua, wia, lea, jam)","answer":"jam"},
-        {"id":18,"type":"sight","prompt":"Which is a real word? (pia, cua, bua, box)","answer":"box"}
+        {"id":1,"type":"sight","prompt":"Which is a real word? (doa, pig, mooa, jaa)","answer":"pig"},
+        {"id":2,"type":"sight","prompt":"Which is a real word? (nea, raa, lea, top)","answer":"top"},
+        {"id":3,"type":"sight","prompt":"Which is a real word? (cua, haa, bea, box)","answer":"box"},
+        {"id":4,"type":"sight","prompt":"Which is a real word? (maa, caa, baa, pen)","answer":"pen"},
+        {"id":5,"type":"sight","prompt":"Which is a real word? (rea, bua, sua, cup)","answer":"cup"},
+        {"id":6,"type":"sight","prompt":"Which is a real word? (loa, faa, peb, bag)","answer":"bag"},
+        {"id":7,"type":"sight","prompt":"Which is a real word? (cat, boa, wia, sia)","answer":"cat"},
+        {"id":8,"type":"sight","prompt":"Which is a real word? (toa, sun, pia, poa)","answer":"sun"},
+        {"id":9,"type":"sight","prompt":"Which is a real word? (sua, boa, red, mooa)","answer":"red"},
+        {"id":10,"type":"sight","prompt":"Which is a real word? (fan, poa, raa, lea)","answer":"fan"},
+        {"id":11,"type":"sight","prompt":"Which is a real word? (moon, sia, bua, haa)","answer":"moon"},
+        {"id":12,"type":"sight","prompt":"Which is a real word? (pia, loa, nea, dog)","answer":"dog"},
+        {"id":13,"type":"sight","prompt":"Which is a real word? (baa, rat, cua, faa)","answer":"rat"},
+        {"id":14,"type":"sight","prompt":"Which is a real word? (bus, caa, jaa, peb)","answer":"bus"},
+        {"id":15,"type":"sight","prompt":"Which is a real word? (rea, wia, pia, pin)","answer":"pin"},
+        {"id":16,"type":"sight","prompt":"Which is a real word? (maa, pot, bea, doa)","answer":"pot"},
+        {"id":17,"type":"sight","prompt":"Which is a real word? (toa, baa, bua, leg)","answer":"leg"},
+        {"id":18,"type":"sight","prompt":"Which is a real word? (jam, jaa, faa, boa)","answer":"jam"}
 ]);
         // Every distractor is a genuinely fake word.
         checkRealWordContract(g0);
@@ -83,9 +83,9 @@ describe('sight — Prep (tier-1 starter word set)', () => {
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(sightSpec, g0, seedFrom([0, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"sight","prompt":"Which is a real word? (sia, jaa, toa, sip)","answer":"sip"},
-        {"id":20,"type":"sight","prompt":"Which is a real word? (toa, pin, raa, jaa)","answer":"pin"},
-        {"id":21,"type":"sight","prompt":"Which is a real word? (rea, haa, sua, bus)","answer":"bus"}
+        {"id":19,"type":"sight","prompt":"Which is a real word? (map, maa, raa, peb)","answer":"map"},
+        {"id":20,"type":"sight","prompt":"Which is a real word? (pia, lea, nea, wig)","answer":"wig"},
+        {"id":21,"type":"sight","prompt":"Which is a real word? (net, loa, wia, sua)","answer":"net"}
 ]);
     });
 });
@@ -93,33 +93,33 @@ describe('sight — Prep (tier-1 starter word set)', () => {
 describe('sight — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"sight","prompt":"Which is a real word? (raa, housa, table, sia)","answer":"table"},
-        {"id":2,"type":"sight","prompt":"Which is a real word? (traia, sia, map, bea)","answer":"map"},
-        {"id":3,"type":"sight","prompt":"Which is a real word? (plane, bira, mooa, tabla)","answer":"plane"},
-        {"id":4,"type":"sight","prompt":"Which is a real word? (loa, greea, pia, night)","answer":"night"},
-        {"id":5,"type":"sight","prompt":"Which is a real word? (boa, box, caa, haa)","answer":"box"},
-        {"id":6,"type":"sight","prompt":"Which is a real word? (jaa, traia, greea, dog)","answer":"dog"},
-        {"id":7,"type":"sight","prompt":"Which is a real word? (sia, wia, sua, rat)","answer":"rat"},
-        {"id":8,"type":"sight","prompt":"Which is a real word? (ligha, sua, hat, lemoa)","answer":"hat"},
-        {"id":9,"type":"sight","prompt":"Which is a real word? (nea, shira, net, rea)","answer":"net"},
-        {"id":10,"type":"sight","prompt":"Which is a real word? (ligha, greea, housa, tree)","answer":"tree"},
-        {"id":11,"type":"sight","prompt":"Which is a real word? (bird, chaia, traia, boa)","answer":"bird"},
-        {"id":12,"type":"sight","prompt":"Which is a real word? (grass, rea, maa, chaia)","answer":"grass"},
-        {"id":13,"type":"sight","prompt":"Which is a real word? (nea, light, appla, maa)","answer":"light"},
-        {"id":14,"type":"sight","prompt":"Which is a real word? (bira, log, fisa, faa)","answer":"log"},
-        {"id":15,"type":"sight","prompt":"Which is a real word? (plane, chaia, loa, jaa)","answer":"plane"},
-        {"id":16,"type":"sight","prompt":"Which is a real word? (bira, tabla, purple, greea)","answer":"purple"},
-        {"id":17,"type":"sight","prompt":"Which is a real word? (haa, tigea, lea, leg)","answer":"leg"},
-        {"id":18,"type":"sight","prompt":"Which is a real word? (bira, traia, bread, greea)","answer":"bread"}
+        {"id":1,"type":"sight","prompt":"Which is a real word? (jaa, table, boa, mooa)","answer":"table"},
+        {"id":2,"type":"sight","prompt":"Which is a real word? (pia, housa, rat, shira)","answer":"rat"},
+        {"id":3,"type":"sight","prompt":"Which is a real word? (pot, sua, plana, nea)","answer":"pot"},
+        {"id":4,"type":"sight","prompt":"Which is a real word? (faa, rabbia, lemon, lemoa)","answer":"lemon"},
+        {"id":5,"type":"sight","prompt":"Which is a real word? (sia, tiger, cua, bua)","answer":"tiger"},
+        {"id":6,"type":"sight","prompt":"Which is a real word? (raa, leg, appla, traia)","answer":"leg"},
+        {"id":7,"type":"sight","prompt":"Which is a real word? (caa, net, tabla, peb)","answer":"net"},
+        {"id":8,"type":"sight","prompt":"Which is a real word? (hat, pia, loa, toa)","answer":"hat"},
+        {"id":9,"type":"sight","prompt":"Which is a real word? (sip, ligha, bira, chaia)","answer":"sip"},
+        {"id":10,"type":"sight","prompt":"Which is a real word? (cup, trea, breaa, watea)","answer":"cup"},
+        {"id":11,"type":"sight","prompt":"Which is a real word? (log, bea, baa, rea)","answer":"log"},
+        {"id":12,"type":"sight","prompt":"Which is a real word? (water, tigea, doa, lea)","answer":"water"},
+        {"id":13,"type":"sight","prompt":"Which is a real word? (pen, grasa, maa, poa)","answer":"pen"},
+        {"id":14,"type":"sight","prompt":"Which is a real word? (purpla, box, greea, nigha)","answer":"box"},
+        {"id":15,"type":"sight","prompt":"Which is a real word? (wia, haa, bird, fisa)","answer":"bird"},
+        {"id":16,"type":"sight","prompt":"Which is a real word? (sua, rea, boa, pig)","answer":"pig"},
+        {"id":17,"type":"sight","prompt":"Which is a real word? (plane, appla, breaa, toa)","answer":"plane"},
+        {"id":18,"type":"sight","prompt":"Which is a real word? (greea, grasa, plana, wig)","answer":"wig"}
 ]);
         checkRealWordContract(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(sightSpec, g1, seedFrom([1, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"sight","prompt":"Which is a real word? (watea, chaia, appla, rat)","answer":"rat"},
-        {"id":20,"type":"sight","prompt":"Which is a real word? (tigea, bua, caa, sip)","answer":"sip"},
-        {"id":21,"type":"sight","prompt":"Which is a real word? (fan, trea, mooa, bira)","answer":"fan"}
+        {"id":19,"type":"sight","prompt":"Which is a real word? (bira, caa, cua, purple)","answer":"purple"},
+        {"id":20,"type":"sight","prompt":"Which is a real word? (sun, sia, raa, jaa)","answer":"sun"},
+        {"id":21,"type":"sight","prompt":"Which is a real word? (fan, nea, mooa, fisa)","answer":"fan"}
 ]);
     });
 
@@ -129,8 +129,8 @@ describe('sight — Year 1 (tier-2 common word set)', () => {
         expect(d.total).toBe(54);
         expect(d.pages.flat().map((p) => p.id)).toEqual(Array.from({ length: 54 }, (_, i) => i + 1));
         expect(d.pages[2].slice(0, 2)).toEqual([
-        {"id":37,"type":"sight","prompt":"Which is a real word? (plane, appla, loa, raa)","answer":"plane"},
-        {"id":38,"type":"sight","prompt":"Which is a real word? (pea, jam, rabbia, baa)","answer":"jam"}
+        {"id":37,"type":"sight","prompt":"Which is a real word? (doa, trea, top, plana)","answer":"top"},
+        {"id":38,"type":"sight","prompt":"Which is a real word? (tigea, apple, lemoa, greea)","answer":"apple"}
 ]);
     });
 });
@@ -138,33 +138,33 @@ describe('sight — Year 1 (tier-2 common word set)', () => {
 describe('sight — Year 2 (tier-3 extended set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"sight","prompt":"Which is a real word? (butterfly, trea, beautifua, ligha)","answer":"butterfly"},
-        {"id":2,"type":"sight","prompt":"Which is a real word? (toa, loa, beautifua, sun)","answer":"sun"},
-        {"id":3,"type":"sight","prompt":"Which is a real word? (rabbia, purple, mooa, raa)","answer":"purple"},
-        {"id":4,"type":"sight","prompt":"Which is a real word? (poa, sia, box, chaia)","answer":"box"},
-        {"id":5,"type":"sight","prompt":"Which is a real word? (chickea, button, bananb, sia)","answer":"button"},
-        {"id":6,"type":"sight","prompt":"Which is a real word? (top, rea, breaa, cua)","answer":"top"},
-        {"id":7,"type":"sight","prompt":"Which is a real word? (fisa, rabbia, bread, chaia)","answer":"bread"},
-        {"id":8,"type":"sight","prompt":"Which is a real word? (dog, rabbia, housa, watea)","answer":"dog"},
-        {"id":9,"type":"sight","prompt":"Which is a real word? (chair, rea, chickea, loa)","answer":"chair"},
-        {"id":10,"type":"sight","prompt":"Which is a real word? (faa, maa, watea, shirt)","answer":"shirt"},
-        {"id":11,"type":"sight","prompt":"Which is a real word? (doa, rabbit, chickea, traia)","answer":"rabbit"},
-        {"id":12,"type":"sight","prompt":"Which is a real word? (faa, button, grasa, bua)","answer":"button"},
-        {"id":13,"type":"sight","prompt":"Which is a real word? (bread, shira, jaa, housa)","answer":"bread"},
-        {"id":14,"type":"sight","prompt":"Which is a real word? (cua, pig, loa, elephana)","answer":"pig"},
-        {"id":15,"type":"sight","prompt":"Which is a real word? (traia, cup, poa, plana)","answer":"cup"},
-        {"id":16,"type":"sight","prompt":"Which is a real word? (fan, caa, butterfla, pia)","answer":"fan"},
-        {"id":17,"type":"sight","prompt":"Which is a real word? (traia, shira, bus, wia)","answer":"bus"},
-        {"id":18,"type":"sight","prompt":"Which is a real word? (trea, pig, teachea, raa)","answer":"pig"}
+        {"id":1,"type":"sight","prompt":"Which is a real word? (chickea, doa, butterfly, housa)","answer":"butterfly"},
+        {"id":2,"type":"sight","prompt":"Which is a real word? (rabbia, shira, bird, appla)","answer":"bird"},
+        {"id":3,"type":"sight","prompt":"Which is a real word? (elephana, jaa, peb, green)","answer":"green"},
+        {"id":4,"type":"sight","prompt":"Which is a real word? (sia, trea, family, wia)","answer":"family"},
+        {"id":5,"type":"sight","prompt":"Which is a real word? (bea, rat, grasa, chocolata)","answer":"rat"},
+        {"id":6,"type":"sight","prompt":"Which is a real word? (haa, raa, dinosaur, pumpkia)","answer":"dinosaur"},
+        {"id":7,"type":"sight","prompt":"Which is a real word? (maa, dolphia, boa, purple)","answer":"purple"},
+        {"id":8,"type":"sight","prompt":"Which is a real word? (beautiful, beautifua, tigea, watea)","answer":"beautiful"},
+        {"id":9,"type":"sight","prompt":"Which is a real word? (pia, sun, caa, nea)","answer":"sun"},
+        {"id":10,"type":"sight","prompt":"Which is a real word? (chaia, plana, faa, fan)","answer":"fan"},
+        {"id":11,"type":"sight","prompt":"Which is a real word? (poa, lemoa, lemon, tabla)","answer":"lemon"},
+        {"id":12,"type":"sight","prompt":"Which is a real word? (pin, pia, dinosaua, teachea)","answer":"pin"},
+        {"id":13,"type":"sight","prompt":"Which is a real word? (bananb, map, fisa, famila)","answer":"map"},
+        {"id":14,"type":"sight","prompt":"Which is a real word? (lea, windoa, banana, schooa)","answer":"banana"},
+        {"id":15,"type":"sight","prompt":"Which is a real word? (greea, rea, table, loa)","answer":"table"},
+        {"id":16,"type":"sight","prompt":"Which is a real word? (baa, window, bira, ligha)","answer":"window"},
+        {"id":17,"type":"sight","prompt":"Which is a real word? (traia, garden, butterfla, mooa)","answer":"garden"},
+        {"id":18,"type":"sight","prompt":"Which is a real word? (toa, chair, nigha, sua)","answer":"chair"}
 ]);
         checkRealWordContract(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(sightSpec, g2, seedFrom([2, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":19,"type":"sight","prompt":"Which is a real word? (teachea, bua, faa, bird)","answer":"bird"},
-        {"id":20,"type":"sight","prompt":"Which is a real word? (famila, tabla, chair, buttoa)","answer":"chair"},
-        {"id":21,"type":"sight","prompt":"Which is a real word? (pumpkia, computer, pia, bua)","answer":"computer"}
+        {"id":19,"type":"sight","prompt":"Which is a real word? (breaa, gardea, computea, moon)","answer":"moon"},
+        {"id":20,"type":"sight","prompt":"Which is a real word? (cua, bua, buttoa, bread)","answer":"bread"},
+        {"id":21,"type":"sight","prompt":"Which is a real word? (purpla, dolphia, traia, chocolate)","answer":"chocolate"}
 ]);
     });
 
