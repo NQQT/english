@@ -16,31 +16,42 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { wordSet, KNOWN_WORD_SET, shuffleWords, inventNonWord } from './words';
 
 // Sight & real words: "which of these is a real word?" — one real word from
 // the grade's word set beside three plausible non-words, shuffled.
+//
+// NON-REPEATING SAMPLING: the real word is dealt from a deck (every word in
+// the set appears before any repeats) and the whole question is collected
+// through sampleUnique keyed on the printed prompt, so a thousand-question
+// document contains no duplicate questions: the same real word with three
+// DIFFERENT fakes is a different question, and the fake pool is effectively
+// unbounded (see the misspelling space below).
 function generateSight(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = wordSet(caps.wordTier);
-    for (let i = 0; i < count; i++) {
-        const real = rng.pick(pool);
-        // Build three DISTINCT non-words: keep drawing base words (possibly
-        // the real word itself — its near-miss misspelling is the best
-        // distractor) until three unique, real-word-safe fakes are collected.
-        const fakes: string[] = [];
-        let base = rng.pick(pool);
-        let guard = 0;
-        while (fakes.length < 3 && guard < 24) {
-            guard++;
-            const fake = inventNonWord(base);
-            if (fake !== real && !fakes.includes(fake) && !KNOWN_WORD_SET.has(fake)) fakes.push(fake);
-            base = rng.pick(pool);
-        }
-        const options = shuffleWords(rng, [real, ...fakes]);
-        out.push({ prompt: `Which is a real word? (${options.join(', ')})`, answer: real });
-    }
-    return out;
+    const realDeck = createDeck(rng, pool);
+    const fakeDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const real = realDeck.take();
+            // Build three DISTINCT non-words: keep drawing base words (possibly
+            // the real word itself — its near-miss misspelling is the best
+            // distractor) until three unique, real-word-safe fakes are collected.
+            const fakes: string[] = [];
+            let guard = 0;
+            while (fakes.length < 3 && guard < 48) {
+                guard++;
+                const fake = inventNonWord(fakeDeck.take());
+                if (fake !== real && !fakes.includes(fake) && !KNOWN_WORD_SET.has(fake)) fakes.push(fake);
+            }
+            const options = shuffleWords(rng, [real, ...fakes]);
+            return { prompt: `Which is a real word? (${options.join(', ')})`, answer: real };
+        },
+        // Fingerprint = the full printed line: real word + its exact fake set.
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

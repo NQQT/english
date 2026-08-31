@@ -15,9 +15,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
-// Similar (synonym) quadruples: [target, synonym, distractor A, distractor B].
+// Similar (synonym) tuples: [target, synonym, distractor A, distractor B].
+// Grown from 14 to 17 tuples; Year 2 (tricky) adds the extended set.
 const SIMILAR_TIER2: [string, string, string, string][] = [
     ['happy', 'glad', 'sad', 'angry'],
     ['big', 'large', 'small', 'new'],
@@ -26,7 +28,10 @@ const SIMILAR_TIER2: [string, string, string, string][] = [
     ['cold', 'chilly', 'hot', 'warm'],
     ['hot', 'warm', 'cold', 'cool'],
     ['good', 'nice', 'bad', 'sad'],
-    ['sad', 'unhappy', 'happy', 'tired']
+    ['sad', 'unhappy', 'happy', 'tired'],
+    ['small', 'little', 'big', 'tall'],
+    ['look', 'see', 'hear', 'walk'],
+    ['loud', 'noisy', 'quiet', 'still']
 ];
 const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
     ['angry', 'cross', 'happy', 'calm'],
@@ -38,19 +43,51 @@ const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
 ];
 
 // Similar words (synonyms): multiple-choice on word meaning — the target's
-// synonym plus two unrelated words from the curated quadruples.
+// synonym beside two words that do NOT mean the same. Distractors are drawn
+// from the whole bank (minus the target's own tuple), so each distinct
+// distractor pair is a distinct question — the combination space clears a
+// thousand unique questions many times over.
+//
+// NON-REPEATING SAMPLING: targets are dealt from a deck (every word gets its
+// turn before any repeats) and the question passes through sampleUnique keyed
+// on the printed prompt.
 function generateSimilar(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     // The similar-word bank exists from Year 1; tiers 2 and 3 share it, with
-    // the extra quadruples gated by tricky (Y2) — mirrors the pattern of
+    // the extra tuples gated by tricky (Y2) — mirrors the pattern of
     // degrading to the smallest usable pool instead of failing.
     const pool = (caps.wordTier >= 3 && caps.tricky ? [...SIMILAR_TIER2, ...SIMILAR_TIER3_EXTRA] : SIMILAR_TIER2);
-    for (let i = 0; i < count; i++) {
-        const [target, syn, d1, d2] = rng.pick(pool);
-        const options = shuffleWords(rng, [syn, d1, d2]);
-        out.push({ prompt: `Which word means the same as "${target}"? (${options.join(', ')})`, answer: syn });
+    const targetDeck = createDeck(rng, pool);
+    // Global distractor pool: every word in the bank, any tuple.
+    const bankWords = pool.flat();
+    // A word may anchor several tuples (e.g. "small" -> tiny AND little); a
+    // distractor must never be ANY of the target's synonyms, or the question
+    // would have two correct options.
+    const synonyms = new Map<string, Set<string>>();
+    for (const [target, syn] of pool) {
+        if (!synonyms.has(target)) synonyms.set(target, new Set());
+        synonyms.get(target)!.add(syn);
     }
-    return out;
+    return sampleUnique(
+        count,
+        () => {
+            const tuple = targetDeck.take();
+            const [target, syn] = tuple;
+            const wrongSynonyms = synonyms.get(target)!;
+            // Two distractors from other tuples (own-tuple words would give
+            // away the answer or clash with the synonym).
+            const options = [syn];
+            let guard = 0;
+            while (options.length < 3 && guard < 24) {
+                guard++;
+                const pick = rng.pick(bankWords);
+                if (pick === target || wrongSynonyms.has(pick)) continue;
+                if (!options.includes(pick)) options.push(pick);
+            }
+            const shown = shuffleWords(rng, options);
+            return { prompt: `Which word means the same as "${target}"? (${shown.join(', ')})`, answer: syn };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

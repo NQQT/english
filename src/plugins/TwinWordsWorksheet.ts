@@ -15,41 +15,62 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // Twin-word (homophone) items: [prompt with "__", the two printed options,
-// the correct answer]. Items 0..5 are the basic Year 1 pairs; the rest are
-// the Year 2 (tricky) pairs.
+// the correct answer]. Items 0..13 are the Year 1 pairs; the rest are the
+// Year 2 (tricky) pairs. Grown from 11 to 20 items and dealt from a deck, so
+// every twin-word sentence is asked once before any repeats.
 const HOMOPHONE_BASIC: [string, [string, string], string][] = [
     ['Put the pencil __ .', ['there', 'their'], 'there'],
     ['I want __ go to the park.', ['to', 'too'], 'to'],
     ['Is that __ book?', ['your', "you're"], 'your'],
     ['I have __ apples.', ['two', 'to'], 'two'],
     ['The dog is over __ .', ['there', 'their'], 'there'],
-    ['__ late! I am sorry.', ['Too', 'To'], 'Too']
+    ['__ late! I am sorry.', ['Too', 'To'], 'Too'],
+    ['I can __ the bird.', ['see', 'sea'], 'see'],
+    ['The boat sails on the __ .', ['sea', 'see'], 'sea'],
+    ['He __ the race.', ['won', 'one'], 'won'],
+    ['Only __ cookie is left.', ['one', 'won'], 'one'],
+    ['The sky is __ .', ['blue', 'blew'], 'blue'],
+    ['The wind __ the door open.', ['blew', 'blue'], 'blew'],
+    ['Turn __ at the shop.', ['right', 'write'], 'right'],
+    ['I will __ my name.', ['write', 'right'], 'write']
 ];
 const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
     ['The cat licked __ paw.', ['its', "it's"], 'its'],
     ['__ going to rain today.', ["It's", 'Its'], "It's"],
     ['The book is on __ desk.', ['her', 'here'], 'her'],
+    ['Come __ and sit down.', ['here', 'her'], 'here'],
     ['Where __ you going?', ['are', 'our'], 'are'],
-    ['__ went to the shop yesterday.', ['They', 'Their'], 'They']
+    ['__ team plays on Friday.', ['Our', 'Are'], 'Our'],
+    ['__ went to the shop yesterday.', ['They', 'Their'], 'They'],
+    ['We ate __ sandwiches.', ['their', 'they'], 'their']
 ];
 
 // Twin words (homophones): pick the correct word for the blank. Basic pairs
-// (there/their, to/too, your/you're, two/to, Too/To) are Year 1 and up; the
-// extended pairs (its/it's, her/here, are/our, they/their) are Year 2.
+// (there/their, to/too, your/you're, two/to, see/sea, one/won, blue/blew,
+// right/write) are Year 1 and up; the extended pairs (its/it's, her/here,
+// are/our, they/their) are Year 2.
+//
+// NON-REPEATING SAMPLING: the 20 item bank is the whole fact space for this
+// worksheet type — a deck guarantees all 20 appear (shuffled option order
+// included) before any sentence is asked twice.
 function generateHomophone(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = caps.tricky ? [...HOMOPHONE_BASIC, ...HOMOPHONE_TRICKY] : HOMOPHONE_BASIC;
-    for (let i = 0; i < count; i++) {
-        const [prompt, [o1, o2], answer] = rng.pick(pool);
-        // Print the two options in a random order so "first option" is never
-        // the safe habit to learn.
-        const shown = shuffleWords(rng, [o1, o2]);
-        out.push({ prompt: `${prompt} (${shown.join(' or ')})`, answer });
-    }
-    return out;
+    const itemDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const [prompt, [o1, o2], answer] = itemDeck.take();
+            // Print the two options in a random order so "first option" is never
+            // the safe habit to learn.
+            const shown = shuffleWords(rng, [o1, o2]);
+            return { prompt: `${prompt} (${shown.join(' or ')})`, answer };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests). Twin-word

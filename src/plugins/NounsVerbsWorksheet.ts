@@ -16,24 +16,43 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 
-// Noun / verb word lists for the Year 2 parts-of-speech type.
-const NOUN_WORDS = ['cat', 'book', 'tree', 'ball', 'school', 'house', 'dog', 'apple'] as const;
-const VERB_WORDS = ['run', 'jump', 'eat', 'read', 'sleep', 'sing', 'kick', 'draw'] as const;
+// Noun / verb word lists for the Year 2 parts-of-speech type. Grown from 8+8
+// to 20+20 words; the combined list is dealt from a single deck, so every
+// word is classified once before any repeats.
+const NOUN_WORDS = [
+    'cat', 'book', 'tree', 'ball', 'school', 'house', 'dog', 'apple',
+    'fish', 'bird', 'chair', 'table', 'tiger', 'train', 'plane', 'grass',
+    'rabbit', 'window', 'garden', 'button'
+] as const;
+const VERB_WORDS = [
+    'run', 'jump', 'eat', 'read', 'sleep', 'sing', 'kick', 'draw',
+    'walk', 'play', 'swim', 'hop', 'clap', 'write', 'drive', 'drink',
+    'fly', 'cry', 'wash', 'open'
+] as const;
 
 // Nouns & verbs (Year 2 only): classify a word as a thing or an action.
+//
+// NON-REPEATING SAMPLING: the combined 40-word bank is the whole fact space —
+// a deck guarantees every word (noun AND verb) appears before any repeats.
 function generateGrammar(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    for (let i = 0; i < count; i++) {
-        if (rng.next() < 0.5) {
-            const w = rng.pick(NOUN_WORDS);
-            out.push({ prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`, answer: 'noun' });
-        } else {
-            const w = rng.pick(VERB_WORDS);
-            out.push({ prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`, answer: 'verb' });
-        }
-    }
-    return out;
+    // Deal [word, isNoun] pairs so the classification travels with the word.
+    const deck = createDeck(rng, [
+        ...NOUN_WORDS.map((w): [string, boolean] => [w, true]),
+        ...VERB_WORDS.map((w): [string, boolean] => [w, false])
+    ]);
+    return sampleUnique(
+        count,
+        () => {
+            const [w, isNoun] = deck.take();
+            return {
+                prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`,
+                answer: isNoun ? 'noun' : 'verb'
+            };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

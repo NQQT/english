@@ -16,33 +16,45 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { sampleUnique } from '../framework';
 
-// Alphabet order: next letter after X, letter before X, or "a, b, __".
+// Alphabet order: five question kinds — next letter after X, letter before X,
+// a forward run "a, b, __", a backward run "b, a, __", and a middle gap
+// "a, __, c". The alphabet is finite: 25+25+24+24+24 = 122 distinct questions,
+// which sampleUnique deals out with zero repeats before the space must cycle.
 function generateLetters(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const A = 97; // 'a'
-    for (let i = 0; i < count; i++) {
-        const kind = rng.int(0, 2);
-        if (kind === 0) {
-            // Letter AFTER x (x in a..y so an answer always exists).
-            const x = rng.int(0, 24);
-            const c = String.fromCharCode(A + x);
-            out.push({ prompt: `Which letter comes after "${c}"?`, answer: String.fromCharCode(A + x + 1) });
-        } else if (kind === 1) {
-            // Letter BEFORE x (x in b..z).
-            const x = rng.int(1, 25);
-            const c = String.fromCharCode(A + x);
-            out.push({ prompt: `Which letter comes before "${c}"?`, answer: String.fromCharCode(A + x - 1) });
-        } else {
-            // Run of two shown then the next: "a, b, __".
+    const letter = (x: number) => String.fromCharCode(A + x);
+    return sampleUnique(
+        count,
+        () => {
+            const kind = rng.int(0, 4);
+            if (kind === 0) {
+                // Letter AFTER x (x in a..y so an answer always exists).
+                const x = rng.int(0, 24);
+                return { prompt: `Which letter comes after "${letter(x)}"?`, answer: letter(x + 1) };
+            }
+            if (kind === 1) {
+                // Letter BEFORE x (x in b..z).
+                const x = rng.int(1, 25);
+                return { prompt: `Which letter comes before "${letter(x)}"?`, answer: letter(x - 1) };
+            }
+            if (kind === 2) {
+                // Forward run of two shown then the next: "a, b, __".
+                const x = rng.int(0, 23);
+                return { prompt: `${letter(x)}, ${letter(x + 1)}, __`, answer: letter(x + 2) };
+            }
+            if (kind === 3) {
+                // Backward run of two shown then the next: "b, a, __".
+                const x = rng.int(1, 24);
+                return { prompt: `${letter(x)}, ${letter(x - 1)}, __`, answer: letter(x - 2) };
+            }
+            // Middle gap of a three-letter run: "a, __, c".
             const x = rng.int(0, 23);
-            out.push({
-                prompt: `${String.fromCharCode(A + x)}, ${String.fromCharCode(A + x + 1)}, __`,
-                answer: String.fromCharCode(A + x + 2)
-            });
-        }
-    }
-    return out;
+            return { prompt: `${letter(x)}, __, ${letter(x + 2)}`, answer: letter(x + 1) };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

@@ -15,9 +15,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
+import { shuffleWords } from './words';
 
-// Plural pairs [singular, plural]. Regular -s/-es endings (always on); the
-// irregular set is Year-2 (tricky) only.
+// Plural pairs [singular, plural]. Regular -s/-es endings (always on) — grown
+// from 15 to 29 pairs; the irregular set is Year-2 (tricky) only.
 const PLURAL_REGULAR: [string, string][] = [
     ['cat', 'cats'],
     ['dog', 'dogs'],
@@ -33,7 +35,21 @@ const PLURAL_REGULAR: [string, string][] = [
     ['door', 'doors'],
     ['bus', 'buses'],
     ['box', 'boxes'],
-    ['watch', 'watches']
+    ['watch', 'watches'],
+    ['hat', 'hats'],
+    ['moon', 'moons'],
+    ['book', 'books'],
+    ['tree', 'trees'],
+    ['frog', 'frogs'],
+    ['fan', 'fans'],
+    ['net', 'nets'],
+    ['pot', 'pots'],
+    ['top', 'tops'],
+    ['bag', 'bags'],
+    ['jam', 'jams'],
+    ['leg', 'legs'],
+    ['log', 'logs'],
+    ['wig', 'wigs']
 ];
 const PLURAL_IRREGULAR: [string, string][] = [
     ['child', 'children'],
@@ -48,21 +64,51 @@ const PLURAL_IRREGULAR: [string, string][] = [
 ];
 
 // Plurals: "what is the plural of X?" / "what is the singular of X?" over the
-// regular set, extended with the irregular set for Year 2 (tricky).
+// regular set, extended with the irregular set for Year 2 (tricky). 60% of
+// questions are written-answer; 40% offer three options (the right form plus
+// two forms from other pairs) — that option-combination space pushes the
+// worksheet past a thousand unique questions.
+//
+// NON-REPEATING SAMPLING: pairs AND direction are dealt from decks, and the
+// whole question passes through sampleUnique keyed on the printed prompt.
 function generatePlural(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool: [string, string][] = caps.tricky
         ? [...PLURAL_REGULAR, ...PLURAL_IRREGULAR]
         : PLURAL_REGULAR;
-    for (let i = 0; i < count; i++) {
-        const [sing, pl] = rng.pick(pool);
-        if (rng.next() < 0.5) {
-            out.push({ prompt: `What is the plural of "${sing}"?`, answer: pl });
-        } else {
-            out.push({ prompt: `What is the singular of "${pl}"?`, answer: sing });
-        }
-    }
-    return out;
+    const pairDeck = createDeck(rng, pool);
+    // Direction deck: plural-ask and singular-ask alternate evenly.
+    const askDeck = createDeck(rng, [true, false]);
+    const forms = pool.flat();
+    return sampleUnique(
+        count,
+        () => {
+            const [sing, pl] = pairDeck.take();
+            const pluralAsk = askDeck.take();
+            if (rng.next() < 0.6) {
+                // Written answer, random direction.
+                return pluralAsk
+                    ? { prompt: `What is the plural of "${sing}"?`, answer: pl }
+                    : { prompt: `What is the singular of "${pl}"?`, answer: sing };
+            }
+            // Multiple choice: the answer beside two forms from other pairs.
+            const answer = pluralAsk ? pl : sing;
+            const options = [answer];
+            let guard = 0;
+            while (options.length < 3 && guard < 24) {
+                guard++;
+                const pick = rng.pick(forms);
+                if (!options.includes(pick)) options.push(pick);
+            }
+            const shown = shuffleWords(rng, options);
+            return {
+                prompt: pluralAsk
+                    ? `What is the plural of "${sing}"? (${shown.join(', ')})`
+                    : `What is the singular of "${pl}"? (${shown.join(', ')})`,
+                answer
+            };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

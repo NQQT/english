@@ -15,30 +15,48 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { wordSet } from './words';
 
-// Blending: see the letters, write the word. Three forms — all letters shown
-// ("what word is s u n?"), or the first/last letter left as a blank
+// Blending: see the letters, write the word. Four forms — all letters shown
+// ("what word is s u n?"), or the first/last/ONE-MIDDLE letter left as a blank
 // ("finish the word: __ u n"). Only words of 6 letters or fewer are used so a
 // whole line stays on one row in the two-column grid.
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck (each of the ~45 words
+// cycles through all four forms before any word repeats) and the question
+// passes through sampleUnique keyed on the printed prompt — 4 forms x ~45
+// words = ~180 distinct questions per grade tier.
 function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3 && w.length <= 6);
-    for (let i = 0; i < count; i++) {
-        const word = rng.pick(pool);
-        const r = rng.next();
-        if (r < 0.4) {
-            // All letters shown, space-separated: "What word is: s u n?"
-            out.push({ prompt: `What word is: ${word.split('').join(' ')}?`, answer: word });
-        } else if (r < 0.7) {
-            // First letter blanked: "Finish the word: __ u n".
-            out.push({ prompt: `Finish the word: __ ${word.slice(1).split('').join(' ')}`, answer: word });
-        } else {
-            // Last letter blanked: "Finish the word: s u __".
-            out.push({ prompt: `Finish the word: ${word.slice(0, -1).split('').join(' ')} __`, answer: word });
-        }
-    }
-    return out;
+    const wordDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const word = wordDeck.take();
+            const letters = word.split('');
+            const r = rng.next();
+            if (r < 0.3) {
+                // All letters shown, space-separated: "What word is: s u n?"
+                return { prompt: `What word is: ${letters.join(' ')}?`, answer: word };
+            }
+            if (r < 0.55) {
+                // First letter blanked: "Finish the word: __ u n".
+                return { prompt: `Finish the word: __ ${letters.slice(1).join(' ')}`, answer: word };
+            }
+            if (r < 0.8) {
+                // Last letter blanked: "Finish the word: s u __".
+                return { prompt: `Finish the word: ${letters.slice(0, -1).join(' ')} __`, answer: word };
+            }
+            // One MIDDLE letter blanked: "Finish the word: s __ n".
+            const mid = rng.int(1, letters.length - 2);
+            return {
+                prompt: `Finish the word: ${letters.map((ch, i) => (i === mid ? '__' : ch)).join(' ')}`,
+                answer: word
+            };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

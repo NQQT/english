@@ -16,46 +16,112 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
-// Sentence-building templates: fixed word lines, shortest (Prep) to longest
-// (Year 2). Sentence lines are filtered by the grade's `sentenceLen` cap.
-const SENTENCES_TIER1: string[] = ['Sam runs', 'Ben reads', 'Sue sings', 'Mia skips', 'Leo paints', 'Zoe draws'];
-const SENTENCES_TIER2_EXTRA: string[] = [
-    'The dog barks',
-    'Sam has two cats',
-    'The sun shines',
-    'Ben sees a bird',
-    'Sue reads a book',
-    'Mia eats an apple',
-    'Sam kicks the ball'
+// ── Combinatorial sentence generator ─────────────────────────────────────────
+// The old bank held 17 fixed lines; the sheet repeated them within two pages.
+// Now sentences are ASSEMBLED from grammar slots, so the question space is the
+// cross-product of the banks (2 000+ distinct Year 1 lines, 9 000+ Year 2)
+// instead of a hand-written list.
+//
+// Slot banks (who/what does/what to/extra):
+const SENT_NAMES: readonly string[] = ['Sam', 'Ben', 'Sue', 'Mia', 'Leo', 'Zoe'];
+const SENT_ACTIONS: readonly string[] = ['runs', 'jumps', 'skips', 'sings', 'hops', 'claps', 'swims', 'naps'];
+// One-word and two-word actors, kept apart so every line SHAPE below has a
+// guaranteed, exact word count (the grade cap filters by shape, not by line).
+const SENT_ONE_WORD_ACTORS: readonly string[] = SENT_NAMES;
+const SENT_TWO_WORD_ACTORS: readonly string[] = [
+    'The dog', 'The cat', 'The bird', 'The frog', 'The girl', 'The boy',
+    'My dad', 'My mom', 'My brother', 'My sister', 'The teacher', 'My friend',
+    'The baby', 'My cousin'
 ];
-const SENTENCES_TIER3_EXTRA: string[] = [
-    'The teacher reads a story',
-    'My brother kicks the ball',
-    'The little dog sleeps',
-    'The cat chases the mouse'
+// Each transitive verb carries its own compatible objects, so a line always
+// reads sensibly ("washes a story" can never happen).
+const SENT_TRANSITIVE: readonly [string, readonly string[]][] = [
+    ['kicks', ['the ball', 'a stone', 'the can', 'a pebble']],
+    ['reads', ['a book', 'a story', 'the sign', 'a card']],
+    ['sees', ['a bird', 'the moon', 'a star', 'a rainbow']],
+    ['eats', ['an apple', 'a cookie', 'the bread', 'a pear']],
+    ['paints', ['a picture', 'the fence', 'a flower', 'a rock']],
+    ['draws', ['a house', 'a cat', 'a tree', 'a boat']],
+    ['finds', ['a coin', 'the key', 'a shell', 'a feather']],
+    ['helps', ['my friend', 'the boy', 'a puppy', 'a kitten']],
+    ['washes', ['the shirt', 'the cup', 'the car', 'the dish']],
+    ['carries', ['the box', 'a bag', 'the chair', 'a basket']]
+];
+// Optional end-tails turn a 4-word Year 1 line into a 5-word Year 2 line.
+const SENT_TAILS: readonly string[] = ['today', 'outside', 'again', 'loudly', 'quickly', 'every day'];
+
+// Line shapes with their EXACT word counts; the grade's sentenceLen cap
+// filters which shapes a generator may use (Prep 2, Year 1 4, Year 2 5).
+// Line spaces: 2w = 6x8 = 48 · 3w = 14x8 = 112 · 4w = 6x40 = 240 ·
+// 5w = 14x40 + 6x40x6 = 2 000. Year 1 (cap 4) draws from 400 distinct lines,
+// and because each line is printed SCRAMBLED (and the uniqueness key is the
+// printed prompt), its question space is thousands deep.
+type SentenceShape = {
+    len: number;
+    build: (rng: Rng) => string[];
+};
+const SENTENCE_SHAPES: readonly SentenceShape[] = [
+    // "Sam runs" — Prep's whole space.
+    {
+        len: 2,
+        build: (rng) => [rng.pick(SENT_ONE_WORD_ACTORS), rng.pick(SENT_ACTIONS)]
+    },
+    // "The dog sings" — Year 1+.
+    {
+        len: 3,
+        build: (rng) => [rng.pick(SENT_TWO_WORD_ACTORS), rng.pick(SENT_ACTIONS)]
+    },
+    // "Sam kicks the ball" — Year 1+.
+    {
+        len: 4,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects)];
+        }
+    },
+    // "My mom washes the cup" — Year 2 (5-word actors).
+    {
+        len: 5,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects)];
+        }
+    },
+    // "Sam kicks the ball outside" — Year 2 (tallied from names).
+    {
+        len: 5,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS)];
+        }
+    }
 ];
 
-// Sentence building: a template line is scrambled and printed as "put the
+// Sentence building: an assembled line is scrambled and printed as "put the
 // words in the correct order: __, __, ...". Lines longer than the grade's
-// sentenceLen cap are filtered out; a tier with no eligible lines falls back
-// to its shortest line so the generator can never run dry.
+// sentenceLen cap are never chosen; a tier with no eligible shape falls back
+// to the shortest shapes so the generator can never run dry.
+//
+// NON-REPEATING SAMPLING: sampleUnique keys on the printed prompt, so a line
+// scrambled in a different order is a distinct question — the shape banks plus
+// scramble permutations keep a thousand-question document repeat-free.
 function generateSentence(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    const tierOk = (w: number) => w <= caps.sentenceLen;
-    let pool: readonly string[] = SENTENCES_TIER1;
-    if (caps.wordTier >= 2) pool = [...SENTENCES_TIER1, ...SENTENCES_TIER2_EXTRA];
-    if (caps.wordTier >= 3) pool = [...pool, ...SENTENCES_TIER3_EXTRA];
-    let eligible = pool.filter((s) => s.split(' ').length <= Math.max(2, caps.sentenceLen));
-    if (eligible.length === 0) eligible = pool.slice().sort((a, b) => a.length - b.length).slice(0, Math.max(1, Math.min(3, pool.length)));
-    for (let i = 0; i < count; i++) {
-        const words = rng.pick(eligible).split(' ');
-        const shown = shuffleWords(rng, words);
-        const blanks = words.map(() => '__').join(', ');
-        out.push({ prompt: `Put the words in the correct order: ${blanks}.  (${shown.join(', ')})`, answer: words.join(' ') });
-    }
-    return out;
+    const lenCap = Math.max(2, caps.sentenceLen);
+    let shapes = SENTENCE_SHAPES.filter((s) => s.len <= lenCap);
+    if (shapes.length === 0) shapes = [SENTENCE_SHAPES[0]];
+    return sampleUnique(
+        count,
+        () => {
+            const words = rng.pick(shapes).build(rng);
+            const shown = shuffleWords(rng, words);
+            const blanks = words.map(() => '__').join(', ');
+            return { prompt: `Put the words in the correct order: ${blanks}.  (${shown.join(', ')})`, answer: words.join(' ') };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests). Prose lines run

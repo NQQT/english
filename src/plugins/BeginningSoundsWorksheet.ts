@@ -16,18 +16,26 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { wordSet } from './words';
 
 // Beginning sounds: "which letter does <word> start with?" — the phonemic
 // awareness task (letter, not letter-name, kept simple at these word lengths).
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck, so every word in the
+// grade set is asked once before any repeats (the pool IS the fact space —
+// ~45-61 distinct questions per tier).
 function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3);
-    for (let i = 0; i < count; i++) {
-        const word = rng.pick(pool);
-        out.push({ prompt: `Which letter does "${word}" start with?`, answer: word[0] });
-    }
-    return out;
+    const wordDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const word = wordDeck.take();
+            return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

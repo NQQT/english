@@ -15,45 +15,50 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { sampleUnique } from '../framework';
 
-// Punctuation pools: statements take ".", questions "?", exclamations "!".
-const PUNCT_SAY = [
-    'The cat is sleeping',
-    'I like school',
-    'The sun is up',
-    'We eat lunch',
-    'The dog is happy',
-    'Mia has a red hat'
+// Punctuation pools — assembled from grammar slots so the statement/question
+// spaces are cross-products instead of hand-written lists:
+//   statements: 8 subjects x 8 predicates = 64 lines ("The cat is sleeping")
+//   questions:  4 openers x 8 noun phrases = 32 lines ("Where is the dog")
+//   exclamations: 12 curated lines ("I love ice cream")
+// => 108 distinct lines; sampleUnique deals them with zero repeats before the
+// space cycles.
+const PUNCT_SUBJECTS = [
+    'The cat', 'The dog', 'My dad', 'The baby', 'The teacher', 'My friend', 'The bird', 'The boy'
 ] as const;
-const PUNCT_ASK = [
-    'Where is the dog',
-    'What is your name',
-    'How are you',
-    'Who is that girl',
-    'Why is the sky blue'
+const PUNCT_PREDICATES = [
+    'is sleeping', 'is happy', 'likes school', 'runs fast', 'is hungry', 'sings loudly', 'is here', 'found the ball'
+] as const;
+const PUNCT_OPENERS = ['Where is', 'Who is', 'Can you see', 'Do you have'] as const;
+const PUNCT_THINGS = [
+    'the dog', 'the cat', 'a pencil', 'my hat', 'the ball', 'your book', 'a bird', 'the milk'
 ] as const;
 const PUNCT_EXCLAIM = [
-    'I love ice cream',
-    'What a big dog',
-    'Look at that bird',
-    'We won the game'
+    'I love ice cream', 'What a big dog', 'Look at that bird', 'We won the game',
+    'What a fast car', 'I love this book', 'Look at the moon', 'We did it',
+    'What a sunny day', 'I am so hungry', 'What a great idea', 'The fire is hot'
 ] as const;
 
 // Punctuation: add the right mark at the end — "." statement, "?" question,
 // "!" exclamation.
 function generatePunct(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    for (let i = 0; i < count; i++) {
-        const kind = rng.int(0, 2);
-        if (kind === 0) {
-            out.push({ prompt: `Add the right punctuation: ${rng.pick(PUNCT_SAY)} __`, answer: '.' });
-        } else if (kind === 1) {
-            out.push({ prompt: `Add the right punctuation: ${rng.pick(PUNCT_ASK)} __`, answer: '?' });
-        } else {
-            out.push({ prompt: `Add the right punctuation: ${rng.pick(PUNCT_EXCLAIM)} __`, answer: '!' });
-        }
-    }
-    return out;
+    return sampleUnique(
+        count,
+        () => {
+            const kind = rng.int(0, 2);
+            if (kind === 0) {
+                const line = `${rng.pick(PUNCT_SUBJECTS)} ${rng.pick(PUNCT_PREDICATES)}`;
+                return { prompt: `Add the right punctuation: ${line} __`, answer: '.' };
+            }
+            if (kind === 1) {
+                const line = `${rng.pick(PUNCT_OPENERS)} ${rng.pick(PUNCT_THINGS)}`;
+                return { prompt: `Add the right punctuation: ${line} __`, answer: '?' };
+            }
+            return { prompt: `Add the right punctuation: ${rng.pick(PUNCT_EXCLAIM)} __`, answer: '!' };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

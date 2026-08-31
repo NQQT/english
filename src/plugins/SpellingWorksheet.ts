@@ -15,43 +15,93 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { shuffleWords } from './words';
+import { createDeck, sampleUnique } from '../framework';
+import { wordSet, KNOWN_WORD_SET, shuffleWords } from './words';
 
-// Spelling triples [correct, misspelling A, misspelling B]. The misspellings
-// are curated so that none of them is a real word (checked against
-// KNOWN_WORD_SET at authoring time).
-const SPELLING_TIER2: [string, string, string][] = [
-    ['cat', 'catt', 'cadt'],
-    ['dog', 'doog', 'doge'],
-    ['fish', 'fissh', 'fush'],
-    ['bird', 'brid', 'bired'],
-    ['house', 'hous', 'huse'],
-    ['sun', 'syun', 'suun'],
-    ['apple', 'applee', 'appple'],
-    ['frog', 'froge', 'freog']
-];
-const SPELLING_TIER3_EXTRA: [string, string, string][] = [
-    ['school', 'scool', 'scoool'],
-    ['teacher', 'techer', 'tocher'],
-    ['family', 'familly', 'familie'],
-    ['banana', 'bananna', 'bannana'],
-    ['butterfly', 'buterfly', 'butrefly'],
-    ['beautiful', 'beutiful', 'beauitful'],
-    ['chocolate', 'chocolote', 'choclate'],
-    ['elephant', 'elphant', 'elephent']
-];
+// ── Procedural misspelling generator ─────────────────────────────────────────
+// The old bank held 16 hand-curated [correct, fake, fake] triples — an 8-or-16
+// question space that HAD to repeat on any long sheet. Now every word in the
+// grade's word set is EXPANDED into its full family of safe misspellings at
+// load, giving thousands of distinct questions ("cat" beside (catt, cwat) is a
+// different question from "cat" beside (cta, cact)).
+//
+// Four edit families, all safe for kids' sheets:
+//   - doubled letter   (cat -> catt, ccat)
+//   - swapped letters  (bird -> brid, ibrdb-style neighbour swaps)
+//   - dropped letter   (bread -> bead, bred)  [words of 4+ letters only]
+//   - inserted letter  (cat -> cwat, cact)    [interior consonants only]
+// Candidates that collide with a real word are DISCARDED via KNOWN_WORD_SET
+// (which includes COMMON_WORDS — chat/cart/stun/bend/... — so an option set
+// never contains two genuine English words). Old curated fakes (brid, catt…)
+// stay in KNOWN_WORD_SET, which also keeps them out of the new combinations.
+const FAKE_CONSONANTS = 'bcdfghjklmnprstvwz';
 
-// Spelling: multiple-choice on spelling — the correct word beside two curated
-// misspellings. Year 1 uses short words; Year 2 (tricky) adds the long set.
-function generateSpelling(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    const pool = caps.tricky ? [...SPELLING_TIER2, ...SPELLING_TIER3_EXTRA] : SPELLING_TIER2;
-    for (let i = 0; i < count; i++) {
-        const [correct, w1, w2] = rng.pick(pool);
-        const options = shuffleWords(rng, [correct, w1, w2]);
-        out.push({ prompt: `Which word is spelled correctly? (${options.join(', ')})`, answer: correct });
+// Cache: pure function of the word, and a 1000-question document asks for the
+// same word's family many times (dealt evenly by the deck below).
+const misspellingCache = new Map<string, string[]>();
+
+function misspellings(word: string): string[] {
+    const cached = misspellingCache.get(word);
+    if (cached) return cached;
+    const candidates = new Set<string>();
+    for (let i = 0; i < word.length; i++) {
+        candidates.add(word.slice(0, i) + word[i] + word[i] + word.slice(i + 1));
+        if (i + 1 < word.length) {
+            candidates.add(word.slice(0, i) + word[i + 1] + word[i] + word.slice(i + 2));
+        }
+        if (word.length >= 4) {
+            candidates.add(word.slice(0, i) + word.slice(i + 1));
+        }
+        // Interior insertions only: an initial letter can turn "hat" into the
+        // real words "that/what", and an appended "s" makes real plurals
+        // ("cats") — both would put a second real word on the sheet.
+        if (i + 1 < word.length) {
+            for (const c of FAKE_CONSONANTS) {
+                candidates.add(word.slice(0, i + 1) + c + word.slice(i + 1));
+            }
+        }
     }
-    return out;
+    const fakes = [...candidates].filter(
+        (w) => w !== word && w.length >= 3 && !KNOWN_WORD_SET.has(w)
+    );
+    misspellingCache.set(word, fakes);
+    return fakes;
+}
+
+// Spelling: multiple-choice on spelling — the correct word beside two random
+// misspellings from its family. Whole grade word set (45 words Year 1, 61
+// Year 2) instead of the old 8-or-16 curated triples; dealt from a deck so
+// every word shows up before any repeats.
+function generateSpelling(rng: Rng, caps: Caps, count: number): RawProblem[] {
+    const pool = wordSet(caps.wordTier);
+    const wordDeck = createDeck(rng, pool);
+    const familyCache = new Map<string, string[]>();
+    return sampleUnique(
+        count,
+        () => {
+            const correct = wordDeck.take();
+            let family = familyCache.get(correct);
+            if (!family) {
+                family = misspellings(correct);
+                familyCache.set(correct, family);
+            }
+            // Two distinct fakes; the guard never fires (families hold 40+
+            // members) but keeps the pick total even on a freak word.
+            const f1 = rng.pick(family);
+            let f2 = rng.pick(family);
+            let guard = 0;
+            while (f2 === f1 && guard < 12) {
+                guard++;
+                f2 = rng.pick(family);
+            }
+            if (f2 === f1) f2 = family[(family.indexOf(f1) + 1) % family.length];
+            const options = shuffleWords(rng, [correct, f1, f2]);
+            return { prompt: `Which word is spelled correctly? (${options.join(', ')})`, answer: correct };
+        },
+        // Fingerprint = the printed option set, so the same correct word with
+        // a different fake pair counts as a fresh question.
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

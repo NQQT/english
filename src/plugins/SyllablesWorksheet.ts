@@ -16,8 +16,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 
-// Syllable counts, Year 2 only (the only grade that offers the type).
+// Syllable counts, Year 2 only (the only grade that offers the type). Grown
+// from 14 to 34 words and dealt from a deck, so every word is asked before
+// any repeats (the word list IS the fact space for this worksheet type).
 const SYLLABLE_WORDS: [string, number][] = [
     ['banana', 3],
     ['apple', 2],
@@ -32,18 +35,50 @@ const SYLLABLE_WORDS: [string, number][] = [
     ['computer', 3],
     ['pumpkin', 2],
     ['dinosaur', 3],
-    ['helmet', 2]
+    ['helmet', 2],
+    ['tiger', 2],
+    ['lion', 2],
+    ['monkey', 2],
+    ['lady', 2],
+    ['baby', 2],
+    ['music', 2],
+    ['paper', 2],
+    ['pencil', 2],
+    ['puppy', 2],
+    ['kitten', 2],
+    ['napkin', 2],
+    ['basket', 2],
+    ['market', 2],
+    ['summer', 2],
+    ['winter', 2],
+    ['yellow', 3],
+    ['potato', 3],
+    ['tomato', 3],
+    ['piano', 3],
+    ['radio', 3],
+    ['animal', 3],
+    ['holiday', 3],
+    ['together', 3],
+    ['wonderful', 3],
+    ['crocodile', 3],
+    ['alligator', 4]
 ];
 
 // Syllables: count the beats in a word (Year 2 only — buildDocument gates
-// this on grade.available, so the pool below is the full Y2 list).
+// this on grade.available, so the pool above is the full Y2 list).
+//
+// NON-REPEATING SAMPLING: the deck guarantees every word appears before any
+// repeats.
 function generateSyllable(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    for (let i = 0; i < count; i++) {
-        const [word, n] = rng.pick(SYLLABLE_WORDS);
-        out.push({ prompt: `How many syllables are in "${word}"?`, answer: `${n}` });
-    }
-    return out;
+    const wordDeck = createDeck(rng, SYLLABLE_WORDS);
+    return sampleUnique(
+        count,
+        () => {
+            const [word, n] = wordDeck.take();
+            return { prompt: `How many syllables are in "${word}"?`, answer: `${n}` };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

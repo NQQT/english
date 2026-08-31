@@ -15,17 +15,34 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // Word-gap items: [sentence with one "__", the correct word, two printed
-// non-fitting options]. Tier 2 = basic; tier 3 adds longer vocabulary.
+// non-fitting options]. Tier 2 = basic; tier 3 adds longer vocabulary. Grown
+// from 10 to 24 items and dealt from a deck, so every gap sentence is asked
+// before any repeats.
 const WORDGAP_TIER2: [string, string, [string, string]][] = [
     ['I drink a glass of __ .', 'milk', ['cat', 'tree']],
     ["We read a __ in class.", 'book', ['door', 'fish']],
     ['My __ is very small.', 'cat', ['desk', 'milk']],
     ['The sun is in the __ .', 'sky', ['water', 'box']],
     ["The fish lives in the __ .", 'water', ['sky', 'box']],
-    ['I wear my __ to school.', 'hat', ['book', 'milk']]
+    ['I wear my __ to school.', 'hat', ['book', 'milk']],
+    ['I sleep in my __ .', 'bed', ['cup', 'bus']],
+    ['I ride the __ to school.', 'bus', ['cup', 'leg']],
+    ['I write with a __ .', 'pen', ['cup', 'bed']],
+    ['I wear a __ on my head.', 'hat', ['box', 'pen']],
+    ['The __ barks at the mailman.', 'dog', ['pen', 'cup']],
+    ['We play with a __ at the park.', 'ball', ['bed', 'milk']],
+    ['The __ shines in the day.', 'sun', ['bed', 'pen']],
+    ['A __ has a long trunk.', 'elephant', ['cat', 'frog']],
+    ['Mom bakes a __ for us.', 'cake', ['shoe', 'log']],
+    ['The fire feels __ .', 'hot', ['wet', 'soft']],
+    ['Fish swim in the __ .', 'water', ['milk', 'tree']],
+    ['I brush my __ every morning.', 'hair', ['shoe', 'bus']],
+    ['The __ flies high in the wind.', 'kite', ['rock', 'pen']],
+    ['Bees make sweet __ .', 'honey', ['shoes', 'books']]
 ];
 const WORDGAP_TIER3_EXTRA: [string, string, [string, string]][] = [
     ['We eat __ for breakfast.', 'bread', ['shoes', 'sky']],
@@ -36,15 +53,22 @@ const WORDGAP_TIER3_EXTRA: [string, string, [string, string]][] = [
 
 // Word gaps: a sentence with one gap printed as a fill-in line beside three
 // choices, one of which fits.
+//
+// NON-REPEATING SAMPLING: the 24 item bank is the whole fact space for this
+// worksheet type — a deck guarantees every sentence is asked (shuffled option
+// order included) before any repeats.
 function generateWordGap(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = caps.wordTier >= 3 ? [...WORDGAP_TIER2, ...WORDGAP_TIER3_EXTRA] : WORDGAP_TIER2;
-    for (let i = 0; i < count; i++) {
-        const [sentence, answer, [bad1, bad2]] = rng.pick(pool);
-        const options = shuffleWords(rng, [answer, bad1, bad2]);
-        out.push({ prompt: `Choose the best word: ${sentence} (${options.join(', ')})`, answer });
-    }
-    return out;
+    const itemDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const [sentence, answer, [bad1, bad2]] = itemDeck.take();
+            const options = shuffleWords(rng, [answer, bad1, bad2]);
+            return { prompt: `Choose the best word: ${sentence} (${options.join(', ')})`, answer };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests). Gap sentences

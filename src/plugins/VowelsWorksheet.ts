@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { wordSet } from './words';
 
 // How many vowels a word has (the a-e-i-o-u letter rule, as worksheets teach
@@ -32,20 +33,26 @@ function vowelLetter(word: string): string | undefined {
 
 // Vowels: count the vowels in a word, or (for words with exactly one vowel
 // letter) name that letter.
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck (each word cycles
+// through its count/letter variants before any word repeats) and the question
+// passes through sampleUnique keyed on the printed prompt.
 function generateVowel(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const pool = wordSet(caps.wordTier).filter((w) => vowelCount(w) >= 1);
-    for (let i = 0; i < count; i++) {
-        const word = rng.pick(pool);
-        const n = vowelCount(word);
-        if (n === 1 && rng.next() < 0.5) {
-            // Single-vowel words can also ask WHICH letter is the vowel.
-            out.push({ prompt: `Which letter in "${word}" is the vowel?`, answer: vowelLetter(word)! });
-        } else {
-            out.push({ prompt: `How many vowels are in "${word}"?`, answer: `${n}` });
-        }
-    }
-    return out;
+    const wordDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const word = wordDeck.take();
+            const n = vowelCount(word);
+            if (n === 1 && rng.next() < 0.5) {
+                // Single-vowel words can also ask WHICH letter is the vowel.
+                return { prompt: `Which letter in "${word}" is the vowel?`, answer: vowelLetter(word)! };
+            }
+            return { prompt: `How many vowels are in "${word}"?`, answer: `${n}` };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

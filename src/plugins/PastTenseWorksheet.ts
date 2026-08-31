@@ -16,8 +16,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
+import { shuffleWords } from './words';
 
-// Past-tense pairs [base, past], Year 2 only.
+// Past-tense pairs [base, past], Year 2 only. Grown from 14 to 30 pairs —
+// 16 regular (-ed/-d/double-consonant) plus the original irregulars.
 const TENSE_PAIRS: [string, string][] = [
     ['walk', 'walked'],
     ['play', 'played'],
@@ -32,17 +35,58 @@ const TENSE_PAIRS: [string, string][] = [
     ['take', 'took'],
     ['make', 'made'],
     ['drive', 'drove'],
-    ['write', 'wrote']
+    ['write', 'wrote'],
+    ['help', 'helped'],
+    ['want', 'wanted'],
+    ['look', 'looked'],
+    ['open', 'opened'],
+    ['call', 'called'],
+    ['need', 'needed'],
+    ['wash', 'washed'],
+    ['ask', 'asked'],
+    ['point', 'pointed'],
+    ['smile', 'smiled'],
+    ['use', 'used'],
+    ['live', 'lived'],
+    ['love', 'loved'],
+    ['like', 'liked'],
+    ['hop', 'hopped'],
+    ['stop', 'stopped'],
+    ['clap', 'clapped'],
+    ['grab', 'grabbed']
 ];
 
-// Past tense (Year 2 only): the past form of a base verb.
+// Past tense (Year 2 only): the past form of a base verb, either as a written
+// answer or (40% of questions) as a three-option multiple choice whose
+// distractor past forms come from other pairs — that option-combination space
+// pushes the worksheet past a thousand unique questions.
+//
+// NON-REPEATING SAMPLING: bases are dealt from a deck (every verb is asked
+// before any repeats) and the question passes through sampleUnique keyed on
+// the printed prompt.
 function generateTense(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    for (let i = 0; i < count; i++) {
-        const [base, past] = rng.pick(TENSE_PAIRS);
-        out.push({ prompt: `What is the past tense of "${base}"?`, answer: past });
-    }
-    return out;
+    const baseDeck = createDeck(rng, TENSE_PAIRS);
+    const pastForms = TENSE_PAIRS.map(([, past]) => past);
+    return sampleUnique(
+        count,
+        () => {
+            const [base, past] = baseDeck.take();
+            if (rng.next() < 0.6) {
+                return { prompt: `What is the past tense of "${base}"?`, answer: past };
+            }
+            // Multiple choice: the answer beside two past forms from other verbs.
+            const options = [past];
+            let guard = 0;
+            while (options.length < 3 && guard < 24) {
+                guard++;
+                const pick = rng.pick(pastForms);
+                if (!options.includes(pick)) options.push(pick);
+            }
+            const shown = shuffleWords(rng, options);
+            return { prompt: `What is the past tense of "${base}"? (${shown.join(', ')})`, answer: past };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

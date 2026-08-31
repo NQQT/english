@@ -4,7 +4,8 @@
 // the plugin contract (types), the reactive store + session state (store),
 // the registry + slot hosts (registry / host), the progressive plugin loader
 // (loader), the grade catalogue (grades),
-// the deterministic PRNG (rng), document assembly (document), the A4 layout
+// the deterministic PRNG (rng) + unique-sampling primitives (sampling),
+// document assembly (document), the A4 layout
 // components (PageStack / PrintableSheet / ZoomControl / page-scale), the
 // grade selector (GradeSelector), the standard worksheet recipe
 // (worksheet-kit), the DASHBOARD_FRAMEWORK bundle handed to every plugin
@@ -12,6 +13,7 @@
 export * from './types';
 export * from './grades';
 export * from './rng';
+export * from './sampling';
 export * from './document';
 export * from './page-scale';
 export * from './theme';

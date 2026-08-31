@@ -15,8 +15,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
+import { shuffleWords } from './words';
 
-// Opposite (antonym) pairs: tier1 = the six kindest pairs; tier 2+ = all.
+// Opposite (antonym) pairs: tier1 = the six kindest pairs; tier 2+ = all 30.
+// (No word may anchor TWO pairs — "hard" only pairs with "easy", never also
+// with "soft" — so a prompt word always has exactly one correct answer.)
 const OPPOSITE_PAIRS: [string, string][] = [
     ['hot', 'cold'],
     ['big', 'small'],
@@ -29,21 +33,67 @@ const OPPOSITE_PAIRS: [string, string][] = [
     ['new', 'old'],
     ['heavy', 'light'],
     ['early', 'late'],
-    ['easy', 'hard']
+    ['easy', 'hard'],
+    // Year 1+ extras (30 pairs => 60 written-answer questions before the
+    // multiple-choice variant multiplies the space past a thousand)
+    ['day', 'night'],
+    ['come', 'go'],
+    ['push', 'pull'],
+    ['full', 'empty'],
+    ['wet', 'dry'],
+    ['loud', 'quiet'],
+    ['first', 'last'],
+    ['give', 'take'],
+    ['laugh', 'cry'],
+    ['sweet', 'sour'],
+    ['above', 'below'],
+    ['front', 'back'],
+    ['win', 'lose'],
+    ['clean', 'dirty'],
+    ['strong', 'weak'],
+    ['under', 'over'],
+    ['near', 'far']
 ];
 
-// Opposite words: name the antonym of a word from the pair bank.
+// Opposite words: name the antonym of a word from the pair bank, either as a
+// written answer or (40% of questions) as a three-option multiple choice.
+//
+// NON-REPEATING SAMPLING: pair AND direction are dealt from decks (each of
+// the 60 "what is the opposite of X?" forms appears before any repeats), and
+// the whole question passes through sampleUnique keyed on the printed prompt —
+// the multiple-choice variant's distractor sets multiply the space beyond a
+// thousand unique questions.
 function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     // Tier 1 offers the six most concrete pairs; tier 2+ the full set.
     const pairs = caps.wordTier >= 2 ? OPPOSITE_PAIRS : OPPOSITE_PAIRS.slice(0, 6);
-    for (let i = 0; i < count; i++) {
-        const [a, b] = rng.pick(pairs);
-        // Random direction: ask for a's opposite or b's opposite.
-        const ask = rng.next() < 0.5;
-        out.push({ prompt: `What is the opposite of "${ask ? a : b}"?`, answer: ask ? b : a });
-    }
-    return out;
+    const pairDeck = createDeck(rng, pairs);
+    // Every bank word except the prompt word and its answer is a legal
+    // multiple-choice distractor.
+    const words = pairs.flat();
+    return sampleUnique(
+        count,
+        () => {
+            const [a, b] = pairDeck.take();
+            // Random direction: ask for a's opposite or b's opposite.
+            const useAsk = rng.next() < 0.5;
+            const word = useAsk ? a : b;
+            const answer = useAsk ? b : a;
+            if (rng.next() < 0.6) {
+                return { prompt: `What is the opposite of "${word}"?`, answer };
+            }
+            // Multiple choice: two distractor words from unrelated pairs.
+            const options = [answer];
+            let guard = 0;
+            while (options.length < 3 && guard < 24) {
+                guard++;
+                const pick = rng.pick(words);
+                if (!options.includes(pick) && pick !== word) options.push(pick);
+            }
+            const shown = shuffleWords(rng, options);
+            return { prompt: `Which word means the opposite of "${word}"? (${shown.join(', ')})`, answer };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

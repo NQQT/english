@@ -47,6 +47,64 @@ export function wordSet(tier: number): readonly string[] {
     return TIER1_WORDS;
 }
 
+// Common real English words (kid-level vocabulary, 2–6 letters) that are NOT
+// part of any tier bank. Two jobs:
+//   1. BLOCKLIST — the spelling generator's invented misspellings and the
+//      sight generator's non-words must never be a real word; every word here
+//      is excluded from those fake options.
+//   2. POOL — the capital-letters worksheet draws its "write it with a
+//      capital" words from the tier banks plus this set, multiplying its
+//      non-repeating question space.
+// (Duplicates with the tier banks are harmless — everything lands in a Set.)
+// ── data, space-separated string split at load: compact to read/edit. ──
+export const COMMON_WORDS: readonly string[] =
+    (
+        'act add and ant arm art ask ate bad ban bar bat bay bee beg bet bid bin bit bow boy bud bug bun ' +
+        'but buy cab can cap car cod cog cop cot cow cub cut dab dad dam day den dew did die dig dim din ' +
+        'dip doe dot dry due dug ear eel egg elf elk end far fat fax fed fee few fig fin fir fit fix fly ' +
+        'foe fog for fox fun fur gap gas gem get got gum gun gut guy had ham has hay hem hen her hid him ' +
+        'hip his hit hoe how hub hue hug hum hut ice ill ink inn jab jar jaw jay jet job jog joy jug keg ' +
+        'key kid kin kit lab lad lag lap law lay led let lid lie lip lit lot low lug mad man mar mat max ' +
+        'may men met mid mix mob mow mud mug mum nab nap net new nil nip nit nod nor not now nun nut oak ' +
+        'oar oat odd off oil old one opt orb ore out owe owl own pad pal pan par pat paw pay pea peg pep ' +
+        'per pet pie pit pod pop pub pug pun pup put rag ram ran rap raw ray rib rid rig rim rip rob rod ' +
+        'roe rot row rub rug rum run rut sad sag sap sat saw say sea see set sew she shy sin sir sit six ' +
+        'ski sky sly sob son sow soy spa spy sub sue sum tab tag tan tap tar tax tea ten the tie tin tip ' +
+        'toe ton tot tow toy try tub tug two urn use van vet vex via vie wag war was wax way web wed wee ' +
+        'wet who why win wit woe won wow yes yet you zap zip bang rant chub shun stun spun tee snip meet ' +
+        'meat able pane widow ' +
+        'band bank bath bend best bill bite blow bold bolt bond book boot born both bowl burn bush came ' +
+        'camp card cart case cash cast chat chip chop clam clap club coal coat coin comb cook cool cord ' +
+        'cork corn cost crib crop dark date dawn debt deck deep deer desk dime dine dish dive dock doll ' +
+        'dome done dose dove down drag drew drop drum dune dusk dust each earn ease east edge else even ' +
+        'ever evil face fact fail fair fall farm fate fear feed feel fell felt fern file fill film find ' +
+        'fine fire firm five flag flat flew flip flow fold folk fond food foot fork form fort four free ' +
+        'from fuel full fund gain game gate gave gear gift girl give glad glow glue goal goat gold golf ' +
+        'gone gown grab gray grew grin grip grow hair half hall hand hang hard harm hate have hawk head ' +
+        'hear heat held herd hide high hike hill hint hire hive hold hole home hope horn hose host hour ' +
+        'huge hunt hurt idea inch into iron item jazz jeep jerk join joke jump jury just keen keep kept ' +
+        'kick kind king kiss kite knee knew knit know lace lack lady laid lake lamp land lane last late ' +
+        'lawn lazy lead lean left lend lens less lift like limb lime line link lion list live load loan ' +
+        'lock loft lone long look lord lose loss lost loud love luck lump lung made mail main make male ' +
+        'mall many mask mass mate math meal mean meat melt mend menu mess mile milk mind mine mint miss ' +
+        'mold moon more most moth move much must name near neat neck need nest news next nice nine none ' +
+        'noon nose note noun obey once only onto open oval oven over pace pack page paid pail pain pair ' +
+        'pale palm pant park part pass past path peak pear peel pest pick pile pine pink pipe play plot ' +
+        'plug plum plus poem poet pole poll pond pool pork port pose post pour pray prey pull pump pure ' +
+        'push quit quiz race rack raft rage raid rail rain rake ramp rank rare rate real rear reed rest ' +
+        'rice rich ride ring rise risk road roar robe rock role roll roof room root rope rose ruin rule ' +
+        'rush rust safe said sail sale salt same sand save scar seal seat seed seek seem seen self sell ' +
+        'send sent shed ship shoe shop shot show shut side sign silk sing sink site size skin skip slam ' +
+        'slap sled slim slip slot slow snap soap sock sofa soft soil sold sole some song soon sore sort ' +
+        'soul soup spin spot star stay stem step stir stop such suit sure swam swan swap swim tail take ' +
+        'tale talk tall tank tape task team tear tell tend tent term test text than that them then they ' +
+        'thin this tick tide tidy tied tile time tiny tire told tone took tool torn toss tour town tray ' +
+        'trim trip tube tuck tune turn twin type ugly unit upon urge vast verb very vest vine vote wade ' +
+        'wage wait wake walk wall want ward warm warn wash wave wear weed week well went were west what ' +
+        'when wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word wore work ' +
+        'worm worn wrap yard yarn year yell zero zone'
+    ).split(' ');
+
 // Every word that can ever appear on a sheet (all banks across the plugins),
 // lower-case. The `sight` generator refuses to "invent" non-words that collide
 // with any of these, so its distractors are genuinely fake words; the
@@ -56,6 +114,13 @@ export const KNOWN_WORD_SET: ReadonlySet<string> = new Set([
     ...TIER1_WORDS,
     ...TIER2_EXTRA,
     ...TIER3_EXTRA,
+    // Common real words a careless single-letter edit of a bank word can
+    // wander into (chat/cart from "cat", stun/spun from "sun", bend/bred from
+    // "bed", lane/pane from "plane", widow from "window", ...). The spelling
+    // generator filters its procedurally invented misspellings against this
+    // set, so a "which word is spelled correctly?" option never contains two
+    // real English words; the sight generator benefits the same way.
+    ...COMMON_WORDS,
     // rhyme friends & distractors
     'hat', 'bat', 'mat', 'sat', 'log', 'hog', 'fun', 'run', 'up', 'hen',
     'ten', 'men', 'big', 'dig', 'wig', 'fed', 'led', 'pan', 'can', 'man',

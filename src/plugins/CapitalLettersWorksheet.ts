@@ -16,17 +16,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { wordSet } from './words';
+import { createDeck, sampleUnique } from '../framework';
+import { wordSet, COMMON_WORDS } from './words';
 
 // Capital letters: start a lower-case word with a capital letter.
+//
+// NON-REPEATING SAMPLING: the pool is the grade word set PLUS the common-words
+// bank (~300 real words at Year 1+) dealt from a deck, so every word is
+// capitalised once before any repeats.
 function generateCapital(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
-    const pool = wordSet(caps.wordTier);
-    for (let i = 0; i < count; i++) {
-        const word = rng.pick(pool);
-        out.push({ prompt: `Write it with a capital letter: ${word}`, answer: `${word[0].toUpperCase()}${word.slice(1)}` });
-    }
-    return out;
+    const pool = [...new Set([...wordSet(caps.wordTier), ...COMMON_WORDS])];
+    const wordDeck = createDeck(rng, pool);
+    return sampleUnique(
+        count,
+        () => {
+            const word = wordDeck.take();
+            return { prompt: `Write it with a capital letter: ${word}`, answer: `${word[0].toUpperCase()}${word.slice(1)}` };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).

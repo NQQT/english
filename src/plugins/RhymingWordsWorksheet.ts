@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // Rhyme families: base word -> words that rhyme with it. Tiers 2/3 add the
@@ -23,7 +24,7 @@ const RHIME_BANK: Record<string, string[]> = {
     cat: ['hat', 'bat', 'mat'],
     dog: ['log', 'hog'],
     sun: ['fun', 'run'],
-    cup: ['up', 'bus'],
+    cup: ['up', 'pup'],
     pen: ['hen', 'ten'],
     pig: ['big', 'dig', 'wig'],
     bed: ['red', 'fed'],
@@ -33,7 +34,7 @@ const RHIME_BANK: Record<string, string[]> = {
     red: ['bed', 'fed', 'led'],
     pin: ['tin', 'fin', 'bin'],
     pot: ['hot', 'got', 'cot'],
-    rat: ['cat', 'hat', 'mat'],
+    rat: ['fat', 'vat'],
     // Tier 2+ families
     night: ['light', 'sight', 'flight'],
     chair: ['hair', 'pair'],
@@ -43,8 +44,14 @@ const RHIME_BANK: Record<string, string[]> = {
     apple: ['happy', 'maple']
 };
 // Non-rhyme distractor pool: checked against every rhyme family above, so a
-// distractor can never accidentally rhyme with the base word.
-const RHYME_DISTRACT = ['fish', 'tree', 'bird', 'milk', 'king', 'star', 'door', 'duck', 'leaf', 'rock'] as const;
+// distractor can never accidentally rhyme with the base word. Grown from 10
+// to 19 members — with two distinct distractors drawn per question the
+// combination space (base x rhyme x C(19,2) option sets) clears a thousand
+// unique questions many times over.
+const RHYME_DISTRACT = [
+    'fish', 'tree', 'bird', 'milk', 'king', 'star', 'door', 'duck', 'leaf', 'rock',
+    'moon', 'spoon', 'hand', 'corn', 'nest', 'gift', 'cloud', 'west', 'sand'
+] as const;
 // Which families a tier offers: tier1 = the short families; tier2 adds
 // night/chair/light/green; tier3 adds apple.
 function rhymeBases(tier: number): readonly string[] {
@@ -58,21 +65,29 @@ function rhymeBases(tier: number): readonly string[] {
 
 // Rhyming words: one rhyme from the base's family plus two non-rhyming
 // distractors, shuffled; the child picks the rhyme.
+//
+// NON-REPEATING SAMPLING: bases are dealt from a deck (every family appears
+// before any repeats) and each question is collected through sampleUnique
+// keyed on the printed prompt, so distinct distractor pairs on the same base
+// are distinct questions.
 function generateRhyme(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const out: RawProblem[] = [];
     const bases = rhymeBases(caps.wordTier);
-    for (let i = 0; i < count; i++) {
-        const base = rng.pick(bases);
-        const rhyme = rng.pick(RHIME_BANK[base]);
-        // Two distinct non-rhyme distractors (the pool never rhymes with any
-        // base — see RHYME_DISTRACT).
-        let d1 = rng.pick(RHYME_DISTRACT);
-        let d2 = rng.pick(RHYME_DISTRACT);
-        if (d2 === d1) d2 = rng.pick(RHYME_DISTRACT.filter((w) => w !== d1));
-        const options = shuffleWords(rng, [rhyme, d1, d2]);
-        out.push({ prompt: `Which word rhymes with "${base}"? (${options.join(', ')})`, answer: rhyme });
-    }
-    return out;
+    const baseDeck = createDeck(rng, bases);
+    return sampleUnique(
+        count,
+        () => {
+            const base = baseDeck.take();
+            const rhyme = rng.pick(RHIME_BANK[base]);
+            // Two distinct non-rhyme distractors (the pool never rhymes with any
+            // base — see RHYME_DISTRACT).
+            const d1 = rng.pick(RHYME_DISTRACT);
+            let d2 = rng.pick(RHYME_DISTRACT);
+            if (d2 === d1) d2 = rng.pick(RHYME_DISTRACT.filter((w) => w !== d1));
+            const options = shuffleWords(rng, [rhyme, d1, d2]);
+            return { prompt: `Which word rhymes with "${base}"? (${options.join(', ')})`, answer: rhyme };
+        },
+        (p) => p.prompt
+    );
 }
 
 // The plugin's declarative spec (exported for its own tests).
