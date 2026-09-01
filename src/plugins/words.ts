@@ -39,9 +39,44 @@ export const TIER3_EXTRA = [
     'pumpkin', 'dinosaur', 'dolphin', 'chicken'
 ] as const;
 
-// The word set available at a tier (tiers supersede: 3 => 1+2+3).
+// Tier 4 (Year 3 upper-primary set): longer multisyllable words from the
+// Australian Curriculum Y3 spelling scope (common suffix patterns, topic
+// vocabulary). AUSTRALIAN spellings throughout (colour, neighbour, ...).
+export const TIER4_EXTRA = [
+    'kangaroo', 'koala', 'weather', 'palace', 'cave', 'museum', 'camera',
+    'danger', 'chapter', 'subject', 'follow', 'listened', 'surprise',
+    'suppose', 'purple', 'silver', 'golden', 'champion', 'kingdom',
+    'shield', 'thunder', 'whistle', 'doubt', 'lamb', 'crumb', 'scissors',
+    'castle', 'smashed', 'climbed', 'wriggled'
+] as const;
+
+// Tier 5 (Year 4 upper-primary set): content-area vocabulary + tricky
+// conventions. AUSTRALIAN spellings (favourite, neighbour, realise, ...).
+export const TIER5_EXTRA = [
+    'favourite', 'neighbour', 'realise', 'hospital', 'energy', 'increase',
+    'famous', 'fossil', 'greedy', 'weird', 'produce', 'soil', 'vein',
+    'column', 'eleventh', 'fifth', 'corner', 'scene', 'scent', 'muscle',
+    'programme', 'sulphur', 'plough', 'drought', 'pastime', 'capital',
+    'government', 'certain', 'circle', 'measure'
+] as const;
+
+// Tier 6 (Years 5–6 upper-primary set): ACARA Y5–6 spelling — technical
+// vocabulary, Australian words, common homophone-adjacent spellings.
+export const TIER6_EXTRA = [
+    'recognise', 'necessary', 'environment', 'parliament', 'quarantine',
+    'anxious', 'twelfth', 'musician', 'politician', 'physician', 'scenery',
+    'industry', 'immediate', 'considerable', 'solid', 'liquid', 'gas',
+    'abandon', 'analysis', 'language', 'persistent', 'conscience',
+    'australia', 'australian', 'kookaburra', 'billabong', 'corroboree',
+    'aboriginal', 'plantain', 'moustache', 'restaurant'
+] as const;
+
+// The word set available at a tier (tiers supersede: 6 => 1+2+3+4+5+6).
 // Unknown tiers fall back to tier 1 so a generator can never run dry.
 export function wordSet(tier: number): readonly string[] {
+    if (tier >= 6) return [...TIER1_WORDS, ...TIER2_EXTRA, ...TIER3_EXTRA, ...TIER4_EXTRA, ...TIER5_EXTRA, ...TIER6_EXTRA];
+    if (tier >= 5) return [...TIER1_WORDS, ...TIER2_EXTRA, ...TIER3_EXTRA, ...TIER4_EXTRA, ...TIER5_EXTRA];
+    if (tier >= 4) return [...TIER1_WORDS, ...TIER2_EXTRA, ...TIER3_EXTRA, ...TIER4_EXTRA];
     if (tier >= 3) return [...TIER1_WORDS, ...TIER2_EXTRA, ...TIER3_EXTRA];
     if (tier >= 2) return [...TIER1_WORDS, ...TIER2_EXTRA];
     return TIER1_WORDS;
@@ -72,7 +107,7 @@ export const COMMON_WORDS: readonly string[] =
         'ski sky sly sob son sow soy spa spy sub sue sum tab tag tan tap tar tax tea ten the tie tin tip ' +
         'toe ton tot tow toy try tub tug two urn use van vet vex via vie wag war was wax way web wed wee ' +
         'wet who why win wit woe won wow yes yet you zap zip bang rant chub shun stun spun tee snip meet ' +
-        'meat able pane widow ' +
+        'meat able pane widow mum ' +
         'band bank bath bend best bill bite blow bold bolt bond book boot born both bowl burn bush came ' +
         'camp card cart case cash cast chat chip chop clam clap club coal coat coin comb cook cool cord ' +
         'cork corn cost crib crop dark date dawn debt deck deep deer desk dime dine dish dive dock doll ' +
@@ -104,7 +139,7 @@ export const COMMON_WORDS: readonly string[] =
         'when wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word wore work ' +
         'worm worn wrap yard yarn year yell zero zone about beach begin being black block blood board ' +
         'brain brave break brick bring brown brush build carry catch chalk cheese cherry chick chunk city ' +
-        'cliff climb clock close cloth color count cover cream crown dance dear dirty dream dress drink ' +
+        'cliff climb clock close cloth colour count cover cream crown dance dear dirty dream dress drink ' +
         'drive early earth eight empty enjoy enter every fancy feast fence field fifth fifty fight final ' +
         'flame flash floor flute forest forty found frame fresh front fruit funny giant glass grape great ' +
         'group guard guess guest guide heart hobby honey horse human hurry jelly jolly juice knife label ' +
@@ -132,6 +167,9 @@ export const KNOWN_WORD_SET: ReadonlySet<string> = new Set([
     ...TIER1_WORDS,
     ...TIER2_EXTRA,
     ...TIER3_EXTRA,
+    ...TIER4_EXTRA,
+    ...TIER5_EXTRA,
+    ...TIER6_EXTRA,
     // Common real words a careless single-letter edit of a bank word can
     // wander into (chat/cart from "cat", stun/spun from "sun", bend/bred from
     // "bed", lane/pane from "plane", widow from "window", ...). The spelling
@@ -190,7 +228,27 @@ export const KNOWN_WORD_SET: ReadonlySet<string> = new Set([
     // tracing words — the A–Z one-word-per-letter bank (see
     // WordTracingWorksheet); mostly already in the banks above, so only the
     // few with no home here (G, Q, V, X, Y, Z) are added.
-    'go', 'queen', 'van', 'xylophone', 'yellow', 'zoo'
+    'go', 'queen', 'van', 'xylophone', 'yellow', 'zoo',
+    // upper-primary banks (Years 3–6, see grades.ts) — mostly tier 4–6 words
+    // already present via TIER*_EXTRA; these are the rest of the upper-primary
+    // item-bank vocabulary every Y3–6 generator (affixes, conjunctions,
+    // apostrophes, figurative language, ...) may print.
+    'colour', 'favourite', 'neighbour', 'realise', 'recognise', 'organise',
+    'practise', 'defence', 'licence', 'apologise', 'cheque', 'metre',
+    'litre', 'centre', 'theatre', 'grey', 'travelled', 'jewellery',
+    'skilful', 'fulfil', 'labelled', 'modelling', 'counsellor',
+    'conjunction', 'contraction', 'apostrophe', 'pronoun', 'adjective',
+    'adverb', 'paragraph', 'simile', 'metaphor', 'personification',
+    'alliteration', 'onomatopoeia', 'hyperbole', 'idiom', 'synonym',
+    'antonym', 'prefix', 'suffix', 'compound', 'syllable', 'comma',
+    'question', 'exclamation', 'speech', 'quotation', 'possessive',
+    'agreement', 'tenses', 'clause', 'phrase', 'sentence', 'statement',
+    'argument', 'persuade', 'entertain', 'inform', 'poetry', 'narrative',
+    'procedure', 'exposition', 'report', 'explanation', 'description',
+    'recount', 'response', 'discussion', 'review', 'media', 'audience',
+    'purpose', 'structure', 'editing', 'proofread', 'drafting',
+    'publishing', 'comprehension', 'fluency', 'vocabulary', 'spelling',
+    'handwriting', 'presentation', 'summaries', 'note-taking'
 ]);
 
 // Fisher-Yates using the shared Rng, plus a determinism guard so a scrambled

@@ -35,11 +35,13 @@ describe('sentence plugin — declarative spec', () => {
         expect(sentenceSpec.scope(g2)).toBe('up to 5 words');
     });
 
-    it('is gated by the grade catalogue (Year 1 and Year 2 only)', () => {
+    it('is gated by the grade catalogue (Year 1..6 offer it, Year 7 does not)', () => {
         expect(sentenceSpec.offered(g0)).toBe(false);
         expect(sentenceSpec.offered(g1)).toBe(true);
         expect(sentenceSpec.offered(g2)).toBe(true);
-        expect(sentenceSpec.offered(getGradeConfig(3))).toBe(false);
+        expect(sentenceSpec.offered(getGradeConfig(3))).toBe(true);
+        expect(sentenceSpec.offered(getGradeConfig(6))).toBe(true);
+        expect(sentenceSpec.offered(getGradeConfig(7))).toBe(false);
         // Unoffered type => empty sheet even with a dashboard-shaped seed.
         expect(generateSheet(sentenceSpec, g0, seedFrom([0, 'sentence', 0]))).toEqual([]);
     });
@@ -65,59 +67,59 @@ function checkPermutation(grade: GradeConfig) {
 describe('sentence — Year 1 (2..4-word lines)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (skips, Sue)","answer":"Sue skips"},
-        {"id":2,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (Leo, a cat, draws)","answer":"Leo draws a cat"},
-        {"id":3,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (swims, My cousin)","answer":"My cousin swims"},
-        {"id":4,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (Mia, the ball, kicks)","answer":"Mia kicks the ball"},
-        {"id":5,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (a card, reads, Sam)","answer":"Sam reads a card"},
-        {"id":6,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (a tree, Sam, draws)","answer":"Sam draws a tree"},
-        {"id":7,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (finds, a coin, Mia)","answer":"Mia finds a coin"},
-        {"id":8,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (washes, the dish, Sue)","answer":"Sue washes the dish"},
-        {"id":9,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (skips, Leo)","answer":"Leo skips"},
-        {"id":10,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (swims, Sue)","answer":"Sue swims"},
-        {"id":11,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (hops, My brother)","answer":"My brother hops"},
-        {"id":12,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (hops, My sister)","answer":"My sister hops"}
-]);
+        {"prompt":"Put the words in the correct order: __, __.  (skips, Sue)","answer":"Sue skips","id":1,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (Leo, a cat, draws)","answer":"Leo draws a cat","id":2,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (swims, My cousin)","answer":"My cousin swims","id":3,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (Mia, the ball, kicks)","answer":"Mia kicks the ball","id":4,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (a card, reads, Sam)","answer":"Sam reads a card","id":5,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (a tree, Sam, draws)","answer":"Sam draws a tree","id":6,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (finds, a coin, Mia)","answer":"Mia finds a coin","id":7,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (washes, the dish, Sue)","answer":"Sue washes the dish","id":8,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (skips, Leo)","answer":"Leo skips","id":9,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (swims, Sue)","answer":"Sue swims","id":10,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (hops, My brother)","answer":"My brother hops","id":11,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (hops, My sister)","answer":"My sister hops","id":12,"type":"sentence"},
+        ]);
         checkPermutation(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(sentenceSpec, g1, seedFrom([1, 'sentence', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":13,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (finds, Zoe, a coin)","answer":"Zoe finds a coin"},
-        {"id":14,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (carries, Mia, the chair)","answer":"Mia carries the chair"},
-        {"id":15,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (naps, Leo)","answer":"Leo naps"}
-]);
+        {"prompt":"Put the words in the correct order: __, __, __.  (finds, Zoe, a coin)","answer":"Zoe finds a coin","id":13,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (carries, Mia, the chair)","answer":"Mia carries the chair","id":14,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (naps, Leo)","answer":"Leo naps","id":15,"type":"sentence"},
+        ]);
     });
 });
 
 describe('sentence — Year 2 (adds the 5-word templates)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"sentence","prompt":"Put the words in the correct order: __, __, __, __.  (again, a pear, eats, Mia)","answer":"Mia eats a pear again"},
-        {"id":2,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (washes, The frog, the shirt)","answer":"The frog washes the shirt"},
-        {"id":3,"type":"sentence","prompt":"Put the words in the correct order: __, __, __, __.  (a pear, eats, loudly, Sue)","answer":"Sue eats a pear loudly"},
-        {"id":4,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (jumps, Ben)","answer":"Ben jumps"},
-        {"id":5,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (washes, the cup, Zoe)","answer":"Zoe washes the cup"},
-        {"id":6,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (Mia, the moon, sees)","answer":"Mia sees the moon"},
-        {"id":7,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (skips, Mia)","answer":"Mia skips"},
-        {"id":8,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (The baby, a coin, finds)","answer":"The baby finds a coin"},
-        {"id":9,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (Mia, the ball, kicks)","answer":"Mia kicks the ball"},
-        {"id":10,"type":"sentence","prompt":"Put the words in the correct order: __, __, __.  (the key, finds, The baby)","answer":"The baby finds the key"},
-        {"id":11,"type":"sentence","prompt":"Put the words in the correct order: __, __, __, __.  (Leo, kicks, today, a stone)","answer":"Leo kicks a stone today"},
-        {"id":12,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (swims, Ben)","answer":"Ben swims"}
-]);
+        {"prompt":"Put the words in the correct order: __, __, __, __.  (again, a pear, eats, Mia)","answer":"Mia eats a pear again","id":1,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (washes, The frog, the shirt)","answer":"The frog washes the shirt","id":2,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __, __.  (a pear, eats, loudly, Sue)","answer":"Sue eats a pear loudly","id":3,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (jumps, Ben)","answer":"Ben jumps","id":4,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (washes, the cup, Zoe)","answer":"Zoe washes the cup","id":5,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (Mia, the moon, sees)","answer":"Mia sees the moon","id":6,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (skips, Mia)","answer":"Mia skips","id":7,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (The baby, a coin, finds)","answer":"The baby finds a coin","id":8,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (Mia, the ball, kicks)","answer":"Mia kicks the ball","id":9,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __.  (the key, finds, The baby)","answer":"The baby finds the key","id":10,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __, __, __.  (Leo, kicks, today, a stone)","answer":"Leo kicks a stone today","id":11,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (swims, Ben)","answer":"Ben swims","id":12,"type":"sentence"},
+        ]);
         checkPermutation(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(sentenceSpec, g2, seedFrom([2, 'sentence', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":13,"type":"sentence","prompt":"Put the words in the correct order: __, __, __, __.  (again, Sue, a picture, paints)","answer":"Sue paints a picture again"},
-        {"id":14,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (skips, My cousin)","answer":"My cousin skips"},
-        {"id":15,"type":"sentence","prompt":"Put the words in the correct order: __, __.  (claps, Leo)","answer":"Leo claps"}
-]);
+        {"prompt":"Put the words in the correct order: __, __, __, __.  (again, Sue, a picture, paints)","answer":"Sue paints a picture again","id":13,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (skips, My cousin)","answer":"My cousin skips","id":14,"type":"sentence"},
+        {"prompt":"Put the words in the correct order: __, __.  (claps, Leo)","answer":"Leo claps","id":15,"type":"sentence"},
+        ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
-        expect(generateSheet(sentenceSpec, getGradeConfig(3), seedFrom([3, 'sentence', 0]))).toEqual([]);
+        expect(generateSheet(sentenceSpec, getGradeConfig(7), seedFrom([7, 'sentence', 0]))).toEqual([]);
     });
 });

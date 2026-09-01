@@ -13,7 +13,7 @@
 // DashboardPlugin). The dashboard renders its shell + the first plugin
 // immediately, then loads the remaining factories ONE BY ONE after mount —
 // see framework/loader.ts (usePluginLoader). Previously every factory was
-// invoked right here at module load time, which constructed all 21 plugins
+// invoked right here at module load time, which constructed all plugins
 // before the dashboard ever rendered.
 //
 // This is the ONLY file that changes when adding or removing a worksheet
@@ -31,7 +31,8 @@
 // the left rail in this sequence (grade-gated), the first plugin's entry is
 // the default selection AND the first plugin loaded with the dashboard's
 // first render. The order mirrors the curriculum catalogue (Sight & Real
-// Words first, the Prep handwriting tracing set last).
+// Words first, the upper-primary senior set after tense, the Prep
+// handwriting tracing set last).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PluginFactory } from '../framework';
@@ -53,6 +54,18 @@ import { SpellingWorksheet } from './SpellingWorksheet';
 import { SyllablesWorksheet } from './SyllablesWorksheet';
 import { NounsVerbsWorksheet } from './NounsVerbsWorksheet';
 import { PastTenseWorksheet } from './PastTenseWorksheet';
+import { ConjunctionWorksheet } from './ConjunctionWorksheet';
+import { ApostropheWorksheet } from './ApostropheWorksheet';
+import { CommaListWorksheet } from './CommaListWorksheet';
+import { AffixWorksheet } from './AffixWorksheet';
+import { CompoundWorksheet } from './CompoundWorksheet';
+import { SpeechWorksheet } from './SpeechWorksheet';
+import { HomographWorksheet } from './HomographWorksheet';
+import { PronounWorksheet } from './PronounWorksheet';
+import { FigurativeWorksheet } from './FigurativeWorksheet';
+import { IdiomWorksheet } from './IdiomWorksheet';
+import { AdvancedPunctuationWorksheet } from './AdvancedPunctuationWorksheet';
+import { AgreementWorksheet } from './AgreementWorksheet';
 import { LetterTracingWorksheet } from './LetterTracingWorksheet';
 import { WordTracingWorksheet } from './WordTracingWorksheet';
 import { NumberTracingWorksheet } from './NumberTracingWorksheet';
@@ -61,7 +74,8 @@ import { NumberTracingWorksheet } from './NumberTracingWorksheet';
 // factories — the dashboard loads each one by calling it with its framework
 // bundle, one by one after the dashboard has rendered (framework/loader.ts);
 // each loaded plugin then contributes its sidebar entry, toolbar, page and
-// print surfaces.
+// print surfaces. The Y3–6 senior types sit after tense and before the
+// Prep-only tracing set (the catalogue order mirrors grades.ts).
 export const PLUGINS: PluginFactory[] = [
     SightWordsWorksheet,
     BlendingWorksheet,
@@ -81,6 +95,18 @@ export const PLUGINS: PluginFactory[] = [
     SyllablesWorksheet,
     NounsVerbsWorksheet,
     PastTenseWorksheet,
+    ConjunctionWorksheet,
+    ApostropheWorksheet,
+    CommaListWorksheet,
+    AffixWorksheet,
+    CompoundWorksheet,
+    SpeechWorksheet,
+    HomographWorksheet,
+    PronounWorksheet,
+    FigurativeWorksheet,
+    IdiomWorksheet,
+    AdvancedPunctuationWorksheet,
+    AgreementWorksheet,
     LetterTracingWorksheet,
     WordTracingWorksheet,
     NumberTracingWorksheet

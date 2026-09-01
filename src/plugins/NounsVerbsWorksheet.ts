@@ -50,6 +50,21 @@ const ANIMATE_NOUNS = [
     'boy', 'girl', 'dad', 'mum', 'baby', 'frog'
 ] as const;
 
+// Upper-primary (Year 3+) word-class extension: ACARA Y3–6 grammar adds
+// ADJECTIVES (describing words) and ADVERBS (how/when/where words) to the
+// noun/verb split. The senior kinds below classify these two classes only —
+// they never mix with the noun/verb banks, which keep their Y2 shape.
+const ADJECTIVE_WORDS = [
+    'bright', 'brave', 'calm', 'cheerful', 'gentle', 'gloomy', 'greedy',
+    'honest', 'lazy', 'polite', 'proud', 'quiet', 'rude', 'silly',
+    'tidy', 'wise', 'curious', 'generous', 'patient', 'loyal'
+] as const;
+const ADVERB_WORDS = [
+    'quickly', 'slowly', 'loudly', 'softly', 'gently', 'kindly', 'bravely',
+    'happily', 'sadly', 'anxiously', 'carefully', 'carelessly', 'eagerly',
+    'neatly', 'politely', 'rudely', 'silently', 'sweetly', 'wisely', 'proudly'
+] as const;
+
 // Nouns & verbs — FOUR procedural kinds, Year 2 only:
 //   0. "Is the word X a noun or a verb?"        (the written classify base)
 //   1. "Which word is a noun?"                  (3 options: 1 noun, 2 verbs)
@@ -63,7 +78,46 @@ const ANIMATE_NOUNS = [
 // NON-REPEATING SAMPLING: [word, isNoun] pairs and sentence slots are dealt
 // from decks and every question passes through sampleUnique keyed on the
 // printed prompt.
-function generateGrammar(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
+    // Upper-primary gate: wordTier 4 (Year 3+) switches to the ACARA Y3–6
+    // word-class work — adjectives vs adverbs (MC + written classify).
+    if (caps.wordTier >= 4) {
+        const adjDeck = createDeck(rng, ADJECTIVE_WORDS);
+        const advDeck = createDeck(rng, ADVERB_WORDS);
+        return sampleUnique(
+            count,
+            () => {
+                const kind = rng.int(0, 2);
+                if (kind === 0) {
+                    // Written classify: is the dealt word an adjective or an adverb?
+                    const isAdj = rng.next() < 0.5;
+                    const word = isAdj ? adjDeck.take() : advDeck.take();
+                    return {
+                        prompt: `Is the word "${word}" an adjective (describes a thing) or an adverb (tells how)?`,
+                        answer: isAdj ? 'adjective' : 'adverb'
+                    };
+                }
+                // MC: one adjective beside two adverbs (kind 1), or one adverb
+                // beside two adjectives (kind 2).
+                const wantAdj = kind === 1;
+                const answer = wantAdj ? adjDeck.take() : advDeck.take();
+                const otherDeck = wantAdj ? advDeck : adjDeck;
+                const options = [answer];
+                let guard = 0;
+                while (options.length < 3 && guard < 24) {
+                    guard++;
+                    const pick = otherDeck.take();
+                    if (!options.includes(pick)) options.push(pick);
+                }
+                const shown = shuffleWords(rng, options);
+                return {
+                    prompt: `Which word is an ${wantAdj ? 'adjective (describes a thing)' : 'adverb (tells how)'}? (${shown.join(', ')})`,
+                    answer
+                };
+            },
+            (p) => p.prompt
+        );
+    }
     // Deal [word, isNoun] pairs so the classification travels with the word.
     const pairDeck = createDeck(rng, [
         ...NOUN_WORDS.map((w): [string, boolean] => [w, true]),
@@ -124,7 +178,8 @@ export const grammarSpec: WorksheetSpec = {
     icon: '&',
     perPage: 24,
     offered: (grade: GradeConfig) => grade.available.includes('grammar'),
-    scope: () => 'noun (thing) vs verb (action)',
+    scope: (grade: GradeConfig) =>
+        grade.caps.wordTier >= 4 ? 'adjectives vs adverbs' : 'noun (thing) vs verb (action)',
     generate: generateGrammar
 };
 

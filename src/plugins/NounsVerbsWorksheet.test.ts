@@ -30,11 +30,13 @@ describe('grammar plugin — declarative spec', () => {
         expect(grammarSpec.scope(g2)).toBe('noun (thing) vs verb (action)');
     });
 
-    it('is gated by the grade catalogue (Year 2 only)', () => {
+    it('is gated by the grade catalogue (Year 2..6 offer it, Year 7 does not)', () => {
         expect(grammarSpec.offered(getGradeConfig(0))).toBe(false);
         expect(grammarSpec.offered(getGradeConfig(1))).toBe(false);
         expect(grammarSpec.offered(g2)).toBe(true);
-        expect(grammarSpec.offered(getGradeConfig(3))).toBe(false);
+        expect(grammarSpec.offered(getGradeConfig(3))).toBe(true);
+        expect(grammarSpec.offered(getGradeConfig(6))).toBe(true);
+        expect(grammarSpec.offered(getGradeConfig(7))).toBe(false);
         // Unoffered grades => empty sheet even with a dashboard-shaped seed.
         expect(generateSheet(grammarSpec, getGradeConfig(1), seedFrom([1, 'grammar', 0]))).toEqual([]);
     });
@@ -43,42 +45,42 @@ describe('grammar plugin — declarative spec', () => {
 describe('grammar — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"grammar","prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":2,"type":"grammar","prompt":"Find the verb: The dad kicks.","answer":"kicks"},
-        {"id":3,"type":"grammar","prompt":"Which word is a noun (thing)? (sing, push, button)","answer":"button"},
-        {"id":4,"type":"grammar","prompt":"Find the verb: The baby paints.","answer":"paints"},
-        {"id":5,"type":"grammar","prompt":"Find the verb: The tiger writes.","answer":"writes"},
-        {"id":6,"type":"grammar","prompt":"Which word is a noun (thing)? (dance, monkey, read)","answer":"monkey"},
-        {"id":7,"type":"grammar","prompt":"Which word is a noun (thing)? (smile, sleep, chair)","answer":"chair"},
-        {"id":8,"type":"grammar","prompt":"Find the verb: The baby cries.","answer":"cries"},
-        {"id":9,"type":"grammar","prompt":"Find the verb: The girl draws.","answer":"draws"},
-        {"id":10,"type":"grammar","prompt":"Is the word \"cloud\" a noun (thing) or a verb (action)?","answer":"noun"},
-        {"id":11,"type":"grammar","prompt":"Which word is a noun (thing)? (eat, drive, river)","answer":"river"},
-        {"id":12,"type":"grammar","prompt":"Find the noun: The frog hops.","answer":"frog"},
-        {"id":13,"type":"grammar","prompt":"Is the word \"open\" a noun (thing) or a verb (action)?","answer":"verb"},
-        {"id":14,"type":"grammar","prompt":"Find the noun: The frog walks.","answer":"frog"},
-        {"id":15,"type":"grammar","prompt":"Which word is a verb (action)? (cat, climb, table)","answer":"climb"},
-        {"id":16,"type":"grammar","prompt":"Which word is a verb (action)? (clap, bird, grass)","answer":"clap"},
-        {"id":17,"type":"grammar","prompt":"Which word is a noun (thing)? (jump, swim, plane)","answer":"plane"},
-        {"id":18,"type":"grammar","prompt":"Which word is a verb (action)? (garden, play, train)","answer":"play"},
-        {"id":19,"type":"grammar","prompt":"Which word is a noun (thing)? (drink, carry, tree)","answer":"tree"},
-        {"id":20,"type":"grammar","prompt":"Which word is a verb (action)? (crawl, fish, school)","answer":"crawl"},
-        {"id":21,"type":"grammar","prompt":"Which word is a verb (action)? (dog, run, book)","answer":"run"},
-        {"id":22,"type":"grammar","prompt":"Which word is a noun (thing)? (open, pull, tiger)","answer":"tiger"},
-        {"id":23,"type":"grammar","prompt":"Which word is a verb (action)? (fly, flower, rocket)","answer":"fly"},
-        {"id":24,"type":"grammar","prompt":"Find the verb: The frog washes.","answer":"washes"}
-]);
+        {"prompt":"Is the word \"draw\" a noun (thing) or a verb (action)?","answer":"verb","id":1,"type":"grammar"},
+        {"prompt":"Find the verb: The dad kicks.","answer":"kicks","id":2,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (sing, push, button)","answer":"button","id":3,"type":"grammar"},
+        {"prompt":"Find the verb: The baby paints.","answer":"paints","id":4,"type":"grammar"},
+        {"prompt":"Find the verb: The tiger writes.","answer":"writes","id":5,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (dance, monkey, read)","answer":"monkey","id":6,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (smile, sleep, chair)","answer":"chair","id":7,"type":"grammar"},
+        {"prompt":"Find the verb: The baby cries.","answer":"cries","id":8,"type":"grammar"},
+        {"prompt":"Find the verb: The girl draws.","answer":"draws","id":9,"type":"grammar"},
+        {"prompt":"Is the word \"cloud\" a noun (thing) or a verb (action)?","answer":"noun","id":10,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (eat, drive, river)","answer":"river","id":11,"type":"grammar"},
+        {"prompt":"Find the noun: The frog hops.","answer":"frog","id":12,"type":"grammar"},
+        {"prompt":"Is the word \"open\" a noun (thing) or a verb (action)?","answer":"verb","id":13,"type":"grammar"},
+        {"prompt":"Find the noun: The frog walks.","answer":"frog","id":14,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (cat, climb, table)","answer":"climb","id":15,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (clap, bird, grass)","answer":"clap","id":16,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (jump, swim, plane)","answer":"plane","id":17,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (garden, play, train)","answer":"play","id":18,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (drink, carry, tree)","answer":"tree","id":19,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (crawl, fish, school)","answer":"crawl","id":20,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (dog, run, book)","answer":"run","id":21,"type":"grammar"},
+        {"prompt":"Which word is a noun (thing)? (open, pull, tiger)","answer":"tiger","id":22,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (fly, flower, rocket)","answer":"fly","id":23,"type":"grammar"},
+        {"prompt":"Find the verb: The frog washes.","answer":"washes","id":24,"type":"grammar"},
+        ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(grammarSpec, g2, seedFrom([2, 'grammar', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"grammar","prompt":"Which word is a verb (action)? (kitten, apple, pull)","answer":"pull"},
-        {"id":26,"type":"grammar","prompt":"Which word is a verb (action)? (robot, cloud, push)","answer":"push"},
-        {"id":27,"type":"grammar","prompt":"Which word is a verb (action)? (house, cry, pencil)","answer":"cry"}
-]);
+        {"prompt":"Which word is a verb (action)? (kitten, apple, pull)","answer":"pull","id":25,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (robot, cloud, push)","answer":"push","id":26,"type":"grammar"},
+        {"prompt":"Which word is a verb (action)? (house, cry, pencil)","answer":"cry","id":27,"type":"grammar"},
+        ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
-        expect(generateSheet(grammarSpec, getGradeConfig(3), seedFrom([3, 'grammar', 0]))).toEqual([]);
+        expect(generateSheet(grammarSpec, getGradeConfig(7), seedFrom([7, 'grammar', 0]))).toEqual([]);
     });
 });

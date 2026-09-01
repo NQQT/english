@@ -250,7 +250,7 @@ function createPage(spec: WorksheetSpec, config: DashboardFrameworkConfig) {
                         <EmptyCard>
                             <EmptyIcon aria-hidden="true">{config.emptyGlyph}</EmptyIcon>
                             <EmptyTitle>No worksheets for this selection yet</EmptyTitle>
-                            <EmptyHint>Choose Prep, Year 1 or Year 2 to generate a printable sheet.</EmptyHint>
+                            <EmptyHint>Choose a year level from Prep to Year 6 to generate a printable sheet.</EmptyHint>
                         </EmptyCard>
                     </EmptyState>
                 ) : (

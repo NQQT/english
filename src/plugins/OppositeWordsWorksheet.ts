@@ -55,6 +55,32 @@ const OPPOSITE_PAIRS: [string, string][] = [
     ['near', 'far']
 ];
 
+// Upper-primary (Year 3+) antonym extension: ACARA Y3–6 vocabulary. The
+// no-word-anchors-two-pairs rule still holds — none of these words appears in
+// any other pair, so every prompt word has exactly one correct answer.
+const OPPOSITE_UPPER: [string, string][] = [
+    ['accept', 'refuse'],
+    ['arrive', 'depart'],
+    ['ancient', 'modern'],
+    ['brave', 'cowardly'],
+    ['expand', 'shrink'],
+    ['generous', 'selfish'],
+    ['humble', 'proud'],
+    ['include', 'exclude'],
+    ['increase', 'decrease'],
+    ['loyal', 'disloyal'],
+    ['patient', 'impatient'],
+    ['polite', 'rude'],
+    ['praise', 'criticise'],
+    ['succeed', 'fail'],
+    ['temporary', 'permanent'],
+    ['tidy', 'messy'],
+    ['transparent', 'opaque'],
+    ['victory', 'defeat'],
+    ['wisdom', 'foolishness'],
+    ['ascending', 'descending']
+];
+
 // Opposite words: name the antonym of a word from the pair bank, either as a
 // written answer or (40% of questions) as a three-option multiple choice.
 //
@@ -64,8 +90,14 @@ const OPPOSITE_PAIRS: [string, string][] = [
 // the multiple-choice variant's distractor sets multiply the space beyond a
 // thousand unique questions.
 function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    // Tier 1 offers the six most concrete pairs; tier 2+ the full set.
-    const pairs = caps.wordTier >= 2 ? OPPOSITE_PAIRS : OPPOSITE_PAIRS.slice(0, 6);
+    // Tier 1 offers the six most concrete pairs; tier 2+ the full set; the
+    // upper-primary pairs join from wordTier 4 (Year 3+).
+    const pairs =
+        caps.wordTier >= 4
+            ? [...OPPOSITE_PAIRS, ...OPPOSITE_UPPER]
+            : caps.wordTier >= 2
+              ? OPPOSITE_PAIRS
+              : OPPOSITE_PAIRS.slice(0, 6);
     const pairDeck = createDeck(rng, pairs);
     // Every bank word except the prompt word and its answer is a legal
     // multiple-choice distractor.
@@ -103,7 +135,8 @@ export const oppositeSpec: WorksheetSpec = {
     icon: '⇄',
     perPage: 24,
     offered: (grade: GradeConfig) => grade.available.includes('opposite'),
-    scope: (grade: GradeConfig) => (grade.caps.wordTier >= 2 ? 'common opposites' : 'starter opposites'),
+    scope: (grade: GradeConfig) =>
+        grade.caps.wordTier >= 4 ? 'antonyms' : grade.caps.wordTier >= 2 ? 'common opposites' : 'starter opposites',
     generate: generateOpposite
 };
 

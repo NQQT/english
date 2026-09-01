@@ -34,11 +34,13 @@ describe('letters plugin — declarative spec', () => {
         expect(lettersSpec.scope(g2)).toBe('a–z order');
     });
 
-    it('is gated by the grade catalogue (all implemented grades offer it)', () => {
+    it('is gated by the grade catalogue (Years 0..6 offer it, Year 7 does not)', () => {
         expect(lettersSpec.offered(g0)).toBe(true);
         expect(lettersSpec.offered(g1)).toBe(true);
         expect(lettersSpec.offered(g2)).toBe(true);
-        expect(lettersSpec.offered(getGradeConfig(3))).toBe(false);
+        expect(lettersSpec.offered(getGradeConfig(3))).toBe(true);
+        expect(lettersSpec.offered(getGradeConfig(6))).toBe(true);
+        expect(lettersSpec.offered(getGradeConfig(7))).toBe(false);
     });
 });
 
@@ -114,123 +116,123 @@ function checkAlphabetTruths(grade: GradeConfig) {
 describe('letters — Prep (grade 0)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g0)).toEqual([
-        {"id":1,"type":"letters","prompt":"Which word comes last in the alphabet? (leg, bus, wig)","answer":"wig"},
-        {"id":2,"type":"letters","prompt":"h, i, __","answer":"j"},
-        {"id":3,"type":"letters","prompt":"f, __, h","answer":"g"},
-        {"id":4,"type":"letters","prompt":"w, __, y","answer":"x"},
-        {"id":5,"type":"letters","prompt":"Which word comes first in the alphabet? (sip, net, bag)","answer":"bag"},
-        {"id":6,"type":"letters","prompt":"a, __, c","answer":"b"},
-        {"id":7,"type":"letters","prompt":"j, l, __","answer":"n"},
-        {"id":8,"type":"letters","prompt":"k, __, m","answer":"l"},
-        {"id":9,"type":"letters","prompt":"Which UPPERCASE letter comes before \"F\"?","answer":"E"},
-        {"id":10,"type":"letters","prompt":"r, s, __","answer":"t"},
-        {"id":11,"type":"letters","prompt":"Which word comes first in the alphabet? (log, box, pin)","answer":"box"},
-        {"id":12,"type":"letters","prompt":"s, q, __","answer":"o"},
-        {"id":13,"type":"letters","prompt":"Which is the 6th letter from the end of the alphabet?","answer":"u"},
-        {"id":14,"type":"letters","prompt":"Which word comes last in the alphabet? (rat, pot, pig)","answer":"rat"},
-        {"id":15,"type":"letters","prompt":"l, m, n, __","answer":"o"},
-        {"id":16,"type":"letters","prompt":"m, n, __","answer":"o"},
-        {"id":17,"type":"letters","prompt":"Which UPPERCASE letter comes after \"H\"?","answer":"I"},
-        {"id":18,"type":"letters","prompt":"Which letter comes after \"r\"?","answer":"s"},
-        {"id":19,"type":"letters","prompt":"Which is the 5th letter from the end of the alphabet?","answer":"v"},
-        {"id":20,"type":"letters","prompt":"Which letter comes after \"w\"?","answer":"x"},
-        {"id":21,"type":"letters","prompt":"v, w, x, __","answer":"y"},
-        {"id":22,"type":"letters","prompt":"v, u, t, __","answer":"s"},
-        {"id":23,"type":"letters","prompt":"Which is the 7th letter of the alphabet?","answer":"g"},
-        {"id":24,"type":"letters","prompt":"p, r, __","answer":"t"}
-]);
+        {"prompt":"Which word comes last in the alphabet? (leg, bus, wig)","answer":"wig","id":1,"type":"letters"},
+        {"prompt":"h, i, __","answer":"j","id":2,"type":"letters"},
+        {"prompt":"f, __, h","answer":"g","id":3,"type":"letters"},
+        {"prompt":"w, __, y","answer":"x","id":4,"type":"letters"},
+        {"prompt":"Which word comes first in the alphabet? (sip, net, bag)","answer":"bag","id":5,"type":"letters"},
+        {"prompt":"a, __, c","answer":"b","id":6,"type":"letters"},
+        {"prompt":"j, l, __","answer":"n","id":7,"type":"letters"},
+        {"prompt":"k, __, m","answer":"l","id":8,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes before \"F\"?","answer":"E","id":9,"type":"letters"},
+        {"prompt":"r, s, __","answer":"t","id":10,"type":"letters"},
+        {"prompt":"Which word comes first in the alphabet? (log, box, pin)","answer":"box","id":11,"type":"letters"},
+        {"prompt":"s, q, __","answer":"o","id":12,"type":"letters"},
+        {"prompt":"Which is the 6th letter from the end of the alphabet?","answer":"u","id":13,"type":"letters"},
+        {"prompt":"Which word comes last in the alphabet? (rat, pot, pig)","answer":"rat","id":14,"type":"letters"},
+        {"prompt":"l, m, n, __","answer":"o","id":15,"type":"letters"},
+        {"prompt":"m, n, __","answer":"o","id":16,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes after \"H\"?","answer":"I","id":17,"type":"letters"},
+        {"prompt":"Which letter comes after \"r\"?","answer":"s","id":18,"type":"letters"},
+        {"prompt":"Which is the 5th letter from the end of the alphabet?","answer":"v","id":19,"type":"letters"},
+        {"prompt":"Which letter comes after \"w\"?","answer":"x","id":20,"type":"letters"},
+        {"prompt":"v, w, x, __","answer":"y","id":21,"type":"letters"},
+        {"prompt":"v, u, t, __","answer":"s","id":22,"type":"letters"},
+        {"prompt":"Which is the 7th letter of the alphabet?","answer":"g","id":23,"type":"letters"},
+        {"prompt":"p, r, __","answer":"t","id":24,"type":"letters"},
+        ]);
         checkAlphabetTruths(g0);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(lettersSpec, g0, seedFrom([0, 'letters', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"letters","prompt":"Which is the 4th letter of the alphabet?","answer":"d"},
-        {"id":26,"type":"letters","prompt":"Which UPPERCASE letter comes before \"G\"?","answer":"F"},
-        {"id":27,"type":"letters","prompt":"Which is the 21st letter from the end of the alphabet?","answer":"f"}
-]);
+        {"prompt":"Which is the 4th letter of the alphabet?","answer":"d","id":25,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes before \"G\"?","answer":"F","id":26,"type":"letters"},
+        {"prompt":"Which is the 21st letter from the end of the alphabet?","answer":"f","id":27,"type":"letters"},
+        ]);
     });
 });
 
 describe('letters — Year 1', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"letters","prompt":"f, h, __","answer":"j"},
-        {"id":2,"type":"letters","prompt":"Which word comes last in the alphabet? (fan, apple, house)","answer":"house"},
-        {"id":3,"type":"letters","prompt":"i, j, __","answer":"k"},
-        {"id":4,"type":"letters","prompt":"t, s, r, __","answer":"q"},
-        {"id":5,"type":"letters","prompt":"Which UPPERCASE letter comes after \"T\"?","answer":"U"},
-        {"id":6,"type":"letters","prompt":"e, c, __","answer":"a"},
-        {"id":7,"type":"letters","prompt":"Which word comes last in the alphabet? (grass, pot, top)","answer":"top"},
-        {"id":8,"type":"letters","prompt":"Which letter comes before \"b\"?","answer":"a"},
-        {"id":9,"type":"letters","prompt":"u, v, __","answer":"w"},
-        {"id":10,"type":"letters","prompt":"u, s, __","answer":"q"},
-        {"id":11,"type":"letters","prompt":"Which is the 8th letter of the alphabet?","answer":"h"},
-        {"id":12,"type":"letters","prompt":"Which letter comes after \"d\"?","answer":"e"},
-        {"id":13,"type":"letters","prompt":"l, n, __","answer":"p"},
-        {"id":14,"type":"letters","prompt":"Which word comes first in the alphabet? (rabbit, cat, moon)","answer":"cat"},
-        {"id":15,"type":"letters","prompt":"k, j, __","answer":"i"},
-        {"id":16,"type":"letters","prompt":"Which UPPERCASE letter comes after \"G\"?","answer":"H"},
-        {"id":17,"type":"letters","prompt":"t, v, __","answer":"x"},
-        {"id":18,"type":"letters","prompt":"Which letter comes before \"q\"?","answer":"p"},
-        {"id":19,"type":"letters","prompt":"Which letter comes before \"k\"?","answer":"j"},
-        {"id":20,"type":"letters","prompt":"Which letter comes before \"l\"?","answer":"k"},
-        {"id":21,"type":"letters","prompt":"Which is the 2nd letter from the end of the alphabet?","answer":"y"},
-        {"id":22,"type":"letters","prompt":"Which UPPERCASE letter comes after \"Y\"?","answer":"Z"},
-        {"id":23,"type":"letters","prompt":"v, w, __","answer":"x"},
-        {"id":24,"type":"letters","prompt":"m, n, o, __","answer":"p"}
-]);
+        {"prompt":"f, h, __","answer":"j","id":1,"type":"letters"},
+        {"prompt":"Which word comes last in the alphabet? (fan, apple, house)","answer":"house","id":2,"type":"letters"},
+        {"prompt":"i, j, __","answer":"k","id":3,"type":"letters"},
+        {"prompt":"t, s, r, __","answer":"q","id":4,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes after \"T\"?","answer":"U","id":5,"type":"letters"},
+        {"prompt":"e, c, __","answer":"a","id":6,"type":"letters"},
+        {"prompt":"Which word comes last in the alphabet? (grass, pot, top)","answer":"top","id":7,"type":"letters"},
+        {"prompt":"Which letter comes before \"b\"?","answer":"a","id":8,"type":"letters"},
+        {"prompt":"u, v, __","answer":"w","id":9,"type":"letters"},
+        {"prompt":"u, s, __","answer":"q","id":10,"type":"letters"},
+        {"prompt":"Which is the 8th letter of the alphabet?","answer":"h","id":11,"type":"letters"},
+        {"prompt":"Which letter comes after \"d\"?","answer":"e","id":12,"type":"letters"},
+        {"prompt":"l, n, __","answer":"p","id":13,"type":"letters"},
+        {"prompt":"Which word comes first in the alphabet? (rabbit, cat, moon)","answer":"cat","id":14,"type":"letters"},
+        {"prompt":"k, j, __","answer":"i","id":15,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes after \"G\"?","answer":"H","id":16,"type":"letters"},
+        {"prompt":"t, v, __","answer":"x","id":17,"type":"letters"},
+        {"prompt":"Which letter comes before \"q\"?","answer":"p","id":18,"type":"letters"},
+        {"prompt":"Which letter comes before \"k\"?","answer":"j","id":19,"type":"letters"},
+        {"prompt":"Which letter comes before \"l\"?","answer":"k","id":20,"type":"letters"},
+        {"prompt":"Which is the 2nd letter from the end of the alphabet?","answer":"y","id":21,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes after \"Y\"?","answer":"Z","id":22,"type":"letters"},
+        {"prompt":"v, w, __","answer":"x","id":23,"type":"letters"},
+        {"prompt":"m, n, o, __","answer":"p","id":24,"type":"letters"},
+        ]);
         checkAlphabetTruths(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(lettersSpec, g1, seedFrom([1, 'letters', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"letters","prompt":"o, m, __","answer":"k"},
-        {"id":26,"type":"letters","prompt":"Which UPPERCASE letter comes before \"L\"?","answer":"K"},
-        {"id":27,"type":"letters","prompt":"m, __, o","answer":"n"}
-]);
+        {"prompt":"o, m, __","answer":"k","id":25,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes before \"L\"?","answer":"K","id":26,"type":"letters"},
+        {"prompt":"m, __, o","answer":"n","id":27,"type":"letters"},
+        ]);
     });
 });
 
 describe('letters — Year 2', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"letters","prompt":"Which word comes first in the alphabet? (shirt, light, cat)","answer":"cat"},
-        {"id":2,"type":"letters","prompt":"h, i, j, __","answer":"k"},
-        {"id":3,"type":"letters","prompt":"h, g, __","answer":"f"},
-        {"id":4,"type":"letters","prompt":"c, d, __","answer":"e"},
-        {"id":5,"type":"letters","prompt":"Which is the 8th letter from the end of the alphabet?","answer":"s"},
-        {"id":6,"type":"letters","prompt":"Which word comes last in the alphabet? (bird, water, map)","answer":"water"},
-        {"id":7,"type":"letters","prompt":"u, __, w","answer":"v"},
-        {"id":8,"type":"letters","prompt":"Which is the 6th letter from the end of the alphabet?","answer":"u"},
-        {"id":9,"type":"letters","prompt":"g, h, i, __","answer":"j"},
-        {"id":10,"type":"letters","prompt":"f, d, __","answer":"b"},
-        {"id":11,"type":"letters","prompt":"Which letter comes before \"s\"?","answer":"r"},
-        {"id":12,"type":"letters","prompt":"Which is the 15th letter of the alphabet?","answer":"o"},
-        {"id":13,"type":"letters","prompt":"Which is the 15th letter from the end of the alphabet?","answer":"l"},
-        {"id":14,"type":"letters","prompt":"x, w, v, __","answer":"u"},
-        {"id":15,"type":"letters","prompt":"l, __, n","answer":"m"},
-        {"id":16,"type":"letters","prompt":"i, k, __","answer":"m"},
-        {"id":17,"type":"letters","prompt":"Which is the 23rd letter of the alphabet?","answer":"w"},
-        {"id":18,"type":"letters","prompt":"Which letter comes before \"g\"?","answer":"f"},
-        {"id":19,"type":"letters","prompt":"l, k, j, __","answer":"i"},
-        {"id":20,"type":"letters","prompt":"Which UPPERCASE letter comes after \"E\"?","answer":"F"},
-        {"id":21,"type":"letters","prompt":"Which letter comes after \"v\"?","answer":"w"},
-        {"id":22,"type":"letters","prompt":"f, e, d, __","answer":"c"},
-        {"id":23,"type":"letters","prompt":"f, h, __","answer":"j"},
-        {"id":24,"type":"letters","prompt":"b, c, d, __","answer":"e"}
-]);
+        {"prompt":"Which word comes first in the alphabet? (shirt, light, cat)","answer":"cat","id":1,"type":"letters"},
+        {"prompt":"h, i, j, __","answer":"k","id":2,"type":"letters"},
+        {"prompt":"h, g, __","answer":"f","id":3,"type":"letters"},
+        {"prompt":"c, d, __","answer":"e","id":4,"type":"letters"},
+        {"prompt":"Which is the 8th letter from the end of the alphabet?","answer":"s","id":5,"type":"letters"},
+        {"prompt":"Which word comes last in the alphabet? (bird, water, map)","answer":"water","id":6,"type":"letters"},
+        {"prompt":"u, __, w","answer":"v","id":7,"type":"letters"},
+        {"prompt":"Which is the 6th letter from the end of the alphabet?","answer":"u","id":8,"type":"letters"},
+        {"prompt":"g, h, i, __","answer":"j","id":9,"type":"letters"},
+        {"prompt":"f, d, __","answer":"b","id":10,"type":"letters"},
+        {"prompt":"Which letter comes before \"s\"?","answer":"r","id":11,"type":"letters"},
+        {"prompt":"Which is the 15th letter of the alphabet?","answer":"o","id":12,"type":"letters"},
+        {"prompt":"Which is the 15th letter from the end of the alphabet?","answer":"l","id":13,"type":"letters"},
+        {"prompt":"x, w, v, __","answer":"u","id":14,"type":"letters"},
+        {"prompt":"l, __, n","answer":"m","id":15,"type":"letters"},
+        {"prompt":"i, k, __","answer":"m","id":16,"type":"letters"},
+        {"prompt":"Which is the 23rd letter of the alphabet?","answer":"w","id":17,"type":"letters"},
+        {"prompt":"Which letter comes before \"g\"?","answer":"f","id":18,"type":"letters"},
+        {"prompt":"l, k, j, __","answer":"i","id":19,"type":"letters"},
+        {"prompt":"Which UPPERCASE letter comes after \"E\"?","answer":"F","id":20,"type":"letters"},
+        {"prompt":"Which letter comes after \"v\"?","answer":"w","id":21,"type":"letters"},
+        {"prompt":"f, e, d, __","answer":"c","id":22,"type":"letters"},
+        {"prompt":"f, h, __","answer":"j","id":23,"type":"letters"},
+        {"prompt":"b, c, d, __","answer":"e","id":24,"type":"letters"},
+        ]);
         checkAlphabetTruths(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(lettersSpec, g2, seedFrom([2, 'letters', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"letters","prompt":"Which UPPERCASE letter comes before \"Y\"?","answer":"X"},
-        {"id":26,"type":"letters","prompt":"Which is the 3rd letter from the end of the alphabet?","answer":"x"},
-        {"id":27,"type":"letters","prompt":"v, w, x, __","answer":"y"}
-]);
+        {"prompt":"Which UPPERCASE letter comes before \"Y\"?","answer":"X","id":25,"type":"letters"},
+        {"prompt":"Which is the 3rd letter from the end of the alphabet?","answer":"x","id":26,"type":"letters"},
+        {"prompt":"v, w, x, __","answer":"y","id":27,"type":"letters"},
+        ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
-        expect(generateSheet(lettersSpec, getGradeConfig(3), seedFrom([3, 'letters', 0]))).toEqual([]);
+        expect(generateSheet(lettersSpec, getGradeConfig(7), seedFrom([7, 'letters', 0]))).toEqual([]);
     });
 });

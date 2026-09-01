@@ -95,6 +95,44 @@ const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
     ["__ ready for the race?", ['Whose', "Who's"], "Who's"]
 ];
 
+// Upper-primary (Year 3+) homophone extension: ACARA Y3–6 spelling — the
+// harder twin-word pairs, two sentences each.
+const HOMOPHONE_UPPER: [string, [string, string], string][] = [
+    // principal/principle
+    ['The school __ spoke at assembly.', ['principle', 'principal'], 'principal'],
+    ['Honesty is an important __ .', ['principal', 'principle'], 'principle'],
+    // stationary/stationery
+    ['The car was __ at the lights.', ['stationery', 'stationary'], 'stationary'],
+    ['I bought pens from the __ shop.', ['stationary', 'stationery'], 'stationery'],
+    // weather/whether
+    ['The __ turned stormy.', ['whether', 'weather'], 'weather'],
+    ['__ we go depends on the rain.', ['weather', 'whether'], 'whether'],
+    // aloud/allowed
+    ['She read the poem __ .', ['allowed', 'aloud'], 'aloud'],
+    ['Eating is not __ in the library.', ['aloud', 'allowed'], 'allowed'],
+    // board/bored
+    ['I drew on the white __ .', ['bored', 'board'], 'board'],
+    ['He was __ during the long film.', ['board', 'bored'], 'bored'],
+    // coarse/course
+    ['The sand felt rough and __ .', ['course', 'coarse'], 'coarse'],
+    ['We ran the cross-country __ .', ['coarse', 'course'], 'course'],
+    // host/ghost (near-twin, classic upper-primary trap)
+    ['The spooky __ floated by.', ['host', 'ghost'], 'ghost'],
+    ['Our __ welcomed us to the party.', ['ghost', 'host'], 'host'],
+    // miner/minor
+    ['The gold __ worked underground.', ['minor', 'miner'], 'miner'],
+    ['A __ problem is only a small one.', ['miner', 'minor'], 'minor'],
+    // role/roll
+    ['She played the lead __ in the play.', ['roll', 'role'], 'role'],
+    ['The ball began to __ down the hill.', ['role', 'roll'], 'roll'],
+    // practice/practise (AU noun/verb split)
+    ['Cricket __ is on Tuesday.', ['practise', 'practice'], 'practice'],
+    ['We __ our times tables nightly.', ['practice', 'practise'], 'practise'],
+    // licence/license (AU noun/verb split)
+    ['My dog wears a __ tag.', ['license', 'licence'], 'licence'],
+    ['The shopkeeper was __ to trade.', ['licence', 'licensed'], 'licensed']
+];
+
 // Twin words (homophones): pick the correct word for the blank. Basic pairs
 // (there/their, to/too, your/you're, two/to, see/sea, one/won, blue/blew,
 // right/write) are Year 1 and up; the extended pairs (its/it's, her/here,
@@ -105,7 +143,14 @@ const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
 // is asked (shuffled option order included) before any sentence is asked
 // twice.
 function generateHomophone(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const pool = caps.tricky ? [...HOMOPHONE_BASIC, ...HOMOPHONE_TRICKY] : HOMOPHONE_BASIC;
+    // Basic pairs (Y1+); tricky pairs (Y2+); upper-primary pairs (Y3+,
+    // wordTier 4) — the AU licence/practice noun–verb splits included.
+    const pool =
+        caps.wordTier >= 4
+            ? [...HOMOPHONE_BASIC, ...HOMOPHONE_TRICKY, ...HOMOPHONE_UPPER]
+            : caps.tricky
+              ? [...HOMOPHONE_BASIC, ...HOMOPHONE_TRICKY]
+              : HOMOPHONE_BASIC;
     const itemDeck = createDeck(rng, pool);
     return sampleUnique(
         count,
@@ -129,7 +174,12 @@ export const homophoneSpec: WorksheetSpec = {
     perPage: 16,
     singleColumn: true,
     offered: (grade: GradeConfig) => grade.available.includes('homophone'),
-    scope: (grade: GradeConfig) => (grade.caps.tricky ? 'basic & tricky pairs' : 'basic pairs'),
+    scope: (grade: GradeConfig) =>
+        grade.caps.wordTier >= 4
+            ? 'basic, tricky & senior pairs'
+            : grade.caps.tricky
+              ? 'basic & tricky pairs'
+              : 'basic pairs',
     generate: generateHomophone
 };
 

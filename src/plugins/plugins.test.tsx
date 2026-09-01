@@ -296,6 +296,20 @@ const EXPECTED_WORKSHEET_IDS = [
     'syllable',
     'grammar',
     'tense',
+    // The Y3–6 senior catalogue (see grades.ts UPPER_PRIMARY order).
+    'conjunction',
+    'apostrophe',
+    'comma',
+    'affix',
+    'compound',
+    'speech',
+    'homograph',
+    'pronoun',
+    'figurative',
+    'idiom',
+    'advpunct',
+    'agreement',
+    // The Prep-only handwriting tracing set closes the rail.
     'letterTrace',
     'wordTrace',
     'numberTrace'
@@ -364,15 +378,25 @@ describe('the real worksheet plugins — register through the same pipeline', ()
     it('an unimplemented grade hides every entry and the rail shows the coming-soon notice', () => {
         mountHost(WORKSHEETS);
 
-        // Grade 3 is not implemented: every plugin's gate is closed, so the
+        // Grade 7 is not implemented: every plugin's gate is closed, so the
         // rail renders the "coming soon" notice instead of entries — and no
-        // buttons at all.
+        // buttons at all. (Years 3..6 ARE implemented — the upper-primary
+        // catalogue — so Year 3 must show the full 30-entry rail.)
         act(() => {
             probeStore!.session.gradeId = 3;
         });
+        // Year 3 opens the FULL 30-type upper-primary catalogue (every
+        // early-reading + Y2 + senior type; tracing stays Prep-only).
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(30);
+        expect(screen.getByRole('button', { name: 'Conjunctions' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Idioms' })).toBeDefined();
+        expect(screen.queryByRole('button', { name: 'Letter Tracing' })).toBeNull();
+        act(() => {
+            probeStore!.session.gradeId = 7;
+        });
         expect(screen.getByTestId('rail-slot').querySelectorAll('button')).toHaveLength(0);
         expect(screen.getByTestId('rail-slot').textContent).toContain('coming soon');
-        expect(screen.getByTestId('rail-slot').textContent).toContain('Year 3');
+        expect(screen.getByTestId('rail-slot').textContent).toContain('Year 7');
         // The page slot still renders (the worksheet kit's generic empty
         // state) — nothing crashes on the empty grade.
         expect(screen.getByTestId('empty-state')).toBeDefined();

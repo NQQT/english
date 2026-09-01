@@ -92,9 +92,10 @@ describe('buildDocument — multi-page worksheets', () => {
     });
 
     it('returns an empty document for an unimplemented grade', () => {
-        // Grade 3 is not implemented (see framework/grades.ts) regardless of
-        // the spec's own offered() verdict.
-        expect(generateSheet(fakeSpec, getGradeConfig(3), 12345)).toEqual([]);
+        // Grade 7 is not implemented (see framework/grades.ts) regardless of
+        // the spec's own offered() verdict. (Years 3..6 ARE implemented — the
+        // upper-primary catalogue.)
+        expect(generateSheet(fakeSpec, getGradeConfig(7), 12345)).toEqual([]);
     });
 
     it('returns an empty document for a worksheet the grade does not offer', () => {

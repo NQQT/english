@@ -108,7 +108,7 @@ function PluginExtraChrome({ plugin }: { plugin: DashboardPlugin }) {
 }
 
 // "Coming soon" notice shown in the rail when plugins ARE installed but none
-// is visible for the CURRENT grade (grades 3..12 — unimplemented). This is
+// is visible for the CURRENT grade (Years 7..12 — unimplemented). This is
 // the framework-level replacement for the old TypeSidebar notice: the canvas
 // meanwhile shows the worksheet kit's generic empty state.
 const NoticeCard = styledComponent('div', {
@@ -166,7 +166,7 @@ export function PluginSidebarHost({ plugins }: PluginHostProps) {
             <NoticeCard>
                 <strong>{grade.label}</strong> worksheets are coming soon.
                 <br />
-                Pick Prep, Year 1 or Year 2 to start.
+                Pick Prep to Year 6 to start.
             </NoticeCard>
         );
     }

@@ -275,8 +275,10 @@ describe('EnglishDashboard — grade selection (top-right)', () => {
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Sight & Real Words');
     });
 
-    it('shows a coming-soon placeholder for an unimplemented grade (Year 3)', () => {
-        fireEvent.click(gradeRadio('3'));
+    it('shows a coming-soon placeholder for an unimplemented grade (Year 7)', () => {
+        // Years 3..6 are implemented (upper-primary catalogue); Year 7 is the
+        // first grade with no content.
+        fireEvent.click(gradeRadio('7'));
         // Left rail shows the "coming soon" notice.
         expect(screen.getByText(/coming soon/i)).toBeDefined();
         // Right canvas shows the empty state instead of a preview.
@@ -564,8 +566,8 @@ describe('EnglishDashboard — print flow (native dialog, preview IS the preview
     });
 
     it('printing is blocked (button disabled) when no sheet is available', () => {
-        // Year 3 is unimplemented => empty document => dimmed toolbar actions.
-        fireEvent.click(gradeRadio('3'));
+        // Year 7 is unimplemented => empty document => dimmed toolbar actions.
+        fireEvent.click(gradeRadio('7'));
         const printSpy = vi.fn();
         window.print = printSpy;
 

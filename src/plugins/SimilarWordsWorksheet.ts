@@ -41,6 +41,34 @@ const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
     ['strong', 'mighty', 'weak', 'tiny'],
     ['easy', 'simple', 'hard', 'tricky']
 ];
+// Upper-primary (Year 3+) extension: ACARA Y3–6 vocabulary — harder synonyms
+// with plausible distractors, printed beside two words that do NOT match.
+const SIMILAR_UPPER: [string, string, string, string][] = [
+    ['brave', 'courageous', 'timid', 'careless'],
+    ['bright', 'clever', 'dull', 'sleepy'],
+    ['calm', 'peaceful', 'stormy', 'noisy'],
+    ['clever', 'smart', 'silly', 'lazy'],
+    ['cold', 'freezing', 'boiling', 'warm'],
+    ['curious', 'interested', 'bored', 'tired'],
+    ['difficult', 'challenging', 'simple', 'easy'],
+    ['famous', 'well-known', 'unknown', 'hidden'],
+    ['generous', 'giving', 'selfish', 'greedy'],
+    ['gentle', 'kind', 'harsh', 'rough'],
+    ['happy', 'delighted', 'miserable', 'gloomy'],
+    ['honest', 'truthful', 'deceitful', 'sneaky'],
+    ['hungry', 'starving', 'full', 'stuffed'],
+    ['important', 'significant', 'trivial', 'minor'],
+    ['lazy', 'idle', 'busy', 'energetic'],
+    ['lucky', 'fortunate', 'unlucky', 'doomed'],
+    ['polite', 'courteous', 'rude', 'noisy'],
+    ['rich', 'wealthy', 'poor', 'broke'],
+    ['sad', 'miserable', 'cheerful', 'joyful'],
+    ['shiny', 'gleaming', 'dull', 'rusty'],
+    ['silent', 'noiseless', 'deafening', 'chatty'],
+    ['tidy', 'neat', 'messy', 'chaotic'],
+    ['tired', 'exhausted', 'refreshed', 'awake'],
+    ['wise', 'sensible', 'foolish', 'reckless']
+];
 
 // Similar words (synonyms): multiple-choice on word meaning — the target's
 // synonym beside two words that do NOT mean the same. Distractors are drawn
@@ -53,9 +81,15 @@ const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
 // on the printed prompt.
 function generateSimilar(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // The similar-word bank exists from Year 1; tiers 2 and 3 share it, with
-    // the extra tuples gated by tricky (Y2) — mirrors the pattern of
-    // degrading to the smallest usable pool instead of failing.
-    const pool = (caps.wordTier >= 3 && caps.tricky ? [...SIMILAR_TIER2, ...SIMILAR_TIER3_EXTRA] : SIMILAR_TIER2);
+    // the extra tuples gated by tricky (Y2) and the upper-primary set by
+    // wordTier 4 (Y3+) — mirrors the pattern of degrading to the smallest
+    // usable pool instead of failing.
+    const pool =
+        caps.wordTier >= 4
+            ? [...SIMILAR_TIER2, ...SIMILAR_TIER3_EXTRA, ...SIMILAR_UPPER]
+            : caps.wordTier >= 3 && caps.tricky
+              ? [...SIMILAR_TIER2, ...SIMILAR_TIER3_EXTRA]
+              : SIMILAR_TIER2;
     const targetDeck = createDeck(rng, pool);
     // Global distractor pool: every word in the bank, any tuple.
     const bankWords = pool.flat();
@@ -97,7 +131,7 @@ export const similarSpec: WorksheetSpec = {
     icon: '≡',
     perPage: 18,
     offered: (grade: GradeConfig) => grade.available.includes('similar'),
-    scope: () => 'word meanings',
+    scope: (grade: GradeConfig) => (grade.caps.wordTier >= 4 ? 'synonyms' : 'word meanings'),
     generate: generateSimilar
 };
 
