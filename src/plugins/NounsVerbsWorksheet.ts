@@ -17,39 +17,101 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
+import { shuffleWords } from './words';
 
-// Noun / verb word lists for the Year 2 parts-of-speech type. Grown from 8+8
-// to 20+20 words; the combined list is dealt from a single deck, so every
-// word is classified once before any repeats.
+// Noun / verb word lists for the Year 2 parts-of-speech type. Grown from
+// 20+20 to 28+28 words.
 const NOUN_WORDS = [
     'cat', 'book', 'tree', 'ball', 'school', 'house', 'dog', 'apple',
     'fish', 'bird', 'chair', 'table', 'tiger', 'train', 'plane', 'grass',
-    'rabbit', 'window', 'garden', 'button'
+    'rabbit', 'window', 'garden', 'button',
+    'kitten', 'pencil', 'flower', 'robot', 'rocket', 'monkey', 'river', 'cloud'
 ] as const;
 const VERB_WORDS = [
     'run', 'jump', 'eat', 'read', 'sleep', 'sing', 'kick', 'draw',
     'walk', 'play', 'swim', 'hop', 'clap', 'write', 'drive', 'drink',
-    'fly', 'cry', 'wash', 'open'
+    'fly', 'cry', 'wash', 'open',
+    'climb', 'carry', 'smile', 'push', 'pull', 'paint', 'dance', 'crawl'
 ] as const;
 
-// Nouns & verbs (Year 2 only): classify a word as a thing or an action.
+// Third-person -s form of a verb ("run" -> "runs", "wash" -> "washes",
+// "cry" -> "cries") for the sentence-find kinds.
+function verbSForm(verb: string): string {
+    if (/(s|sh|ch|x|z)$/.test(verb)) return `${verb}es`;
+    if (/[^aeiou]y$/.test(verb)) return `${verb.slice(0, -1)}ies`;
+    return `${verb}s`;
+}
+
+// Sentence-subject nouns: only ANIMATE nouns can sensibly DO every action in
+// the verb bank ("the cloud sings" would read broken). The sentence-find kind
+// draws its subject from this subset; the MC kinds still use the full banks.
+const ANIMATE_NOUNS = [
+    'cat', 'dog', 'fish', 'bird', 'tiger', 'rabbit', 'kitten', 'monkey',
+    'boy', 'girl', 'dad', 'mum', 'baby', 'frog'
+] as const;
+
+// Nouns & verbs — FOUR procedural kinds, Year 2 only:
+//   0. "Is the word X a noun or a verb?"        (the written classify base)
+//   1. "Which word is a noun?"                  (3 options: 1 noun, 2 verbs)
+//   2. "Which word is a verb?"                  (3 options: 1 verb, 2 nouns)
+//   3. "Find the noun / verb: The cat sleeps."  (assembled sentence)
 //
-// NON-REPEATING SAMPLING: the combined 40-word bank is the whole fact space —
-// a deck guarantees every word (noun AND verb) appears before any repeats.
+// The old classify-only generator cycled after the 40-word bank; the MC and
+// sentence kinds make the space options x words x sentence slots — deep
+// enough for 100 pages.
+//
+// NON-REPEATING SAMPLING: [word, isNoun] pairs and sentence slots are dealt
+// from decks and every question passes through sampleUnique keyed on the
+// printed prompt.
 function generateGrammar(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     // Deal [word, isNoun] pairs so the classification travels with the word.
-    const deck = createDeck(rng, [
+    const pairDeck = createDeck(rng, [
         ...NOUN_WORDS.map((w): [string, boolean] => [w, true]),
         ...VERB_WORDS.map((w): [string, boolean] => [w, false])
     ]);
+    const nounDeck = createDeck(rng, NOUN_WORDS);
+    const verbDeck = createDeck(rng, VERB_WORDS);
+    // Build a 3-option set: the answer plus two words of the OPPOSITE class,
+    // printed shuffled.
+    const choiceSet = (answer: string, isNoun: boolean) => {
+        const otherDeck = isNoun ? verbDeck : nounDeck;
+        const options = [answer];
+        let guard = 0;
+        while (options.length < 3 && guard < 24) {
+            guard++;
+            const pick = otherDeck.take();
+            if (!options.includes(pick)) options.push(pick);
+        }
+        return shuffleWords(rng, options);
+    };
     return sampleUnique(
         count,
         () => {
-            const [w, isNoun] = deck.take();
-            return {
-                prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`,
-                answer: isNoun ? 'noun' : 'verb'
-            };
+            const kind = rng.int(0, 3);
+            if (kind === 0) {
+                // Base kind: classify a dealt word.
+                const [w, isNoun] = pairDeck.take();
+                return {
+                    prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`,
+                    answer: isNoun ? 'noun' : 'verb'
+                };
+            }
+            if (kind === 1 || kind === 2) {
+                // MC: pick the noun (kind 1) or the verb (kind 2) of three.
+                const isNoun = kind === 1;
+                const answer = isNoun ? nounDeck.take() : verbDeck.take();
+                const shown = choiceSet(answer, isNoun);
+                return { prompt: `Which word is a ${isNoun ? 'noun (thing)' : 'verb (action)'}? (${shown.join(', ')})`, answer };
+            }
+            // Sentence find: "The cat sleeps." — find the noun or the verb.
+            // Subjects come from the animate subset so every line reads.
+            const noun = rng.pick(ANIMATE_NOUNS);
+            const verb = verbDeck.take();
+            const line = `The ${noun} ${verbSForm(verb)}.`;
+            const findNoun = rng.next() < 0.5;
+            return findNoun
+                ? { prompt: `Find the noun: ${line}`, answer: noun }
+                : { prompt: `Find the verb: ${line}`, answer: verbSForm(verb) };
         },
         (p) => p.prompt
     );

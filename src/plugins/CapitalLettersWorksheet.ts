@@ -17,21 +17,68 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
-import { wordSet, COMMON_WORDS } from './words';
+import { wordSet, COMMON_WORDS, shuffleWords } from './words';
 
-// Capital letters: start a lower-case word with a capital letter.
+// Capital letters — THREE procedural kinds:
+//   0. "Write it with a capital letter: <word>"     (the word-start base)
+//   1. "Which word needs a capital letter? (<line>)" (assembled sentence, the
+//      lowercase NAME is the answer)
+//   2. "Which sentence is written correctly? (<wrong> / <right>)" (sentence
+//      capital + name capital)
 //
-// NON-REPEATING SAMPLING: the pool is the grade word set PLUS the common-words
-// bank (~300 real words at Year 1+) dealt from a deck, so every word is
-// capitalised once before any repeats.
+// The old word-only generator cycled after the ~1 000-word pool; the sentence
+// kinds (slots cross-product) push the space well past 100 pages.
+//
+// NON-REPEATING SAMPLING: words/slots are dealt from decks and every question
+// passes through sampleUnique keyed on the printed prompt.
+//
+// Sentence slots for kinds 1-2: subject x name x predicate, all printed
+// lower-case in kind 1; kind 2 prints the correct capitalisation against a
+// deliberately wrong variant.
+const CAPITAL_SUBJECTS = [
+    'the cat', 'the dog', 'my dad', 'my mom', 'the girl', 'the boy', 'my friend', 'the baby'
+] as const;
+const CAPITAL_NAMES = ['sam', 'ben', 'sue', 'mia', 'leo', 'zoe', 'max', 'ava', 'eli', 'ivy'] as const;
+// Compound-subject predicates: past-tense lines that read with ANY subject.
+const CAPITAL_PREDICATES = [
+    'ran fast', 'played outside', 'sang a song', 'found a coin',
+    'ate lunch', 'went home', 'read a book', 'made a mess'
+] as const;
+
 function generateCapital(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = [...new Set([...wordSet(caps.wordTier), ...COMMON_WORDS])];
     const wordDeck = createDeck(rng, pool);
+    const subjectDeck = createDeck(rng, CAPITAL_SUBJECTS);
+    const nameDeck = createDeck(rng, CAPITAL_NAMES);
+    const predicateDeck = createDeck(rng, CAPITAL_PREDICATES);
     return sampleUnique(
         count,
         () => {
-            const word = wordDeck.take();
-            return { prompt: `Write it with a capital letter: ${word}`, answer: `${word[0].toUpperCase()}${word.slice(1)}` };
+            const kind = rng.int(0, 3);
+            if (kind === 0) {
+                // Base kind: capitalise a dealt word.
+                const word = wordDeck.take();
+                return { prompt: `Write it with a capital letter: ${word}`, answer: `${word[0].toUpperCase()}${word.slice(1)}` };
+            }
+            // Assemble a compound-subject line: "the cat and sam ran fast."
+            const subject = subjectDeck.take();
+            const name = nameDeck.take();
+            const predicate = predicateDeck.take();
+            if (kind === 1) {
+                // All lower-case: the name is the word that needs a capital.
+                const line = `${subject} and ${name} ${predicate}.`;
+                return { prompt: `Which word needs a capital letter? ${line}`, answer: name };
+            }
+            // Which sentence is written correctly: the right line (sentence
+            // start + name capitalised) beside a deliberately wrong variant.
+            const right = `${subject[0].toUpperCase()}${subject.slice(1)} and ${name[0].toUpperCase()}${name.slice(1)} ${predicate}.`;
+            // Wrong mode a: sentence start lower-case; mode b: name lower-case.
+            const wrong =
+                rng.next() < 0.5
+                    ? `${subject} and ${name[0].toUpperCase()}${name.slice(1)} ${predicate}.`
+                    : `${subject[0].toUpperCase()}${subject.slice(1)} and ${name} ${predicate}.`;
+            const shown = shuffleWords(rng, [wrong, right]);
+            return { prompt: `Which sentence is written correctly? (${shown[0]} / ${shown[1]})`, answer: right };
         },
         (p) => p.prompt
     );

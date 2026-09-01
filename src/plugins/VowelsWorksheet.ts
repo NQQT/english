@@ -16,7 +16,7 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
-import { wordSet } from './words';
+import { wordSet, shuffleWords } from './words';
 
 // How many vowels a word has (the a-e-i-o-u letter rule, as worksheets teach
 // it). `vowelLetter` returns the single vowel letter for words with exactly
@@ -31,25 +31,79 @@ function vowelLetter(word: string): string | undefined {
     return undefined;
 }
 
-// Vowels: count the vowels in a word, or (for words with exactly one vowel
-// letter) name that letter.
+// Vowels — FOUR procedural kinds over the grade word set:
+//   0. "How many vowels are in X?"                    (written answer)
+//   1. "Which letter in X is the vowel?"              (single-vowel words)
+//   2. "Which word has N vowel(s)?"                   (3 options, one matches)
+//   3. "Which word has the vowel 'a'?"                (3 options, one contains)
 //
-// NON-REPEATING SAMPLING: words are dealt from a deck (each word cycles
-// through its count/letter variants before any word repeats) and the question
+// The old two-kind generator cycled after ~49-91 questions (word pool x
+// count/letter). The multiple-choice kinds make the space options x words, so
+// fresh questions keep coming far past 100 pages.
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck and every question
 // passes through sampleUnique keyed on the printed prompt.
 function generateVowel(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier).filter((w) => vowelCount(w) >= 1);
     const wordDeck = createDeck(rng, pool);
+    const VOWELS = ['a', 'e', 'i', 'o', 'u'];
+    const vowelDeck = createDeck(rng, VOWELS);
+    // Build a 3-option set: the answer plus two words chosen by `isDistractor`
+    // (the answer's complement), printed shuffled. Falls back to fewer options
+    // only if the pool is too small (never happens for these banks).
+    const choiceSet = (answer: string, isDistractor: (w: string) => boolean) => {
+        const options = [answer];
+        let guard = 0;
+        while (options.length < 3 && guard < 48) {
+            guard++;
+            const pick = wordDeck.take();
+            if (isDistractor(pick) && !options.includes(pick)) options.push(pick);
+        }
+        return shuffleWords(rng, options);
+    };
     return sampleUnique(
         count,
         () => {
-            const word = wordDeck.take();
-            const n = vowelCount(word);
-            if (n === 1 && rng.next() < 0.5) {
-                // Single-vowel words can also ask WHICH letter is the vowel.
+            const kind = rng.int(0, 3);
+            if (kind === 0) {
+                // Written count.
+                const word = wordDeck.take();
+                return { prompt: `How many vowels are in "${word}"?`, answer: `${vowelCount(word)}` };
+            }
+            if (kind === 1) {
+                // Single-vowel word: name its vowel letter.
+                const word = wordDeck.take();
+                if (vowelCount(word) !== 1) {
+                    // Dealt a multi-vowel word — the count question is the
+                    // only well-posed form for it.
+                    return { prompt: `How many vowels are in "${word}"?`, answer: `${vowelCount(word)}` };
+                }
                 return { prompt: `Which letter in "${word}" is the vowel?`, answer: vowelLetter(word)! };
             }
-            return { prompt: `How many vowels are in "${word}"?`, answer: `${n}` };
+            if (kind === 2) {
+                // MC: one option has exactly N vowels, two do not.
+                const answer = wordDeck.take();
+                const n = vowelCount(answer);
+                const label = n === 1 ? '1 vowel' : `${n} vowels`;
+                const shown = choiceSet(answer, (w) => vowelCount(w) !== n);
+                return { prompt: `Which word has ${label}? (${shown.join(', ')})`, answer };
+            }
+            // MC: one option contains the dealt vowel letter, two do not.
+            const letter = vowelDeck.take();
+            const contains = pool.filter((w) => w.includes(letter));
+            const lacks = pool.filter((w) => !w.includes(letter));
+            if (contains.length === 0 || lacks.length < 2) {
+                // Degenerate letter (everyone has it / almost nobody) — fall
+                // back to a count question so the draw is never wasted.
+                const word = wordDeck.take();
+                return { prompt: `How many vowels are in "${word}"?`, answer: `${vowelCount(word)}` };
+            }
+            const answer = rng.pick(contains);
+            // Two DISTINCT words that lack the letter.
+            const d1 = rng.pick(lacks);
+            const d2 = rng.pick(lacks.filter((w) => w !== d1));
+            const shown = shuffleWords(rng, [answer, d1, d2]);
+            return { prompt: `Which word has the vowel "${letter}"? (${shown.join(', ')})`, answer };
         },
         (p) => p.prompt
     );

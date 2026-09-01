@@ -204,10 +204,11 @@ describe('EnglishDashboard — english type selection (left)', () => {
         );
 
         // Preview now reflects the (Year 1, Blending) sheet. Row 1 is
-        // "Finish the word: __ e g" — the LEADING blank renders as an empty
-        // fill-in span (no underscores in text), so the raw text is
-        // "…word: " + blank + " e g" = a double space before "e g".
-        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word:  e g');
+        // "Finish the word: __ e __" — the blanks render as empty fill-in
+        // spans (no underscores in text), so the raw text is "…word: " +
+        // blank + " e " + blank = a double space before "e" and a trailing
+        // space after it.
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word:  e ');
         // Toolbar title updates to the new type (+ pinned tier-2 scope label).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Blending');
     });

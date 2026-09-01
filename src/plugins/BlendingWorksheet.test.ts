@@ -43,18 +43,32 @@ describe('blend plugin — declarative spec', () => {
     });
 });
 
-// Semantic invariant: the printed letters reconstitute the answer — either
-// every letter is shown, or exactly one is the blanked first/last letter.
+// Semantic invariants: every generator kind is answerable from the prompt
+// alone (see BlendingWorksheet.ts):
+//   all-shown  — the printed letters ARE the answer
+//   blanks     — the non-blank letters match the answer position-for-position
+//   unscramble — the printed letters are a permutation of the answer's
+//   backwards  — the printed word reversed IS the answer
 function checkReconstitutes(grade: GradeConfig) {
     for (const p of sheet(grade)) {
-        const body = p.prompt.replace('What word is: ', '').replace('Finish the word: ', '').replace('?', '').trim();
-        const parts = body.split(/ +/);
-        const blankIdx = parts.indexOf('__');
-        if (blankIdx === -1) {
-            expect(parts.join('')).toBe(p.answer);
-        } else {
+        const shown = p.prompt.match(/^What word is: ([a-z ]+)\?$/);
+        const blanks = p.prompt.match(/^Finish the word: ((?:__|[a-z])(?: (?:__|[a-z]))*)$/);
+        const scrambled = p.prompt.match(/^Unscramble the letters: ([a-z ]+)$/);
+        const backwards = p.prompt.match(/^What word is "([a-z]+)" spelled backwards\?$/);
+        if (shown) {
+            expect(shown[1].split(' ').join('')).toBe(p.answer);
+        } else if (blanks) {
+            const parts = blanks[1].split(' ');
             expect(p.answer.length).toBe(parts.length);
             for (let i = 0; i < parts.length; i++) expect(parts[i] === '__' || p.answer[i] === parts[i]).toBe(true);
+        } else if (scrambled) {
+            const sort = (s: string) => s.split('').sort().join('');
+            expect(sort(scrambled[1].split(' ').join(''))).toBe(sort(p.answer));
+        } else if (backwards) {
+            expect(backwards[1].split('').reverse().join('')).toBe(p.answer);
+        } else {
+            // Every prompt must fall into exactly one of the four kinds.
+            throw new Error(`unrecognised blend prompt: ${p.prompt}`);
         }
     }
 }
@@ -62,39 +76,39 @@ function checkReconstitutes(grade: GradeConfig) {
 describe('blend — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"blend","prompt":"Finish the word: __ e g","answer":"leg"},
-        {"id":2,"type":"blend","prompt":"What word is: l e m o n?","answer":"lemon"},
-        {"id":3,"type":"blend","prompt":"Finish the word: p l a __ e","answer":"plane"},
-        {"id":4,"type":"blend","prompt":"Finish the word: r e __","answer":"red"},
-        {"id":5,"type":"blend","prompt":"What word is: h a t?","answer":"hat"},
-        {"id":6,"type":"blend","prompt":"Finish the word: t i __ e r","answer":"tiger"},
-        {"id":7,"type":"blend","prompt":"Finish the word: p i __","answer":"pig"},
-        {"id":8,"type":"blend","prompt":"Finish the word: p e __","answer":"pen"},
-        {"id":9,"type":"blend","prompt":"What word is: w a t e r?","answer":"water"},
-        {"id":10,"type":"blend","prompt":"What word is: s h i r t?","answer":"shirt"},
-        {"id":11,"type":"blend","prompt":"Finish the word: a p p l __","answer":"apple"},
-        {"id":12,"type":"blend","prompt":"What word is: s u n?","answer":"sun"},
-        {"id":13,"type":"blend","prompt":"Finish the word: __ h a i r","answer":"chair"},
-        {"id":14,"type":"blend","prompt":"What word is: p o t?","answer":"pot"},
-        {"id":15,"type":"blend","prompt":"What word is: n e t?","answer":"net"},
-        {"id":16,"type":"blend","prompt":"Finish the word: t r __ i n","answer":"train"},
-        {"id":17,"type":"blend","prompt":"What word is: g r e e n?","answer":"green"},
-        {"id":18,"type":"blend","prompt":"Finish the word: __ r e a d","answer":"bread"},
-        {"id":19,"type":"blend","prompt":"Finish the word: g r a s __","answer":"grass"},
-        {"id":20,"type":"blend","prompt":"What word is: m o o n?","answer":"moon"},
-        {"id":21,"type":"blend","prompt":"Finish the word: t r e __","answer":"tree"},
-        {"id":22,"type":"blend","prompt":"What word is: w i g?","answer":"wig"},
-        {"id":23,"type":"blend","prompt":"Finish the word: __ o g","answer":"dog"},
-        {"id":24,"type":"blend","prompt":"Finish the word: c a __","answer":"cat"}
+        {"id":1,"type":"blend","prompt":"Finish the word: __ e __","answer":"leg"},
+        {"id":2,"type":"blend","prompt":"What word is \"nomel\" spelled backwards?","answer":"lemon"},
+        {"id":3,"type":"blend","prompt":"Unscramble the letters: e a l n p","answer":"plane"},
+        {"id":4,"type":"blend","prompt":"Finish the word: h __ t","answer":"hat"},
+        {"id":5,"type":"blend","prompt":"Finish the word: t i __ e r","answer":"tiger"},
+        {"id":6,"type":"blend","prompt":"What word is: p i g?","answer":"pig"},
+        {"id":7,"type":"blend","prompt":"Finish the word: p e __","answer":"pen"},
+        {"id":8,"type":"blend","prompt":"Finish the word: __ __ n","answer":"pin"},
+        {"id":9,"type":"blend","prompt":"Unscramble the letters: r e w t a","answer":"water"},
+        {"id":10,"type":"blend","prompt":"Unscramble the letters: i s r h t","answer":"shirt"},
+        {"id":11,"type":"blend","prompt":"Finish the word: a __ p l __","answer":"apple"},
+        {"id":12,"type":"blend","prompt":"Unscramble the letters: a h c i r","answer":"chair"},
+        {"id":13,"type":"blend","prompt":"What word is: p o t?","answer":"pot"},
+        {"id":14,"type":"blend","prompt":"Unscramble the letters: n t e","answer":"net"},
+        {"id":15,"type":"blend","prompt":"Unscramble the letters: a i t n r","answer":"train"},
+        {"id":16,"type":"blend","prompt":"Finish the word: g __ e __ n","answer":"green"},
+        {"id":17,"type":"blend","prompt":"Unscramble the letters: r e a b d","answer":"bread"},
+        {"id":18,"type":"blend","prompt":"Unscramble the letters: r s g s a","answer":"grass"},
+        {"id":19,"type":"blend","prompt":"What word is: m o o n?","answer":"moon"},
+        {"id":20,"type":"blend","prompt":"What word is: t r e e?","answer":"tree"},
+        {"id":21,"type":"blend","prompt":"What word is \"giw\" spelled backwards?","answer":"wig"},
+        {"id":22,"type":"blend","prompt":"Finish the word: d __ g","answer":"dog"},
+        {"id":23,"type":"blend","prompt":"Finish the word: __ a t","answer":"cat"},
+        {"id":24,"type":"blend","prompt":"What word is: t o p?","answer":"top"}
 ]);
         checkReconstitutes(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(blendSpec, g1, seedFrom([1, 'blend', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"blend","prompt":"Finish the word: t __ p","answer":"top"},
-        {"id":26,"type":"blend","prompt":"Finish the word: __ a g","answer":"bag"},
-        {"id":27,"type":"blend","prompt":"What word is: f i s h?","answer":"fish"}
+        {"id":25,"type":"blend","prompt":"Unscramble the letters: g b a","answer":"bag"},
+        {"id":26,"type":"blend","prompt":"What word is \"hsif\" spelled backwards?","answer":"fish"},
+        {"id":27,"type":"blend","prompt":"Finish the word: __ i g h t","answer":"light"}
 ]);
     });
 });
@@ -103,38 +117,38 @@ describe('blend — Year 2 (tier-3 extended set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
         {"id":1,"type":"blend","prompt":"What word is: l e m o n?","answer":"lemon"},
-        {"id":2,"type":"blend","prompt":"Finish the word: p i __","answer":"pig"},
-        {"id":3,"type":"blend","prompt":"Finish the word: a p __ l e","answer":"apple"},
-        {"id":4,"type":"blend","prompt":"Finish the word: c a __","answer":"cat"},
-        {"id":5,"type":"blend","prompt":"What word is: b o x?","answer":"box"},
-        {"id":6,"type":"blend","prompt":"What word is: w i n d o w?","answer":"window"},
-        {"id":7,"type":"blend","prompt":"What word is: s u n?","answer":"sun"},
-        {"id":8,"type":"blend","prompt":"Finish the word: __ r a s s","answer":"grass"},
+        {"id":2,"type":"blend","prompt":"Unscramble the letters: i p g","answer":"pig"},
+        {"id":3,"type":"blend","prompt":"Unscramble the letters: p p l e a","answer":"apple"},
+        {"id":4,"type":"blend","prompt":"Finish the word: c __ __","answer":"cat"},
+        {"id":5,"type":"blend","prompt":"Finish the word: __ o x","answer":"box"},
+        {"id":6,"type":"blend","prompt":"What word is \"wodniw\" spelled backwards?","answer":"window"},
+        {"id":7,"type":"blend","prompt":"Unscramble the letters: n s u","answer":"sun"},
+        {"id":8,"type":"blend","prompt":"What word is: g r a s s?","answer":"grass"},
         {"id":9,"type":"blend","prompt":"Finish the word: __ r e e","answer":"tree"},
-        {"id":10,"type":"blend","prompt":"Finish the word: b u __ t o n","answer":"button"},
-        {"id":11,"type":"blend","prompt":"Finish the word: __ i p","answer":"sip"},
-        {"id":12,"type":"blend","prompt":"What word is: r a b b i t?","answer":"rabbit"},
-        {"id":13,"type":"blend","prompt":"Finish the word: g a r __ e n","answer":"garden"},
-        {"id":14,"type":"blend","prompt":"Finish the word: p l a n __","answer":"plane"},
+        {"id":10,"type":"blend","prompt":"Unscramble the letters: b n o t t u","answer":"button"},
+        {"id":11,"type":"blend","prompt":"Finish the word: s i __","answer":"sip"},
+        {"id":12,"type":"blend","prompt":"Finish the word: r __ b b i t","answer":"rabbit"},
+        {"id":13,"type":"blend","prompt":"What word is: g a r d e n?","answer":"garden"},
+        {"id":14,"type":"blend","prompt":"What word is \"enalp\" spelled backwards?","answer":"plane"},
         {"id":15,"type":"blend","prompt":"What word is: n i g h t?","answer":"night"},
-        {"id":16,"type":"blend","prompt":"What word is: m a p?","answer":"map"},
-        {"id":17,"type":"blend","prompt":"Finish the word: __ i s h","answer":"fish"},
-        {"id":18,"type":"blend","prompt":"What word is: n e t?","answer":"net"},
-        {"id":19,"type":"blend","prompt":"Finish the word: t o __","answer":"top"},
-        {"id":20,"type":"blend","prompt":"What word is: l o g?","answer":"log"},
-        {"id":21,"type":"blend","prompt":"Finish the word: __ r e a d","answer":"bread"},
-        {"id":22,"type":"blend","prompt":"Finish the word: s c h o o __","answer":"school"},
+        {"id":16,"type":"blend","prompt":"Unscramble the letters: a p m","answer":"map"},
+        {"id":17,"type":"blend","prompt":"Finish the word: __ i s __","answer":"fish"},
+        {"id":18,"type":"blend","prompt":"Finish the word: __ e t","answer":"net"},
+        {"id":19,"type":"blend","prompt":"Finish the word: t __ __","answer":"top"},
+        {"id":20,"type":"blend","prompt":"Finish the word: l __ g","answer":"log"},
+        {"id":21,"type":"blend","prompt":"Finish the word: __ __ e a d","answer":"bread"},
+        {"id":22,"type":"blend","prompt":"Unscramble the letters: c h l o o s","answer":"school"},
         {"id":23,"type":"blend","prompt":"Finish the word: b __ d","answer":"bed"},
-        {"id":24,"type":"blend","prompt":"Finish the word: __ i n","answer":"pin"}
+        {"id":24,"type":"blend","prompt":"What word is \"nip\" spelled backwards?","answer":"pin"}
 ]);
         checkReconstitutes(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(blendSpec, g2, seedFrom([2, 'blend', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"blend","prompt":"Finish the word: f a __ i l y","answer":"family"},
-        {"id":26,"type":"blend","prompt":"What word is: f a n?","answer":"fan"},
-        {"id":27,"type":"blend","prompt":"What word is: t r a i n?","answer":"train"}
+        {"id":25,"type":"blend","prompt":"Finish the word: f a __ i __ y","answer":"family"},
+        {"id":26,"type":"blend","prompt":"Finish the word: f __ n","answer":"fan"},
+        {"id":27,"type":"blend","prompt":"Finish the word: __ r a i __","answer":"train"}
 ]);
     });
 

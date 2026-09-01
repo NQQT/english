@@ -16,42 +16,71 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
-import { wordSet } from './words';
+import { wordSet, shuffleWords } from './words';
 
-// Blending: see the letters, write the word. Four forms — all letters shown
-// ("what word is s u n?"), or the first/last/ONE-MIDDLE letter left as a blank
-// ("finish the word: __ u n"). Only words of 6 letters or fewer are used so a
-// whole line stays on one row in the two-column grid.
+// Blending: see the letters, write the word. SEVEN procedural forms per word:
+//   - all letters shown       ("what word is s u n?")
+//   - one blank at ANY position ("finish the word: s u __")
+//   - two blanks at once      ("finish the word: __ u __")
+//   - scrambled letters       ("unscramble: n u s")
+//   - backwards reading       ("what word is 'nus' backwards?")
+// Only words of 6 letters or fewer are used so a whole line stays on one row
+// in the two-column grid.
 //
-// NON-REPEATING SAMPLING: words are dealt from a deck (each of the ~45 words
-// cycles through all four forms before any word repeats) and the question
-// passes through sampleUnique keyed on the printed prompt — 4 forms x ~45
-// words = ~180 distinct questions per grade tier.
+// The old four-form generator cycled after ~180-250 questions (forms x pool).
+// Blank positions, blank pairs and scramble permutations multiply the space
+// per word ~20x, so the sheet deals fresh questions past 100 pages.
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck and every question
+// passes through sampleUnique keyed on the printed prompt.
 function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3 && w.length <= 6);
     const wordDeck = createDeck(rng, pool);
+    // Print `letters` with every position in `blanks` replaced by "__".
+    const withBlanks = (letters: string[], blanks: number[]) =>
+        letters.map((ch, i) => (blanks.includes(i) ? '__' : ch)).join(' ');
+    // Two distinct blank positions for the two-blank form.
+    const twoBlanks = (len: number): number[] => {
+        const i = rng.int(0, len - 1);
+        let j = rng.int(0, len - 1);
+        let guard = 0;
+        while (j === i && guard < 12) {
+            guard++;
+            j = rng.int(0, len - 1);
+        }
+        if (j === i) j = (i + 1) % len;
+        return [i, j];
+    };
     return sampleUnique(
         count,
         () => {
             const word = wordDeck.take();
             const letters = word.split('');
             const r = rng.next();
-            if (r < 0.3) {
+            if (r < 0.15) {
                 // All letters shown, space-separated: "What word is: s u n?"
                 return { prompt: `What word is: ${letters.join(' ')}?`, answer: word };
             }
-            if (r < 0.55) {
-                // First letter blanked: "Finish the word: __ u n".
-                return { prompt: `Finish the word: __ ${letters.slice(1).join(' ')}`, answer: word };
+            if (r < 0.45) {
+                // One blank at a random position (edges included):
+                // "Finish the word: s u __".
+                const pos = rng.int(0, letters.length - 1);
+                return { prompt: `Finish the word: ${withBlanks(letters, [pos])}`, answer: word };
+            }
+            if (r < 0.65) {
+                // Two blanks at once: "Finish the word: __ u __".
+                return { prompt: `Finish the word: ${withBlanks(letters, twoBlanks(letters.length))}`, answer: word };
             }
             if (r < 0.8) {
-                // Last letter blanked: "Finish the word: s u __".
-                return { prompt: `Finish the word: ${letters.slice(0, -1).join(' ')} __`, answer: word };
+                // Scrambled letters: "Unscramble the letters: n u s" — a
+                // different scramble of the same word is a different question
+                // (and never printed in the correct order, see shuffleWords).
+                const scrambled = shuffleWords(rng, letters);
+                return { prompt: `Unscramble the letters: ${scrambled.join(' ')}`, answer: word };
             }
-            // One MIDDLE letter blanked: "Finish the word: s __ n".
-            const mid = rng.int(1, letters.length - 2);
+            // Backwards reading: "What word is 'sun' spelled backwards?"
             return {
-                prompt: `Finish the word: ${letters.map((ch, i) => (i === mid ? '__' : ch)).join(' ')}`,
+                prompt: `What word is "${word.split('').reverse().join('')}" spelled backwards?`,
                 answer: word
             };
         },

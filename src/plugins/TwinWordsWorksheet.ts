@@ -19,9 +19,10 @@ import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // Twin-word (homophone) items: [prompt with "__", the two printed options,
-// the correct answer]. Items 0..13 are the Year 1 pairs; the rest are the
-// Year 2 (tricky) pairs. Grown from 11 to 20 items and dealt from a deck, so
-// every twin-word sentence is asked once before any repeats.
+// the correct answer]. Items 0..39 are the Year 1 pairs (14 original + 13
+// newly added pairs, two sentences each); the rest are the Year 2 (tricky)
+// pairs. The bank IS the fact space for this worksheet type — every extra
+// sentence multiplies how long a document runs before a repeat.
 const HOMOPHONE_BASIC: [string, [string, string], string][] = [
     ['Put the pencil __ .', ['there', 'their'], 'there'],
     ['I want __ go to the park.', ['to', 'too'], 'to'],
@@ -36,7 +37,46 @@ const HOMOPHONE_BASIC: [string, [string, string], string][] = [
     ['The sky is __ .', ['blue', 'blew'], 'blue'],
     ['The wind __ the door open.', ['blew', 'blue'], 'blew'],
     ['Turn __ at the shop.', ['right', 'write'], 'right'],
-    ['I will __ my name.', ['write', 'right'], 'write']
+    ['I will __ my name.', ['write', 'right'], 'write'],
+    // hear/here
+    ['Did you __ that noise?', ['hear', 'here'], 'hear'],
+    ['Come and play __ with me.', ['hear', 'here'], 'here'],
+    // be/bee
+    ['I want to __ a pilot.', ['bee', 'be'], 'be'],
+    ['The __ makes honey.', ['bee', 'be'], 'bee'],
+    // by/buy
+    ['Please sit __ me.', ['by', 'buy'], 'by'],
+    ['Can I __ a treat?', ['by', 'buy'], 'buy'],
+    // know/no
+    ['I __ the answer.', ['no', 'know'], 'know'],
+    ['There are __ cookies left.', ['know', 'no'], 'no'],
+    // for/four
+    ['This gift is __ you.', ['four', 'for'], 'for'],
+    ['I have __ crayons.', ['for', 'four'], 'four'],
+    // ate/eight
+    ['She __ all her peas.', ['ate', 'eight'], 'ate'],
+    ['I am __ years old.', ['ate', 'eight'], 'eight'],
+    // sun/son
+    ['The __ is very bright.', ['son', 'sun'], 'sun'],
+    ['Her __ loves trucks.', ['sun', 'son'], 'son'],
+    // week/weak
+    ['I go to school every __ .', ['weak', 'week'], 'week'],
+    ['The kitten felt __ after being sick.', ['week', 'weak'], 'weak'],
+    // tail/tale
+    ['The dog wagged its __ .', ['tale', 'tail'], 'tail'],
+    ['Grandpa told a funny __ .', ['tail', 'tale'], 'tale'],
+    // plain/plane
+    ['The __ flew over the hills.', ['plain', 'plane'], 'plane'],
+    ['I like __ rice with my dinner.', ['plane', 'plain'], 'plain'],
+    // meet/meat
+    ['We will __ at the park gate.', ['meat', 'meet'], 'meet'],
+    ['I do not eat __ .', ['meet', 'meat'], 'meat'],
+    // dear/deer
+    ['I saw a __ in the woods.', ['dear', 'deer'], 'deer'],
+    ['My mum is very __ to me.', ['deer', 'dear'], 'dear'],
+    // new/knew
+    ['I have a __ pencil case.', ['knew', 'new'], 'new'],
+    ['I __ all the answers.', ['new', 'knew'], 'knew']
 ];
 const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
     ['The cat licked __ paw.', ['its', "it's"], 'its'],
@@ -46,7 +86,13 @@ const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
     ['Where __ you going?', ['are', 'our'], 'are'],
     ['__ team plays on Friday.', ['Our', 'Are'], 'Our'],
     ['__ went to the shop yesterday.', ['They', 'Their'], 'They'],
-    ['We ate __ sandwiches.', ['their', 'they'], 'their']
+    ['We ate __ sandwiches.', ['their', 'they'], 'their'],
+    // wear/where
+    ['I will __ my warm coat.', ['where', 'wear'], 'wear'],
+    ['__ is my school bag?', ['wear', 'where'], 'where'],
+    // whose/who's
+    ['__ jacket is on the hook?', ["Who's", 'Whose'], 'Whose'],
+    ["__ ready for the race?", ['Whose', "Who's"], "Who's"]
 ];
 
 // Twin words (homophones): pick the correct word for the blank. Basic pairs
@@ -54,9 +100,10 @@ const HOMOPHONE_TRICKY: [string, [string, string], string][] = [
 // right/write) are Year 1 and up; the extended pairs (its/it's, her/here,
 // are/our, they/their) are Year 2.
 //
-// NON-REPEATING SAMPLING: the 20 item bank is the whole fact space for this
-// worksheet type — a deck guarantees all 20 appear (shuffled option order
-// included) before any sentence is asked twice.
+// NON-REPEATING SAMPLING: the 52 item bank (40 basic + 12 tricky) is the
+// whole fact space for this worksheet type — a deck guarantees every sentence
+// is asked (shuffled option order included) before any sentence is asked
+// twice.
 function generateHomophone(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = caps.tricky ? [...HOMOPHONE_BASIC, ...HOMOPHONE_TRICKY] : HOMOPHONE_BASIC;
     const itemDeck = createDeck(rng, pool);

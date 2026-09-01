@@ -18,53 +18,75 @@ import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem
 import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
-// Word-gap items: [sentence with one "__", the correct word, two printed
-// non-fitting options]. Tier 2 = basic; tier 3 adds longer vocabulary. Grown
-// from 10 to 24 items and dealt from a deck, so every gap sentence is asked
-// before any repeats.
-const WORDGAP_TIER2: [string, string, [string, string]][] = [
-    ['I drink a glass of __ .', 'milk', ['cat', 'tree']],
-    ["We read a __ in class.", 'book', ['door', 'fish']],
-    ['My __ is very small.', 'cat', ['desk', 'milk']],
-    ['The sun is in the __ .', 'sky', ['water', 'box']],
-    ["The fish lives in the __ .", 'water', ['sky', 'box']],
-    ['I wear my __ to school.', 'hat', ['book', 'milk']],
-    ['I sleep in my __ .', 'bed', ['cup', 'bus']],
-    ['I ride the __ to school.', 'bus', ['cup', 'leg']],
-    ['I write with a __ .', 'pen', ['cup', 'bed']],
-    ['I wear a __ on my head.', 'hat', ['box', 'pen']],
-    ['The __ barks at the mailman.', 'dog', ['pen', 'cup']],
-    ['We play with a __ at the park.', 'ball', ['bed', 'milk']],
-    ['The __ shines in the day.', 'sun', ['bed', 'pen']],
-    ['A __ has a long trunk.', 'elephant', ['cat', 'frog']],
-    ['Mom bakes a __ for us.', 'cake', ['shoe', 'log']],
-    ['The fire feels __ .', 'hot', ['wet', 'soft']],
-    ['Fish swim in the __ .', 'water', ['milk', 'tree']],
-    ['I brush my __ every morning.', 'hair', ['shoe', 'bus']],
-    ['The __ flies high in the wind.', 'kite', ['rock', 'pen']],
-    ['Bees make sweet __ .', 'honey', ['shoes', 'books']]
-];
-const WORDGAP_TIER3_EXTRA: [string, string, [string, string]][] = [
-    ['We eat __ for breakfast.', 'bread', ['shoes', 'sky']],
-    ["She brushes her __ every morning.", 'teeth', ['boots', 'sky']],
-    ['I put my __ on before we go.', 'boots', ['bread', 'bird']],
-    ['The chicken lays __ in the morning.', 'eggs', ['birds', 'boots']]
+// Word-gap items: [sentence with one "__", the correct word, FOUR printed
+// non-fitting options]. Tier 2 = the first 30; tier 3 adds the last 10 (longer
+// vocabulary). The generator draws TWO of the four bad options per question,
+// so each item poses C(4,2)=6 different option pairs x 6 print orders = 36
+// distinct questions — the 40 item bank is ~1 440 questions deep instead of
+// the old fixed 24.
+const WORDGAP_ITEMS: [string, string, [string, string, string, string]][] = [
+    ['I drink a glass of __ .', 'milk', ['cat', 'tree', 'door', 'shoe']],
+    ["We read a __ in class.", 'book', ['door', 'fish', 'cloud', 'spoon']],
+    ['My __ is very small.', 'cat', ['desk', 'milk', 'rope', 'egg']],
+    ['The sun is in the __ .', 'sky', ['water', 'box', 'mug', 'fork']],
+    ["The fish lives in the __ .", 'water', ['sky', 'box', 'bread', 'chair']],
+    ['I wear my __ to school.', 'hat', ['book', 'milk', 'sofa', 'rock']],
+    ['I sleep in my __ .', 'bed', ['cup', 'bus', 'cloud', 'ring']],
+    ['I ride the __ to school.', 'bus', ['cup', 'leg', 'spoon', 'cake']],
+    ['I write with a __ .', 'pen', ['cup', 'bed', 'moon', 'duck']],
+    ['I wear a __ on my head.', 'hat', ['box', 'pen', 'bread', 'star']],
+    ['The __ barks at the mailman.', 'dog', ['pen', 'cup', 'cloud', 'train']],
+    ['We play with a __ at the park.', 'ball', ['bed', 'milk', 'spoon', 'cloud']],
+    ['The __ shines in the day.', 'sun', ['bed', 'pen', 'chair', 'cup']],
+    ['A __ has a long trunk.', 'elephant', ['cat', 'frog', 'spoon', 'ring']],
+    ['Mom bakes a __ for us.', 'cake', ['shoe', 'log', 'star', 'frog']],
+    ['The fire feels __ .', 'hot', ['wet', 'soft', 'round', 'slow']],
+    ['Fish swim in the __ .', 'water', ['milk', 'tree', 'cup', 'sofa']],
+    ['I brush my __ every morning.', 'hair', ['shoe', 'bus', 'cake', 'moon']],
+    ['The __ flies high in the wind.', 'kite', ['rock', 'pen', 'bread', 'bed']],
+    ['Bees make sweet __ .', 'honey', ['shoes', 'books', 'rocks', 'cups']],
+    ['The __ says moo.', 'cow', ['hen', 'moon', 'pen', 'soap']],
+    ['I put the __ in my school bag.', 'pencil', ['moon', 'milk', 'sofa', 'frog']],
+    ['The __ gives us wool.', 'sheep', ['dog', 'cup', 'star', 'bus']],
+    ['A __ says quack.', 'duck', ['cat', 'bed', 'pen', 'cow']],
+    ['I kick the __ on the field.', 'ball', ['bed', 'milk', 'chair', 'cloud']],
+    ['I see with my __ .', 'eyes', ['ears', 'shoes', 'cups', 'stars']],
+    ['Grandpa sits in his __ .', 'chair', ['cake', 'moon', 'fish', 'bus']],
+    ['The baby drinks from her __ .', 'bottle', ['kitten', 'shoe', 'roof', 'spoon']],
+    ['We watched a __ at the cinema.', 'movie', ['carrot', 'sock', 'ladder', 'pan']],
+    ['The __ spun a web.', 'spider', ['rabbit', 'rock', 'spoon', 'cloud']],
+    ['The king wears a golden __ .', 'crown', ['sock', 'pan', 'leaf', 'cup']],
+    ['The farmer drives a __ .', 'tractor', ['teapot', 'cloud', 'shoe', 'ring']],
+    ['We climb the __ to reach the roof.', 'ladder', ['puddle', 'spoon', 'cloud', 'apple']],
+    ['A __ carries its house on its back.', 'snail', ['fox', 'mug', 'door', 'bell']],
+    ['I cut paper with __ .', 'scissors', ['forks', 'clouds', 'cups', 'moons']],
+    ['The __ flew home to its nest.', 'bird', ['fish', 'cake', 'mug', 'train']],
+    // Tier 3 (Year 2) extras — longer vocabulary.
+    ['We eat __ for breakfast.', 'bread', ['shoes', 'sky', 'spoons', 'rocks']],
+    ["She brushes her __ every morning.", 'teeth', ['boots', 'sky', 'spoons', 'cakes']],
+    ['I put my __ on before we go.', 'boots', ['bread', 'bird', 'spoons', 'clouds']],
+    ['The chicken lays __ in the morning.', 'eggs', ['birds', 'boots', 'clouds', 'rocks']]
 ];
 
 // Word gaps: a sentence with one gap printed as a fill-in line beside three
-// choices, one of which fits.
+// choices, one of which fits. The two wrong choices are DRAWN from the item's
+// four curated non-fitting options, so the same sentence returns with a
+// different option pair (and print order) as a genuinely fresh question.
 //
-// NON-REPEATING SAMPLING: the 24 item bank is the whole fact space for this
-// worksheet type — a deck guarantees every sentence is asked (shuffled option
-// order included) before any repeats.
+// NON-REPEATING SAMPLING: items are dealt from a deck (every sentence is
+// asked before any repeats) and each question passes through sampleUnique
+// keyed on the printed prompt.
 function generateWordGap(rng: Rng, caps: Caps, count: number): RawProblem[] {
-    const pool = caps.wordTier >= 3 ? [...WORDGAP_TIER2, ...WORDGAP_TIER3_EXTRA] : WORDGAP_TIER2;
+    const pool = caps.wordTier >= 3 ? WORDGAP_ITEMS : WORDGAP_ITEMS.slice(0, 30);
     const itemDeck = createDeck(rng, pool);
     return sampleUnique(
         count,
         () => {
-            const [sentence, answer, [bad1, bad2]] = itemDeck.take();
-            const options = shuffleWords(rng, [answer, bad1, bad2]);
+            const [sentence, answer, bads] = itemDeck.take();
+            // Draw two DISTINCT bad options from the four curated ones.
+            const b1 = rng.pick(bads);
+            const b2 = rng.pick(bads.filter((w) => w !== b1));
+            const options = shuffleWords(rng, [answer, b1, b2]);
             return { prompt: `Choose the best word: ${sentence} (${options.join(', ')})`, answer };
         },
         (p) => p.prompt

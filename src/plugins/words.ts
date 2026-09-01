@@ -161,6 +161,10 @@ export const KNOWN_WORD_SET: ReadonlySet<string> = new Set([
     // homophones
     'there', 'their', 'to', 'too', 'your', "you're", 'two', 'its', "it's",
     'her', 'here', 'are', 'our', 'they',
+    // homophones (grown twin-words bank)
+    'hear', 'be', 'bee', 'by', 'buy', 'know', 'no', 'for', 'four', 'ate',
+    'eight', 'son', 'week', 'weak', 'tail', 'tale', 'plain', 'plane', 'meet',
+    'meat', 'dear', 'deer', 'new', 'knew', 'wear', 'where', 'whose', "who's",
     // plurals
     'kid', 'birds', 'cups', 'maps', 'pens', 'pigs', 'boat', 'boats',
     'ball', 'balls', 'stars', 'doors', 'buses', 'boxes', 'watch',

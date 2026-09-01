@@ -17,22 +17,98 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
-import { wordSet } from './words';
+import { wordSet, shuffleWords } from './words';
 
-// Beginning sounds: "which letter does <word> start with?" — the phonemic
-// awareness task (letter, not letter-name, kept simple at these word lengths).
+// Beginning sounds — FOUR procedural question kinds over the grade word set:
+//   0. "Which letter does X start with?"          (the written-answer base)
+//   1. "Which word starts with the letter 'b'?"   (3 options, one matches)
+//   2. "Which word does NOT start with 'b'?"      (3 options, two match)
+//   3. "Which word starts with the same sound as X?" (3 options, one matches)
 //
-// NON-REPEATING SAMPLING: words are dealt from a deck, so every word in the
-// grade set is asked once before any repeats (the pool IS the fact space —
-// ~45-61 distinct questions per tier).
+// The old single-kind generator asked each word once and cycled after ~25-61
+// questions (the pool WAS the fact space). The multiple-choice kinds make the
+// question space the cross-product of letters x option sets, so the sheet
+// deals fresh questions far past 100 pages.
+//
+// NON-REPEATING SAMPLING: letters AND words are dealt from decks (even pool
+// coverage) and every question passes through sampleUnique keyed on the
+// printed prompt, so the same base word with a different option set is a
+// different question.
 function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3);
+    // First-letter index: which words start with each letter. Kinds 1-3 need
+    // words grouped by (and excluded by) their initial letter.
+    const byLetter = new Map<string, string[]>();
+    for (const w of pool) {
+        if (!byLetter.has(w[0])) byLetter.set(w[0], []);
+        byLetter.get(w[0])!.push(w);
+    }
+    const letters = [...byLetter.keys()];
+    const letterDeck = createDeck(rng, letters);
     const wordDeck = createDeck(rng, pool);
+    // Build a 3-option multiple-choice set: `answer` plus two words chosen by
+    // `isDistractor` (the answer's complement), printed shuffled.
+    const choiceSet = (answer: string, isDistractor: (w: string) => boolean) => {
+        const options = [answer];
+        let guard = 0;
+        while (options.length < 3 && guard < 48) {
+            guard++;
+            const pick = wordDeck.take();
+            if (isDistractor(pick) && !options.includes(pick)) options.push(pick);
+        }
+        const shown = shuffleWords(rng, options);
+        return shown;
+    };
     return sampleUnique(
         count,
         () => {
+            const kind = rng.int(0, 3);
+            if (kind === 0) {
+                // Base kind: name the first letter of a dealt word.
+                const word = wordDeck.take();
+                return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+            }
+            if (kind === 1) {
+                // MC: exactly one option starts with the dealt letter.
+                const letter = letterDeck.take();
+                const starts = byLetter.get(letter)!;
+                const answer = rng.pick(starts);
+                const shown = choiceSet(answer, (w) => w[0] !== letter);
+                return { prompt: `Which word starts with the letter "${letter}"? (${shown.join(', ')})`, answer };
+            }
+            if (kind === 2) {
+                // Odd one out: two options start with the letter, one does not.
+                const letter = letterDeck.take();
+                const starts = byLetter.get(letter)!;
+                if (starts.length < 2) {
+                    // Need two same-letter words to pose the question; fall
+                    // back to the base kind for this draw.
+                    const word = wordDeck.take();
+                    return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+                }
+                // Two same-letter options: both words of a 2-word letter group,
+                // or two DISTINCT picks from a bigger group.
+                const w1 = rng.pick(starts);
+                const w2 = starts.length === 2 ? starts.find((w) => w !== w1)! : rng.pick(starts.filter((w) => w !== w1));
+                const odd = wordDeck.take();
+                const answer = odd[0] === letter ? wordDeck.take() : odd;
+                if (answer[0] === letter) {
+                    // Freak double deal of a same-letter word — fall back.
+                    return { prompt: `Which letter does "${w1}" start with?`, answer: letter };
+                }
+                const shown = shuffleWords(rng, [w1, w2, answer]);
+                return { prompt: `Which word does NOT start with the letter "${letter}"? (${shown.join(', ')})`, answer };
+            }
+            // Same sound: one option shares the dealt word's first letter.
             const word = wordDeck.take();
-            return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+            const starts = byLetter.get(word[0])!;
+            if (starts.length < 2) {
+                // No sibling word with the same first letter — fall back.
+                return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+            }
+            const answer = rng.pick(starts.filter((w) => w !== word));
+            const shown = choiceSet(answer, (w) => w[0] !== word[0]);
+            return { prompt: `Which word starts with the same sound as "${word}"? (${shown.join(', ')})`, answer };
         },
         (p) => p.prompt
     );

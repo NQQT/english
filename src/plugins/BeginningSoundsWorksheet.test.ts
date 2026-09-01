@@ -42,52 +42,78 @@ describe('sounds plugin — declarative spec', () => {
     });
 });
 
-// Semantic invariant: the answer is the actual first letter of the printed
-// word (the phonemic task is always answerable from the prompt alone).
-function checkFirstLetter(grade: GradeConfig) {
+// Semantic invariants: every generator kind is answerable from the prompt
+// alone (see BeginningSoundsWorksheet.ts):
+//   base   — the answer IS the printed word's first letter
+//   MC     — exactly one option starts with the letter, and it is the answer
+//   NOT    — exactly two options start with the letter; the answer does not
+//   same   — the answer shares the printed word's first letter; the other two
+//            options do not (and are not the word itself)
+function checkSoundTruths(grade: GradeConfig) {
     for (const p of sheet(grade)) {
-        const m = p.prompt.match(/^Which letter does "([a-z]+)" start with\?$/);
-        expect(m).not.toBeNull();
-        expect(p.answer).toBe(m![1][0]);
+        const base = p.prompt.match(/^Which letter does "([a-z]+)" start with\?$/);
+        const starts = p.prompt.match(/^Which word starts with the letter "([a-z])"\? \(([^)]+)\)$/);
+        const not = p.prompt.match(/^Which word does NOT start with the letter "([a-z])"\? \(([^)]+)\)$/);
+        const same = p.prompt.match(/^Which word starts with the same sound as "([a-z]+)"\? \(([^)]+)\)$/);
+        if (base) {
+            expect(p.answer).toBe(base[1][0]);
+        } else if (starts) {
+            const options = starts[2].split(', ');
+            const matching = options.filter((o) => o[0] === starts[1]);
+            expect(matching).toEqual([p.answer]);
+        } else if (not) {
+            const options = not[2].split(', ');
+            expect(options.filter((o) => o[0] === not[1])).toHaveLength(2);
+            expect(p.answer[0]).not.toBe(not[1]);
+        } else if (same) {
+            const options = same[2].split(', ');
+            expect(p.answer[0]).toBe(same[1][0]);
+            const others = options.filter((o) => o !== p.answer);
+            expect(others).toHaveLength(2);
+            for (const o of others) expect(o[0]).not.toBe(same[1][0]);
+        } else {
+            // Every prompt must fall into exactly one of the four kinds.
+            throw new Error(`unrecognised sounds prompt: ${p.prompt}`);
+        }
     }
 }
 
 describe('sounds — Prep (tier-1 starter word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g0)).toEqual([
-        {"id":1,"type":"sounds","prompt":"Which letter does \"pot\" start with?","answer":"p"},
-        {"id":2,"type":"sounds","prompt":"Which letter does \"leg\" start with?","answer":"l"},
-        {"id":3,"type":"sounds","prompt":"Which letter does \"cat\" start with?","answer":"c"},
-        {"id":4,"type":"sounds","prompt":"Which letter does \"hat\" start with?","answer":"h"},
-        {"id":5,"type":"sounds","prompt":"Which letter does \"bus\" start with?","answer":"b"},
-        {"id":6,"type":"sounds","prompt":"Which letter does \"bag\" start with?","answer":"b"},
-        {"id":7,"type":"sounds","prompt":"Which letter does \"pin\" start with?","answer":"p"},
-        {"id":8,"type":"sounds","prompt":"Which letter does \"log\" start with?","answer":"l"},
-        {"id":9,"type":"sounds","prompt":"Which letter does \"cup\" start with?","answer":"c"},
-        {"id":10,"type":"sounds","prompt":"Which letter does \"net\" start with?","answer":"n"},
-        {"id":11,"type":"sounds","prompt":"Which letter does \"rat\" start with?","answer":"r"},
-        {"id":12,"type":"sounds","prompt":"Which letter does \"moon\" start with?","answer":"m"},
-        {"id":13,"type":"sounds","prompt":"Which letter does \"sun\" start with?","answer":"s"},
-        {"id":14,"type":"sounds","prompt":"Which letter does \"wig\" start with?","answer":"w"},
-        {"id":15,"type":"sounds","prompt":"Which letter does \"sip\" start with?","answer":"s"},
-        {"id":16,"type":"sounds","prompt":"Which letter does \"pig\" start with?","answer":"p"},
-        {"id":17,"type":"sounds","prompt":"Which letter does \"box\" start with?","answer":"b"},
-        {"id":18,"type":"sounds","prompt":"Which letter does \"fan\" start with?","answer":"f"},
-        {"id":19,"type":"sounds","prompt":"Which letter does \"dog\" start with?","answer":"d"},
-        {"id":20,"type":"sounds","prompt":"Which letter does \"jam\" start with?","answer":"j"},
-        {"id":21,"type":"sounds","prompt":"Which letter does \"bed\" start with?","answer":"b"},
-        {"id":22,"type":"sounds","prompt":"Which letter does \"map\" start with?","answer":"m"},
-        {"id":23,"type":"sounds","prompt":"Which letter does \"red\" start with?","answer":"r"},
-        {"id":24,"type":"sounds","prompt":"Which letter does \"pen\" start with?","answer":"p"}
+        {"id":1,"type":"sounds","prompt":"Which letter does \"pen\" start with?","answer":"p"},
+        {"id":2,"type":"sounds","prompt":"Which word starts with the letter \"n\"? (sip, hat, net)","answer":"net"},
+        {"id":3,"type":"sounds","prompt":"Which letter does \"bus\" start with?","answer":"b"},
+        {"id":4,"type":"sounds","prompt":"Which word does NOT start with the letter \"m\"? (jam, map, moon)","answer":"jam"},
+        {"id":5,"type":"sounds","prompt":"Which letter does \"pig\" start with?","answer":"p"},
+        {"id":6,"type":"sounds","prompt":"Which letter does \"moon\" start with?","answer":"m"},
+        {"id":7,"type":"sounds","prompt":"Which word starts with the same sound as \"pot\"? (pig, log, cat)","answer":"pig"},
+        {"id":8,"type":"sounds","prompt":"Which word does NOT start with the letter \"c\"? (cup, bag, cat)","answer":"bag"},
+        {"id":9,"type":"sounds","prompt":"Which word does NOT start with the letter \"l\"? (log, red, leg)","answer":"red"},
+        {"id":10,"type":"sounds","prompt":"Which word starts with the same sound as \"sun\"? (wig, leg, sip)","answer":"sip"},
+        {"id":11,"type":"sounds","prompt":"Which letter does \"bed\" start with?","answer":"b"},
+        {"id":12,"type":"sounds","prompt":"Which letter does \"box\" start with?","answer":"b"},
+        {"id":13,"type":"sounds","prompt":"Which letter does \"pin\" start with?","answer":"p"},
+        {"id":14,"type":"sounds","prompt":"Which word starts with the same sound as \"cup\"? (map, rat, cat)","answer":"cat"},
+        {"id":15,"type":"sounds","prompt":"Which letter does \"dog\" start with?","answer":"d"},
+        {"id":16,"type":"sounds","prompt":"Which word starts with the letter \"p\"? (pot, fan, top)","answer":"pot"},
+        {"id":17,"type":"sounds","prompt":"Which letter does \"net\" start with?","answer":"n"},
+        {"id":18,"type":"sounds","prompt":"Which letter does \"cup\" start with?","answer":"c"},
+        {"id":19,"type":"sounds","prompt":"Which letter does \"red\" start with?","answer":"r"},
+        {"id":20,"type":"sounds","prompt":"Which letter does \"wig\" start with?","answer":"w"},
+        {"id":21,"type":"sounds","prompt":"Which letter does \"cat\" start with?","answer":"c"},
+        {"id":22,"type":"sounds","prompt":"Which word starts with the letter \"s\"? (fan, sip, bag)","answer":"sip"},
+        {"id":23,"type":"sounds","prompt":"Which word does NOT start with the letter \"r\"? (rat, bus, red)","answer":"bus"},
+        {"id":24,"type":"sounds","prompt":"Which word does NOT start with the letter \"b\"? (jam, bag, bed)","answer":"jam"}
 ]);
-        checkFirstLetter(g0);
+        checkSoundTruths(g0);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(soundsSpec, g0, seedFrom([0, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"sounds","prompt":"Which letter does \"top\" start with?","answer":"t"},
-        {"id":26,"type":"sounds","prompt":"Which letter does \"jam\" start with?","answer":"j"},
-        {"id":27,"type":"sounds","prompt":"Which letter does \"box\" start with?","answer":"b"}
+        {"id":25,"type":"sounds","prompt":"Which word starts with the letter \"s\"? (sip, bed, pot)","answer":"sip"},
+        {"id":26,"type":"sounds","prompt":"Which letter does \"hat\" start with?","answer":"h"},
+        {"id":27,"type":"sounds","prompt":"Which letter does \"sip\" start with?","answer":"s"}
 ]);
     });
 });
@@ -95,39 +121,39 @@ describe('sounds — Prep (tier-1 starter word set)', () => {
 describe('sounds — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"sounds","prompt":"Which letter does \"table\" start with?","answer":"t"},
-        {"id":2,"type":"sounds","prompt":"Which letter does \"chair\" start with?","answer":"c"},
-        {"id":3,"type":"sounds","prompt":"Which letter does \"apple\" start with?","answer":"a"},
-        {"id":4,"type":"sounds","prompt":"Which letter does \"top\" start with?","answer":"t"},
-        {"id":5,"type":"sounds","prompt":"Which letter does \"train\" start with?","answer":"t"},
-        {"id":6,"type":"sounds","prompt":"Which letter does \"cat\" start with?","answer":"c"},
-        {"id":7,"type":"sounds","prompt":"Which letter does \"bird\" start with?","answer":"b"},
-        {"id":8,"type":"sounds","prompt":"Which letter does \"light\" start with?","answer":"l"},
-        {"id":9,"type":"sounds","prompt":"Which letter does \"lemon\" start with?","answer":"l"},
-        {"id":10,"type":"sounds","prompt":"Which letter does \"pen\" start with?","answer":"p"},
-        {"id":11,"type":"sounds","prompt":"Which letter does \"bed\" start with?","answer":"b"},
-        {"id":12,"type":"sounds","prompt":"Which letter does \"pin\" start with?","answer":"p"},
-        {"id":13,"type":"sounds","prompt":"Which letter does \"red\" start with?","answer":"r"},
-        {"id":14,"type":"sounds","prompt":"Which letter does \"box\" start with?","answer":"b"},
-        {"id":15,"type":"sounds","prompt":"Which letter does \"wig\" start with?","answer":"w"},
-        {"id":16,"type":"sounds","prompt":"Which letter does \"log\" start with?","answer":"l"},
-        {"id":17,"type":"sounds","prompt":"Which letter does \"moon\" start with?","answer":"m"},
-        {"id":18,"type":"sounds","prompt":"Which letter does \"fan\" start with?","answer":"f"},
-        {"id":19,"type":"sounds","prompt":"Which letter does \"pig\" start with?","answer":"p"},
-        {"id":20,"type":"sounds","prompt":"Which letter does \"bread\" start with?","answer":"b"},
-        {"id":21,"type":"sounds","prompt":"Which letter does \"map\" start with?","answer":"m"},
-        {"id":22,"type":"sounds","prompt":"Which letter does \"night\" start with?","answer":"n"},
-        {"id":23,"type":"sounds","prompt":"Which letter does \"bag\" start with?","answer":"b"},
-        {"id":24,"type":"sounds","prompt":"Which letter does \"grass\" start with?","answer":"g"}
+        {"id":1,"type":"sounds","prompt":"Which word starts with the same sound as \"bird\"? (rat, box, cat)","answer":"box"},
+        {"id":2,"type":"sounds","prompt":"Which word starts with the letter \"w\"? (wig, plane, fan)","answer":"wig"},
+        {"id":3,"type":"sounds","prompt":"Which letter does \"bed\" start with?","answer":"b"},
+        {"id":4,"type":"sounds","prompt":"Which word does NOT start with the letter \"l\"? (net, log, lemon)","answer":"net"},
+        {"id":5,"type":"sounds","prompt":"Which word starts with the same sound as \"pot\"? (leg, bag, pin)","answer":"pin"},
+        {"id":6,"type":"sounds","prompt":"Which word starts with the letter \"j\"? (jam, water, pig)","answer":"jam"},
+        {"id":7,"type":"sounds","prompt":"Which word starts with the same sound as \"cup\"? (cat, log, house)","answer":"cat"},
+        {"id":8,"type":"sounds","prompt":"Which word starts with the letter \"r\"? (rabbit, box, wig)","answer":"rabbit"},
+        {"id":9,"type":"sounds","prompt":"Which letter does \"train\" start with?","answer":"t"},
+        {"id":10,"type":"sounds","prompt":"Which word starts with the letter \"n\"? (night, light, tree)","answer":"night"},
+        {"id":11,"type":"sounds","prompt":"Which word starts with the letter \"s\"? (bus, sun, moon)","answer":"sun"},
+        {"id":12,"type":"sounds","prompt":"Which word starts with the letter \"p\"? (chair, dog, plane)","answer":"plane"},
+        {"id":13,"type":"sounds","prompt":"Which word starts with the same sound as \"rabbit\"? (red, grass, pen)","answer":"red"},
+        {"id":14,"type":"sounds","prompt":"Which letter does \"sun\" start with?","answer":"s"},
+        {"id":15,"type":"sounds","prompt":"Which word does NOT start with the letter \"f\"? (fan, fish, hat)","answer":"hat"},
+        {"id":16,"type":"sounds","prompt":"Which word does NOT start with the letter \"g\"? (grass, night, green)","answer":"night"},
+        {"id":17,"type":"sounds","prompt":"Which word does NOT start with the letter \"m\"? (moon, tiger, map)","answer":"tiger"},
+        {"id":18,"type":"sounds","prompt":"Which word starts with the same sound as \"red\"? (rabbit, bread, table)","answer":"rabbit"},
+        {"id":19,"type":"sounds","prompt":"Which word does NOT start with the letter \"t\"? (table, tree, map)","answer":"map"},
+        {"id":20,"type":"sounds","prompt":"Which letter does \"fish\" start with?","answer":"f"},
+        {"id":21,"type":"sounds","prompt":"Which word starts with the same sound as \"green\"? (grass, jam, top)","answer":"grass"},
+        {"id":22,"type":"sounds","prompt":"Which letter does \"purple\" start with?","answer":"p"},
+        {"id":23,"type":"sounds","prompt":"Which word starts with the letter \"c\"? (lemon, apple, chair)","answer":"chair"},
+        {"id":24,"type":"sounds","prompt":"Which word starts with the same sound as \"pin\"? (leg, fish, pot)","answer":"pot"}
 ]);
-        checkFirstLetter(g1);
+        checkSoundTruths(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(soundsSpec, g1, seedFrom([1, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"sounds","prompt":"Which letter does \"fish\" start with?","answer":"f"},
-        {"id":26,"type":"sounds","prompt":"Which letter does \"hat\" start with?","answer":"h"},
-        {"id":27,"type":"sounds","prompt":"Which letter does \"leg\" start with?","answer":"l"}
+        {"id":25,"type":"sounds","prompt":"Which word starts with the letter \"h\"? (train, rat, house)","answer":"house"},
+        {"id":26,"type":"sounds","prompt":"Which word starts with the letter \"d\"? (fan, dog, bus)","answer":"dog"},
+        {"id":27,"type":"sounds","prompt":"Which word starts with the letter \"b\"? (bird, dog, green)","answer":"bird"}
 ]);
     });
 });
@@ -135,39 +161,39 @@ describe('sounds — Year 1 (tier-2 common word set)', () => {
 describe('sounds — Year 2 (tier-3 extended set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"sounds","prompt":"Which letter does \"teacher\" start with?","answer":"t"},
-        {"id":2,"type":"sounds","prompt":"Which letter does \"green\" start with?","answer":"g"},
-        {"id":3,"type":"sounds","prompt":"Which letter does \"pen\" start with?","answer":"p"},
-        {"id":4,"type":"sounds","prompt":"Which letter does \"fish\" start with?","answer":"f"},
-        {"id":5,"type":"sounds","prompt":"Which letter does \"night\" start with?","answer":"n"},
-        {"id":6,"type":"sounds","prompt":"Which letter does \"cat\" start with?","answer":"c"},
-        {"id":7,"type":"sounds","prompt":"Which letter does \"pig\" start with?","answer":"p"},
-        {"id":8,"type":"sounds","prompt":"Which letter does \"sip\" start with?","answer":"s"},
-        {"id":9,"type":"sounds","prompt":"Which letter does \"water\" start with?","answer":"w"},
-        {"id":10,"type":"sounds","prompt":"Which letter does \"house\" start with?","answer":"h"},
-        {"id":11,"type":"sounds","prompt":"Which letter does \"hat\" start with?","answer":"h"},
-        {"id":12,"type":"sounds","prompt":"Which letter does \"bed\" start with?","answer":"b"},
-        {"id":13,"type":"sounds","prompt":"Which letter does \"cup\" start with?","answer":"c"},
-        {"id":14,"type":"sounds","prompt":"Which letter does \"jam\" start with?","answer":"j"},
-        {"id":15,"type":"sounds","prompt":"Which letter does \"bread\" start with?","answer":"b"},
-        {"id":16,"type":"sounds","prompt":"Which letter does \"beautiful\" start with?","answer":"b"},
-        {"id":17,"type":"sounds","prompt":"Which letter does \"chair\" start with?","answer":"c"},
-        {"id":18,"type":"sounds","prompt":"Which letter does \"sun\" start with?","answer":"s"},
-        {"id":19,"type":"sounds","prompt":"Which letter does \"family\" start with?","answer":"f"},
-        {"id":20,"type":"sounds","prompt":"Which letter does \"window\" start with?","answer":"w"},
-        {"id":21,"type":"sounds","prompt":"Which letter does \"wig\" start with?","answer":"w"},
-        {"id":22,"type":"sounds","prompt":"Which letter does \"purple\" start with?","answer":"p"},
-        {"id":23,"type":"sounds","prompt":"Which letter does \"dinosaur\" start with?","answer":"d"},
-        {"id":24,"type":"sounds","prompt":"Which letter does \"rabbit\" start with?","answer":"r"}
+        {"id":1,"type":"sounds","prompt":"Which word starts with the letter \"t\"? (train, sun, lemon)","answer":"train"},
+        {"id":2,"type":"sounds","prompt":"Which word starts with the letter \"f\"? (rat, bag, family)","answer":"family"},
+        {"id":3,"type":"sounds","prompt":"Which letter does \"light\" start with?","answer":"l"},
+        {"id":4,"type":"sounds","prompt":"Which word starts with the letter \"c\"? (pumpkin, dolphin, computer)","answer":"computer"},
+        {"id":5,"type":"sounds","prompt":"Which letter does \"rabbit\" start with?","answer":"r"},
+        {"id":6,"type":"sounds","prompt":"Which word starts with the letter \"p\"? (shirt, bus, pot)","answer":"pot"},
+        {"id":7,"type":"sounds","prompt":"Which letter does \"train\" start with?","answer":"t"},
+        {"id":8,"type":"sounds","prompt":"Which word starts with the letter \"r\"? (red, hat, window)","answer":"red"},
+        {"id":9,"type":"sounds","prompt":"Which word does NOT start with the letter \"s\"? (fish, school, sip)","answer":"fish"},
+        {"id":10,"type":"sounds","prompt":"Which word starts with the letter \"m\"? (leg, moon, tiger)","answer":"moon"},
+        {"id":11,"type":"sounds","prompt":"Which word starts with the letter \"b\"? (night, butterfly, dog)","answer":"butterfly"},
+        {"id":12,"type":"sounds","prompt":"Which letter does \"computer\" start with?","answer":"c"},
+        {"id":13,"type":"sounds","prompt":"Which word does NOT start with the letter \"h\"? (house, hat, tree)","answer":"tree"},
+        {"id":14,"type":"sounds","prompt":"Which word starts with the same sound as \"box\"? (teacher, bag, plane)","answer":"bag"},
+        {"id":15,"type":"sounds","prompt":"Which word does NOT start with the letter \"w\"? (window, school, water)","answer":"school"},
+        {"id":16,"type":"sounds","prompt":"Which word does NOT start with the letter \"n\"? (night, beautiful, net)","answer":"beautiful"},
+        {"id":17,"type":"sounds","prompt":"Which letter does \"cat\" start with?","answer":"c"},
+        {"id":18,"type":"sounds","prompt":"Which word starts with the same sound as \"button\"? (house, jam, bird)","answer":"bird"},
+        {"id":19,"type":"sounds","prompt":"Which letter does \"elephant\" start with?","answer":"e"},
+        {"id":20,"type":"sounds","prompt":"Which word starts with the letter \"l\"? (lemon, dinosaur, top)","answer":"lemon"},
+        {"id":21,"type":"sounds","prompt":"Which letter does \"pot\" start with?","answer":"p"},
+        {"id":22,"type":"sounds","prompt":"Which word starts with the letter \"e\"? (bird, elephant, chair)","answer":"elephant"},
+        {"id":23,"type":"sounds","prompt":"Which letter does \"wig\" start with?","answer":"w"},
+        {"id":24,"type":"sounds","prompt":"Which word starts with the same sound as \"chocolate\"? (red, chair, water)","answer":"chair"}
 ]);
-        checkFirstLetter(g2);
+        checkSoundTruths(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(soundsSpec, g2, seedFrom([2, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":25,"type":"sounds","prompt":"Which letter does \"grass\" start with?","answer":"g"},
-        {"id":26,"type":"sounds","prompt":"Which letter does \"garden\" start with?","answer":"g"},
-        {"id":27,"type":"sounds","prompt":"Which letter does \"bird\" start with?","answer":"b"}
+        {"id":25,"type":"sounds","prompt":"Which letter does \"cup\" start with?","answer":"c"},
+        {"id":26,"type":"sounds","prompt":"Which word starts with the same sound as \"green\"? (table, grass, net)","answer":"grass"},
+        {"id":27,"type":"sounds","prompt":"Which letter does \"purple\" start with?","answer":"p"}
 ]);
     });
 

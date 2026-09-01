@@ -16,19 +16,60 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { sampleUnique } from '../framework';
+import { createDeck, sampleUnique } from '../framework';
+import { wordSet, shuffleWords } from './words';
 
-// Alphabet order: five question kinds — next letter after X, letter before X,
-// a forward run "a, b, __", a backward run "b, a, __", and a middle gap
-// "a, __, c". The alphabet is finite: 25+25+24+24+24 = 122 distinct questions,
-// which sampleUnique deals out with zero repeats before the space must cycle.
-function generateLetters(rng: Rng, _caps: Caps, count: number): RawProblem[] {
-    const A = 97; // 'a'
-    const letter = (x: number) => String.fromCharCode(A + x);
+// Alphabet order — FIFTEEN procedural kinds. The old five covered the
+// ±1 neighbourhood of the alphabet (122 questions total, then the space had
+// to cycle). The added kinds widen the neighbourhood (3-runs, skip-2 runs,
+// positions from either end, UPPERCASE variants) and apply letter order to
+// WORDS ("which word comes first in the alphabet?"), whose space is the
+// cross-product of the grade word set — the sheet stays fresh far past 100
+// pages.
+//
+// NON-REPEATING SAMPLING: every question passes through sampleUnique keyed on
+// the printed prompt; word-order triples are dealt from a deck.
+const A = 97; // 'a'
+const letter = (x: number) => String.fromCharCode(A + x);
+// 1st, 2nd, 3rd, 4th, ... for the position questions.
+function ordinal(n: number): string {
+    if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+    return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}
+// Word-order question over `pool`: three distinct dealt words, shuffled for
+// printing; `first` asks for the alphabetically FIRST word, `false` the LAST.
+function wordOrder(rng: Rng, wordDeck: { take: () => string }, first: boolean) {
+    let w1 = wordDeck.take();
+    let w2 = wordDeck.take();
+    let w3 = wordDeck.take();
+    // Redraw until three distinct words are in hand (decks reshuffle, so this
+    // always terminates).
+    let guard = 0;
+    while ((w2 === w1 || w3 === w1 || w3 === w2) && guard < 48) {
+        guard++;
+        if (w2 === w1) w2 = wordDeck.take();
+        if (w3 === w1 || w3 === w2) w3 = wordDeck.take();
+    }
+    if (w2 === w1 || w3 === w1 || w3 === w2) {
+        // Practically unreachable fallback: keep the draw well-posed by
+        // returning a letter question instead.
+        const x = rng.int(0, 24);
+        return { prompt: `Which letter comes after "${letter(x)}"?`, answer: letter(x + 1) };
+    }
+    const sorted = [w1, w2, w3].sort();
+    const answer = first ? sorted[0] : sorted[2];
+    const shown = shuffleWords(rng, [w1, w2, w3]);
+    return {
+        prompt: `Which word comes ${first ? 'first' : 'last'} in the alphabet? (${shown.join(', ')})`,
+        answer
+    };
+}
+function generateLetters(rng: Rng, caps: Caps, count: number): RawProblem[] {
+    const wordDeck = createDeck(rng, wordSet(caps.wordTier));
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 4);
+            const kind = rng.int(0, 14);
             if (kind === 0) {
                 // Letter AFTER x (x in a..y so an answer always exists).
                 const x = rng.int(0, 24);
@@ -49,9 +90,60 @@ function generateLetters(rng: Rng, _caps: Caps, count: number): RawProblem[] {
                 const x = rng.int(1, 24);
                 return { prompt: `${letter(x)}, ${letter(x - 1)}, __`, answer: letter(x - 2) };
             }
-            // Middle gap of a three-letter run: "a, __, c".
-            const x = rng.int(0, 23);
-            return { prompt: `${letter(x)}, __, ${letter(x + 2)}`, answer: letter(x + 1) };
+            if (kind === 4) {
+                // Middle gap of a three-letter run: "a, __, c".
+                const x = rng.int(0, 23);
+                return { prompt: `${letter(x)}, __, ${letter(x + 2)}`, answer: letter(x + 1) };
+            }
+            if (kind === 5) {
+                // Forward run of THREE shown then the next: "a, b, c, __".
+                const x = rng.int(0, 22);
+                return { prompt: `${letter(x)}, ${letter(x + 1)}, ${letter(x + 2)}, __`, answer: letter(x + 3) };
+            }
+            if (kind === 6) {
+                // Backward run of three shown then the next: "d, c, b, __".
+                const x = rng.int(3, 25);
+                return { prompt: `${letter(x)}, ${letter(x - 1)}, ${letter(x - 2)}, __`, answer: letter(x - 3) };
+            }
+            if (kind === 7) {
+                // Skip-one forward: "a, c, __" continues to "e".
+                const x = rng.int(0, 21);
+                return { prompt: `${letter(x)}, ${letter(x + 2)}, __`, answer: letter(x + 4) };
+            }
+            if (kind === 8) {
+                // Skip-one backward: "e, c, __" continues to "a".
+                const x = rng.int(4, 25);
+                return { prompt: `${letter(x)}, ${letter(x - 2)}, __`, answer: letter(x - 4) };
+            }
+            if (kind === 9) {
+                // Position from the start: "Which is the 5th letter of the
+                // alphabet?" (answer e).
+                const n = rng.int(1, 26);
+                return { prompt: `Which is the ${ordinal(n)} letter of the alphabet?`, answer: letter(n - 1) };
+            }
+            if (kind === 10) {
+                // Position from the end: the 1st from the end is z.
+                const n = rng.int(1, 26);
+                return { prompt: `Which is the ${ordinal(n)} letter from the end of the alphabet?`, answer: letter(26 - n) };
+            }
+            if (kind === 11) {
+                // UPPERCASE after: same neighbour rule, capital shapes.
+                const x = rng.int(0, 24);
+                const up = (c: string) => c.toUpperCase();
+                return { prompt: `Which UPPERCASE letter comes after "${up(letter(x))}"?`, answer: up(letter(x + 1)) };
+            }
+            if (kind === 12) {
+                // UPPERCASE before.
+                const x = rng.int(1, 25);
+                const up = (c: string) => c.toUpperCase();
+                return { prompt: `Which UPPERCASE letter comes before "${up(letter(x))}"?`, answer: up(letter(x - 1)) };
+            }
+            if (kind === 13) {
+                // Word order: which of three dealt words sorts FIRST.
+                return wordOrder(rng, wordDeck, true);
+            }
+            // Word order: which of three dealt words sorts LAST.
+            return wordOrder(rng, wordDeck, false);
         },
         (p) => p.prompt
     );

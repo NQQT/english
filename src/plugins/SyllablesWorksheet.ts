@@ -17,10 +17,11 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
+import { shuffleWords } from './words';
 
 // Syllable counts, Year 2 only (the only grade that offers the type). Grown
-// from 14 to 34 words and dealt from a deck, so every word is asked before
-// any repeats (the word list IS the fact space for this worksheet type).
+// from 34 to 60 words and dealt from a deck, so every word is asked before
+// any repeats.
 const SYLLABLE_WORDS: [string, number][] = [
     ['banana', 3],
     ['apple', 2],
@@ -61,21 +62,84 @@ const SYLLABLE_WORDS: [string, number][] = [
     ['together', 3],
     ['wonderful', 3],
     ['crocodile', 3],
-    ['alligator', 4]
+    ['alligator', 4],
+    // Grown bank: more beats to count.
+    ['city', 2],
+    ['party', 2],
+    ['candy', 2],
+    ['story', 2],
+    ['balloon', 2],
+    ['trombone', 2],
+    ['octopus', 3],
+    ['umbrella', 3],
+    ['bicycle', 3],
+    ['telescope', 3],
+    ['kangaroo', 3],
+    ['mosquito', 3],
+    ['gorilla', 3],
+    ['vanilla', 3],
+    ['pajamas', 3],
+    ['astronaut', 3],
+    ['family', 3],
+    ['avocado', 4],
+    ['helicopter', 4],
+    ['caterpillar', 4]
 ];
 
-// Syllables: count the beats in a word (Year 2 only — buildDocument gates
-// this on grade.available, so the pool above is the full Y2 list).
+// Syllables — THREE procedural kinds, Year 2 only (buildDocument gates this
+// on grade.available):
+//   0. "How many syllables are in X?"                    (written answer)
+//   1. "Which word has N syllables?"                     (3 options, one matches)
+//   2. "Which word has the same number of syllables as X?" (3 options)
 //
-// NON-REPEATING SAMPLING: the deck guarantees every word appears before any
-// repeats.
+// The old count-only generator cycled after the 40-word bank; the MC kinds
+// make the space option sets x words, deep enough for 100 pages.
+//
+// NON-REPEATING SAMPLING: words are dealt from a deck and every question
+// passes through sampleUnique keyed on the printed prompt.
 function generateSyllable(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     const wordDeck = createDeck(rng, SYLLABLE_WORDS);
+    // Build a 3-option set: the answer plus two words with a DIFFERENT
+    // syllable count, printed shuffled.
+    const choiceSet = (answer: [string, number]) => {
+        const options: string[] = [answer[0]];
+        let guard = 0;
+        while (options.length < 3 && guard < 48) {
+            guard++;
+            const [pick, n] = wordDeck.take();
+            if (n !== answer[1] && !options.includes(pick)) options.push(pick);
+        }
+        return shuffleWords(rng, options);
+    };
     return sampleUnique(
         count,
         () => {
-            const [word, n] = wordDeck.take();
-            return { prompt: `How many syllables are in "${word}"?`, answer: `${n}` };
+            const kind = rng.int(0, 2);
+            if (kind === 0) {
+                // Written count.
+                const [word, n] = wordDeck.take();
+                return { prompt: `How many syllables are in "${word}"?`, answer: `${n}` };
+            }
+            if (kind === 1) {
+                // MC: one option has N beats, two do not.
+                const answer = wordDeck.take();
+                const shown = choiceSet(answer);
+                return { prompt: `Which word has ${answer[1]} syllables? (${shown.join(', ')})`, answer: answer[0] };
+            }
+            // MC: one option matches the dealt word's beat count.
+            const target = wordDeck.take();
+            const matches = SYLLABLE_WORDS.filter(([w, n]) => n === target[1] && w !== target[0]);
+            if (matches.length === 0) {
+                // No sibling word with the same count — fall back to a count
+                // question so the draw is never wasted.
+                return { prompt: `How many syllables are in "${target[0]}"?`, answer: `${target[1]}` };
+            }
+            const answer = rng.pick(matches);
+            const shown = choiceSet(answer);
+            return {
+                prompt: `Which word has the same number of syllables as "${target[0]}"? (${shown.join(', ')})`,
+                answer: answer[0]
+            };
         },
         (p) => p.prompt
     );

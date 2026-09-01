@@ -17,45 +17,68 @@
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { sampleUnique } from '../framework';
 
-// Punctuation pools — assembled from grammar slots so the statement/question
-// spaces are cross-products instead of hand-written lists:
-//   statements: 8 subjects x 8 predicates = 64 lines ("The cat is sleeping")
-//   questions:  4 openers x 8 noun phrases = 32 lines ("Where is the dog")
-//   exclamations: 12 curated lines ("I love ice cream")
-// => 108 distinct lines; sampleUnique deals them with zero repeats before the
-// space cycles.
+// Punctuation pools — assembled from grammar slots so the line spaces are
+// cross-products instead of hand-written lists (grown from the original
+// 8x8/4x8/12 banks that cycled after ~108 questions):
+//   statements:  18 subjects x 20 predicates = 360 lines ("The cat is sleeping")
+//   questions:    8 openers  x 18 noun phrases = 144 lines ("Where is the dog")
+//   exclamations: 34 curated lines ("I love ice cream")
+// Each line is asked in TWO prompt forms (written answer + end-mark choice),
+// so the question space is ~1 076 distinct questions — over 44 pages before
+// anything can repeat.
 const PUNCT_SUBJECTS = [
-    'The cat', 'The dog', 'My dad', 'The baby', 'The teacher', 'My friend', 'The bird', 'The boy'
+    'The cat', 'The dog', 'My dad', 'My mom', 'The baby', 'The teacher', 'My friend', 'The bird',
+    'The boy', 'The girl', 'My sister', 'My brother', 'The frog', 'The duck', 'The horse', 'My cousin',
+    'The lion', 'The rabbit'
 ] as const;
 const PUNCT_PREDICATES = [
-    'is sleeping', 'is happy', 'likes school', 'runs fast', 'is hungry', 'sings loudly', 'is here', 'found the ball'
+    'is sleeping', 'is happy', 'likes school', 'runs fast', 'is hungry', 'sings loudly', 'is here',
+    'found the ball', 'is tired', 'plays outside', 'reads a book', 'drinks milk', 'is friendly',
+    'paints pictures', 'walks home', 'eats lunch', 'is noisy', 'helps my dad', 'watches TV', 'rides a bike'
 ] as const;
-const PUNCT_OPENERS = ['Where is', 'Who is', 'Can you see', 'Do you have'] as const;
+const PUNCT_OPENERS = ['Where is', 'Who is', 'Can you see', 'Do you have', 'What is', 'Have you seen', 'Is that', 'Can I have'] as const;
 const PUNCT_THINGS = [
-    'the dog', 'the cat', 'a pencil', 'my hat', 'the ball', 'your book', 'a bird', 'the milk'
+    'the dog', 'the cat', 'a pencil', 'my hat', 'the ball', 'your book', 'a bird', 'the milk',
+    'my shoe', 'the door', 'a flower', 'my lunch', 'the moon', 'a cookie', 'your bag', 'the star',
+    'my coat', 'the kite'
 ] as const;
 const PUNCT_EXCLAIM = [
     'I love ice cream', 'What a big dog', 'Look at that bird', 'We won the game',
     'What a fast car', 'I love this book', 'Look at the moon', 'We did it',
-    'What a sunny day', 'I am so hungry', 'What a great idea', 'The fire is hot'
+    'What a sunny day', 'I am so hungry', 'What a great idea', 'The fire is hot',
+    'What a tall tree', 'What a red kite', 'I love my bike', 'What a messy room',
+    'Look at that frog', 'We can go now', 'What a lovely song', 'I am so happy',
+    'What a funny clown', 'Look at the stars', 'What a shiny bell', 'I love my puppy',
+    'What a rainy day', 'What a huge fish', 'Look at the ducks', 'What a sweet kitten',
+    'I am so tired', 'What a fun game', 'Look at the ponies', 'What a cosy den',
+    'I love my grandma', 'What a bright light'
 ] as const;
 
 // Punctuation: add the right mark at the end — "." statement, "?" question,
-// "!" exclamation.
+// "!" exclamation — asked in two forms: a plain written-answer line and a
+// "which end mark fits" choice line (fixed mark order).
 function generatePunct(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     return sampleUnique(
         count,
         () => {
             const kind = rng.int(0, 2);
+            const choice = rng.next() < 0.5;
             if (kind === 0) {
                 const line = `${rng.pick(PUNCT_SUBJECTS)} ${rng.pick(PUNCT_PREDICATES)}`;
-                return { prompt: `Add the right punctuation: ${line} __`, answer: '.' };
+                return choice
+                    ? { prompt: `Which end mark fits: ${line} __ (. ? !)`, answer: '.' }
+                    : { prompt: `Add the right punctuation: ${line} __`, answer: '.' };
             }
             if (kind === 1) {
                 const line = `${rng.pick(PUNCT_OPENERS)} ${rng.pick(PUNCT_THINGS)}`;
-                return { prompt: `Add the right punctuation: ${line} __`, answer: '?' };
+                return choice
+                    ? { prompt: `Which end mark fits: ${line} __ (. ? !)`, answer: '?' }
+                    : { prompt: `Add the right punctuation: ${line} __`, answer: '?' };
             }
-            return { prompt: `Add the right punctuation: ${rng.pick(PUNCT_EXCLAIM)} __`, answer: '!' };
+            const line = rng.pick(PUNCT_EXCLAIM);
+            return choice
+                ? { prompt: `Which end mark fits: ${line} __ (. ? !)`, answer: '!' }
+                : { prompt: `Add the right punctuation: ${line} __`, answer: '!' };
         },
         (p) => p.prompt
     );

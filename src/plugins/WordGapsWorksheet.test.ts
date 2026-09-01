@@ -55,31 +55,31 @@ function checkOptionsContainAnswer(grade: GradeConfig) {
 describe('wordgap — Year 1 (basic item bank)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"id":1,"type":"wordgap","prompt":"Choose the best word: A __ has a long trunk. (frog, cat, elephant)","answer":"elephant"},
-        {"id":2,"type":"wordgap","prompt":"Choose the best word: I sleep in my __ . (bus, bed, cup)","answer":"bed"},
-        {"id":3,"type":"wordgap","prompt":"Choose the best word: I wear my __ to school. (book, milk, hat)","answer":"hat"},
-        {"id":4,"type":"wordgap","prompt":"Choose the best word: I ride the __ to school. (cup, leg, bus)","answer":"bus"},
-        {"id":5,"type":"wordgap","prompt":"Choose the best word: The __ flies high in the wind. (kite, pen, rock)","answer":"kite"},
-        {"id":6,"type":"wordgap","prompt":"Choose the best word: I brush my __ every morning. (shoe, hair, bus)","answer":"hair"},
-        {"id":7,"type":"wordgap","prompt":"Choose the best word: The __ shines in the day. (pen, bed, sun)","answer":"sun"},
-        {"id":8,"type":"wordgap","prompt":"Choose the best word: We play with a __ at the park. (milk, bed, ball)","answer":"ball"},
-        {"id":9,"type":"wordgap","prompt":"Choose the best word: Mom bakes a __ for us. (shoe, log, cake)","answer":"cake"},
-        {"id":10,"type":"wordgap","prompt":"Choose the best word: The fish lives in the __ . (sky, water, box)","answer":"water"},
-        {"id":11,"type":"wordgap","prompt":"Choose the best word: Bees make sweet __ . (books, honey, shoes)","answer":"honey"},
-        {"id":12,"type":"wordgap","prompt":"Choose the best word: Fish swim in the __ . (tree, water, milk)","answer":"water"},
-        {"id":13,"type":"wordgap","prompt":"Choose the best word: I wear a __ on my head. (pen, box, hat)","answer":"hat"},
-        {"id":14,"type":"wordgap","prompt":"Choose the best word: I write with a __ . (bed, cup, pen)","answer":"pen"},
-        {"id":15,"type":"wordgap","prompt":"Choose the best word: The sun is in the __ . (box, sky, water)","answer":"sky"},
-        {"id":16,"type":"wordgap","prompt":"Choose the best word: My __ is very small. (cat, milk, desk)","answer":"cat"}
+        {"id":1,"type":"wordgap","prompt":"Choose the best word: The __ says moo. (hen, soap, cow)","answer":"cow"},
+        {"id":2,"type":"wordgap","prompt":"Choose the best word: I wear a __ on my head. (box, star, hat)","answer":"hat"},
+        {"id":3,"type":"wordgap","prompt":"Choose the best word: I ride the __ to school. (cup, bus, cake)","answer":"bus"},
+        {"id":4,"type":"wordgap","prompt":"Choose the best word: We play with a __ at the park. (milk, spoon, ball)","answer":"ball"},
+        {"id":5,"type":"wordgap","prompt":"Choose the best word: The __ barks at the mailman. (train, dog, pen)","answer":"dog"},
+        {"id":6,"type":"wordgap","prompt":"Choose the best word: I write with a __ . (pen, bed, duck)","answer":"pen"},
+        {"id":7,"type":"wordgap","prompt":"Choose the best word: I put the __ in my school bag. (milk, frog, pencil)","answer":"pencil"},
+        {"id":8,"type":"wordgap","prompt":"Choose the best word: Bees make sweet __ . (cups, books, honey)","answer":"honey"},
+        {"id":9,"type":"wordgap","prompt":"Choose the best word: We watched a __ at the cinema. (movie, pan, sock)","answer":"movie"},
+        {"id":10,"type":"wordgap","prompt":"Choose the best word: A __ says quack. (duck, bed, cat)","answer":"duck"},
+        {"id":11,"type":"wordgap","prompt":"Choose the best word: I see with my __ . (shoes, eyes, cups)","answer":"eyes"},
+        {"id":12,"type":"wordgap","prompt":"Choose the best word: The fire feels __ . (hot, slow, round)","answer":"hot"},
+        {"id":13,"type":"wordgap","prompt":"Choose the best word: The __ shines in the day. (pen, cup, sun)","answer":"sun"},
+        {"id":14,"type":"wordgap","prompt":"Choose the best word: A __ has a long trunk. (ring, cat, elephant)","answer":"elephant"},
+        {"id":15,"type":"wordgap","prompt":"Choose the best word: I kick the __ on the field. (chair, bed, ball)","answer":"ball"},
+        {"id":16,"type":"wordgap","prompt":"Choose the best word: I sleep in my __ . (bed, bus, ring)","answer":"bed"}
 ]);
         checkOptionsContainAnswer(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(wordgapSpec, g1, seedFrom([1, 'wordgap', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":17,"type":"wordgap","prompt":"Choose the best word: We read a __ in class. (book, fish, door)","answer":"book"},
-        {"id":18,"type":"wordgap","prompt":"Choose the best word: I drink a glass of __ . (tree, cat, milk)","answer":"milk"},
-        {"id":19,"type":"wordgap","prompt":"Choose the best word: The fire feels __ . (wet, soft, hot)","answer":"hot"}
+        {"id":17,"type":"wordgap","prompt":"Choose the best word: The fish lives in the __ . (sky, chair, water)","answer":"water"},
+        {"id":18,"type":"wordgap","prompt":"Choose the best word: I drink a glass of __ . (cat, milk, door)","answer":"milk"},
+        {"id":19,"type":"wordgap","prompt":"Choose the best word: Grandpa sits in his __ . (fish, chair, cake)","answer":"chair"}
 ]);
     });
 });
@@ -87,31 +87,31 @@ describe('wordgap — Year 1 (basic item bank)', () => {
 describe('wordgap — Year 2 (adds the extended vocabulary)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"id":1,"type":"wordgap","prompt":"Choose the best word: I ride the __ to school. (cup, leg, bus)","answer":"bus"},
-        {"id":2,"type":"wordgap","prompt":"Choose the best word: Fish swim in the __ . (tree, water, milk)","answer":"water"},
-        {"id":3,"type":"wordgap","prompt":"Choose the best word: The fish lives in the __ . (water, box, sky)","answer":"water"},
-        {"id":4,"type":"wordgap","prompt":"Choose the best word: We play with a __ at the park. (ball, milk, bed)","answer":"ball"},
-        {"id":5,"type":"wordgap","prompt":"Choose the best word: I put my __ on before we go. (bird, boots, bread)","answer":"boots"},
-        {"id":6,"type":"wordgap","prompt":"Choose the best word: We read a __ in class. (fish, door, book)","answer":"book"},
-        {"id":7,"type":"wordgap","prompt":"Choose the best word: I drink a glass of __ . (milk, tree, cat)","answer":"milk"},
-        {"id":8,"type":"wordgap","prompt":"Choose the best word: The sun is in the __ . (water, sky, box)","answer":"sky"},
-        {"id":9,"type":"wordgap","prompt":"Choose the best word: Bees make sweet __ . (shoes, books, honey)","answer":"honey"},
-        {"id":10,"type":"wordgap","prompt":"Choose the best word: My __ is very small. (milk, cat, desk)","answer":"cat"},
-        {"id":11,"type":"wordgap","prompt":"Choose the best word: The __ barks at the mailman. (cup, pen, dog)","answer":"dog"},
-        {"id":12,"type":"wordgap","prompt":"Choose the best word: She brushes her __ every morning. (sky, teeth, boots)","answer":"teeth"},
-        {"id":13,"type":"wordgap","prompt":"Choose the best word: The fire feels __ . (soft, wet, hot)","answer":"hot"},
-        {"id":14,"type":"wordgap","prompt":"Choose the best word: Mom bakes a __ for us. (cake, log, shoe)","answer":"cake"},
-        {"id":15,"type":"wordgap","prompt":"Choose the best word: I wear a __ on my head. (hat, pen, box)","answer":"hat"},
-        {"id":16,"type":"wordgap","prompt":"Choose the best word: The __ shines in the day. (bed, pen, sun)","answer":"sun"}
+        {"id":1,"type":"wordgap","prompt":"Choose the best word: The __ shines in the day. (pen, sun, bed)","answer":"sun"},
+        {"id":2,"type":"wordgap","prompt":"Choose the best word: The baby drinks from her __ . (spoon, bottle, kitten)","answer":"bottle"},
+        {"id":3,"type":"wordgap","prompt":"Choose the best word: I ride the __ to school. (bus, cake, leg)","answer":"bus"},
+        {"id":4,"type":"wordgap","prompt":"Choose the best word: Bees make sweet __ . (cups, rocks, honey)","answer":"honey"},
+        {"id":5,"type":"wordgap","prompt":"Choose the best word: The king wears a golden __ . (crown, leaf, pan)","answer":"crown"},
+        {"id":6,"type":"wordgap","prompt":"Choose the best word: My __ is very small. (egg, cat, rope)","answer":"cat"},
+        {"id":7,"type":"wordgap","prompt":"Choose the best word: We read a __ in class. (book, spoon, fish)","answer":"book"},
+        {"id":8,"type":"wordgap","prompt":"Choose the best word: I sleep in my __ . (bed, cloud, cup)","answer":"bed"},
+        {"id":9,"type":"wordgap","prompt":"Choose the best word: She brushes her __ every morning. (spoons, cakes, teeth)","answer":"teeth"},
+        {"id":10,"type":"wordgap","prompt":"Choose the best word: I wear my __ to school. (sofa, hat, rock)","answer":"hat"},
+        {"id":11,"type":"wordgap","prompt":"Choose the best word: A __ says quack. (cat, cow, duck)","answer":"duck"},
+        {"id":12,"type":"wordgap","prompt":"Choose the best word: The __ barks at the mailman. (cup, train, dog)","answer":"dog"},
+        {"id":13,"type":"wordgap","prompt":"Choose the best word: I wear a __ on my head. (hat, bread, pen)","answer":"hat"},
+        {"id":14,"type":"wordgap","prompt":"Choose the best word: The __ flew home to its nest. (bird, fish, train)","answer":"bird"},
+        {"id":15,"type":"wordgap","prompt":"Choose the best word: I kick the __ on the field. (chair, ball, milk)","answer":"ball"},
+        {"id":16,"type":"wordgap","prompt":"Choose the best word: We play with a __ at the park. (cloud, bed, ball)","answer":"ball"}
 ]);
         checkOptionsContainAnswer(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(wordgapSpec, g2, seedFrom([2, 'wordgap', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":17,"type":"wordgap","prompt":"Choose the best word: I sleep in my __ . (bed, bus, cup)","answer":"bed"},
-        {"id":18,"type":"wordgap","prompt":"Choose the best word: The __ flies high in the wind. (kite, pen, rock)","answer":"kite"},
-        {"id":19,"type":"wordgap","prompt":"Choose the best word: The chicken lays __ in the morning. (eggs, boots, birds)","answer":"eggs"}
+        {"id":17,"type":"wordgap","prompt":"Choose the best word: The __ says moo. (soap, pen, cow)","answer":"cow"},
+        {"id":18,"type":"wordgap","prompt":"Choose the best word: The fish lives in the __ . (chair, water, box)","answer":"water"},
+        {"id":19,"type":"wordgap","prompt":"Choose the best word: We climb the __ to reach the roof. (puddle, cloud, ladder)","answer":"ladder"}
 ]);
     });
 
