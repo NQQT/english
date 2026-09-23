@@ -51,7 +51,13 @@ import { DASHBOARD_FRAMEWORK, getGradeConfig, type DashboardPlugin } from '../fr
 
 // Generous timeout for loader awaits: the loads are chained macrotasks (one
 // per plugin), so a cold test run under load can exceed the 1s default.
-const LOAD_TIMEOUT = 5000;
+// 30s (was 5s): under a saturated root `yarn test` run (dozens of turbo
+// packages in parallel) each macrotask yield can stretch far past its
+// nominal 0ms, and the 18th plugin (Past Tense) missed the 5s budget in a
+// full run. findByRole/waitFor poll and resolve the instant the element
+// appears, so the larger budget costs nothing on an idle machine — it
+// only widens the tolerance window under load.
+const LOAD_TIMEOUT = 30000;
 
 // The plugin list, built through the same pipeline usePluginLoader uses.
 const WORKSHEETS: DashboardPlugin[] = PLUGINS.map((load) => load(DASHBOARD_FRAMEWORK));

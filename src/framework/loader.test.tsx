@@ -31,7 +31,11 @@ import {
 
 // Generous waitFor timeout: the loads are chained macrotasks (one per
 // plugin), so a cold test run under load can exceed the 1s default.
-const LOAD_TIMEOUT = 5000;
+// 30s (was 5s): same rationale as EnglishDashboard.test.tsx — a saturated
+// root `yarn test` run can stretch each macrotask yield far enough that
+// the chained loads blow a 5s budget. waitFor resolves the moment the
+// condition holds, so the larger budget is free on an idle machine.
+const LOAD_TIMEOUT = 30000;
 
 afterEach(() => {
     cleanup();
