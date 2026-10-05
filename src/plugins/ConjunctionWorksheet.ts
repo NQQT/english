@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // CONJUNCTIONS WORKSHEET — a self-contained dashboard plugin (upper primary:
-// Year 3+; ACARA Y3–6 — joining clauses with and/but/or/so/because/when/if).
+// Year 3+; ACARA Y3–6 — joining clauses with and/but/or/so/because/when/if/
+// before).
 //
 // The dashboard loads this plugin by calling `ConjunctionWorksheet(dashboard)`
 // with its configurations + layouts (see plugins/index.ts). Within this

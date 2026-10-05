@@ -5,7 +5,7 @@
 //
 //   BEFORE: plugins/index.ts invoked every factory at MODULE LOAD time
 //           (`SightWordsWorksheet(DASHBOARD_FRAMEWORK)` inside the PLUGINS
-//           array literal) — all 21 plugins were fully constructed before
+//           array literal) — all 33 plugins were fully constructed before
 //           the dashboard ever rendered.
 //
 //   NOW:    PLUGINS stores the factories UNINVOKED. The dashboard renders

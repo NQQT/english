@@ -119,7 +119,8 @@ const CONFIGS: GradeConfig[] = [
         implemented: true,
         // Year 2 adds the extended set: syllables, noun/verb recognition,
         // past tense and tricky spelling, plus irregular plurals and the
-        // extended homophone pairs (its/it's, her/here, are/our, they/their).
+        // extended homophone pairs (its/it's, her/here, are/our, they/their,
+        // wear/where, whose/who's).
         available: [...EARLY_READING, 'syllable', 'grammar', 'tense'],
         caps: {
             wordTier: 3,

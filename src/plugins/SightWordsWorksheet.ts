@@ -27,7 +27,7 @@ import { wordSet, KNOWN_WORD_SET, shuffleWords, inventNonWord } from './words';
 // through sampleUnique keyed on the printed prompt, so a thousand-question
 // document contains no duplicate questions: the same real word with three
 // DIFFERENT fakes is a different question, and the fake pool is effectively
-// unbounded (see the misspelling space below).
+// unbounded (every fake is a fresh single-letter mutation of a dealt word).
 function generateSight(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier);
     const realDeck = createDeck(rng, pool);

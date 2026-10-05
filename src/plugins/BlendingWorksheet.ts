@@ -18,7 +18,7 @@ import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem
 import { createDeck, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
 
-// Blending: see the letters, write the word. SEVEN procedural forms per word:
+// Blending: see the letters, write the word. FIVE procedural forms per word:
 //   - all letters shown       ("what word is s u n?")
 //   - one blank at ANY position ("finish the word: s u __")
 //   - two blanks at once      ("finish the word: __ u __")

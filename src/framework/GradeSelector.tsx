@@ -8,7 +8,7 @@
 // surfaces update synchronously.
 //
 // THEME: the active pill uses the distribution palette from theme.ts
-// (teal-100 fill / teal-200 ring / teal-800 text for this distribution).
+// (teal-100 fill / teal-200 ring / teal-700 text for this distribution).
 //
 // Responsive: below sm the pill rail wraps; from sm up it is a single
 // scrollable row (scrollbar hidden) so the header never grows a second line.

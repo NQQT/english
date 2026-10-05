@@ -22,7 +22,7 @@ import { shuffleWords } from './words';
 // ── Combinatorial sentence generator ─────────────────────────────────────────
 // The old bank held 17 fixed lines; the sheet repeated them within two pages.
 // Now sentences are ASSEMBLED from grammar slots, so the question space is the
-// cross-product of the banks (2 000+ distinct Year 1 lines, 9 000+ Year 2)
+// cross-product of the banks (400 distinct Year 1 lines, 2 400 Year 2)
 // instead of a hand-written list.
 //
 // Slot banks (who/what does/what to/extra):

@@ -26,9 +26,9 @@ import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem
 // One word per letter: the trace target for that letter's word-tracing row.
 // Every word begins with its letter, is a real word (kept in the shared
 // KNOWN_WORD_SET in words.ts), and stays within the Prep-friendly tier 1/2
-// vocabulary where one exists (apple/bird/fish/go/water are tier 2; the rest
-// are short single sounds). Q/V/X/Y/Z have no short bank word, so they take
-// the standard A–Z chart words (queen, van, xylophone, yellow, zoo).
+// vocabulary where one exists (apple/bird/fish/water are tier 2; the rest
+// are short single sounds). G/Q/V/X/Y/Z have no short bank word, so they take
+// the standard A–Z chart words (go, queen, van, xylophone, yellow, zoo).
 const TRACE_WORDS: [string, string][] = [
     ['A', 'apple'],
     ['B', 'bird'],

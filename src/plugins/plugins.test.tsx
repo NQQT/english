@@ -16,7 +16,7 @@
 //      line is safe by construction.
 //   4. SELECTION FALLBACK: a stale selection pointing at a deleted plugin
 //      snaps back to the first remaining plugin.
-//   5. THE REAL WORKSHEETS: the 21 per-type plugins (SightWordsWorksheet,
+//   5. THE REAL WORKSHEETS: the 33 per-type plugins (SightWordsWorksheet,
 //      BlendingWorksheet, ...) load through the same pipeline the framework
 //      uses (the PLUGINS factory list, loaded one by one by usePluginLoader
 //      after the dashboard renders), share the dashboard session, and their

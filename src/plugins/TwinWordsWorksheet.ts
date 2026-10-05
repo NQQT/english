@@ -136,12 +136,12 @@ const HOMOPHONE_UPPER: [string, [string, string], string][] = [
 // Twin words (homophones): pick the correct word for the blank. Basic pairs
 // (there/their, to/too, your/you're, two/to, see/sea, one/won, blue/blew,
 // right/write) are Year 1 and up; the extended pairs (its/it's, her/here,
-// are/our, they/their) are Year 2.
+// are/our, they/their, wear/where, whose/who's) are Year 2.
 //
-// NON-REPEATING SAMPLING: the 52 item bank (40 basic + 12 tricky) is the
-// whole fact space for this worksheet type — a deck guarantees every sentence
-// is asked (shuffled option order included) before any sentence is asked
-// twice.
+// NON-REPEATING SAMPLING: the item bank (40 basic + 12 tricky + 24 senior)
+// is the whole fact space for this worksheet type — a deck guarantees every
+// sentence is asked (shuffled option order included) before any sentence is
+// asked twice.
 function generateHomophone(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // Basic pairs (Y1+); tricky pairs (Y2+); upper-primary pairs (Y3+,
     // wordTier 4) — the AU licence/practice noun–verb splits included.
