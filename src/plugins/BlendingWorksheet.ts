@@ -16,41 +16,119 @@
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
-import { wordSet, shuffleWords } from './words';
+import { wordSet, KNOWN_WORD_SET, shuffleWords } from './words';
+
+// ── Task design (T4A) ────────────────────────────────────────────────────────
+// SEVEN materially different connected blending/segmenting tasks over the
+// grade word set, dealt evenly from a kind deck:
+//
+//   0 BUILD   "What word is: s u n?"              blend sounds → write word
+//   1 BUILD   "Finish the word: s u __"           blend + spelling (guarded,
+//   2 BUILD   "Finish the word: __ u __"           see UNAMBIGUOUS BLANKS)
+//   3 BUILD   "Unscramble the letters: n u s"     (anagram-unique, guarded)
+//   4 BUILD   "What word is 'nus' backwards?"     read the reversed word
+//   5 SEGMENT "Write the sounds in 'sun': __ __ __"  the REVERSE skill —
+//             stretch the word apart into its sounds (answer "s u n")
+//   6 RECOGNIZE "Which word matches: c a t? (cat, hat, bat)"  blend the
+//             printed sounds and pick the word (no writing — the entry-level
+//             form; NEVER carries a picture: the picture would be the answer)
+//
+// DENSITY (E2): perPage 24 -> 8 — every row has a write line; 8 rows per A4
+// give real writing room. Early-band blank/segment rows print letter WRITE-
+// BOXES (tileBlanks 'letter') so each missing letter gets its own box.
+//
+// UNAMBIGUOUS BLANKS (E4): a blank pattern like "s u __" also fits the real
+// word "sum", and "__ __ n" fits sun/run/fun/pin... A blank row is only
+// printed when EITHER the picture cue identifies the word (Y1–Y3 band rows
+// carry the target's pictogram — the letters stay the child's work) OR the
+// shown letters match EXACTLY ONE word in KNOWN_WORD_SET (Y4+ / uncued rows).
+// The same guard makes "Unscramble the letters: n t e" impossible: net/ten
+// share a letter multiset, so unscramble only runs for anagram-unique words.
 
 // LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
-// tiers 2..4): every blending row carries a picture of the TARGET word
+// tiers 2..4): every word-writing row carries a picture of the TARGET word
 // ("What word is: s u n?" shows the sun). The picture cues word
 // RECOGNITION; the task — spelling the word from its letters/blanks/scramble
 // — is still the child's work, and the picture never prints the spelling.
 // (Review note, T4: keeping the picture on the blank/scramble/backwards
 // forms is deliberate — for the 5-7s this distribution targets, the
 // word-identification cue is the scaffold that makes those letter tasks
-// doable; the letters in the prompt always remain the task.) Bank words
+// doable; the letters in the prompt always remain the task.) Kinds 6 (MC
+// match) is the exception: its options ARE words, so a picture of the target
+// would point straight at the answer — those rows print plain. Bank words
 // without a registered pictogram (and Prep / Year 4+ tiers) print plain, so
 // legacy markup is preserved outside the band.
 function picture(caps: Caps, word: string): string | undefined {
     return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
 }
 
-// Blending: see the letters, write the word. FIVE procedural forms per word:
-//   - all letters shown       ("what word is s u n?")
-//   - one blank at ANY position ("finish the word: s u __")
-//   - two blanks at once      ("finish the word: __ u __")
-//   - scrambled letters       ("unscramble: n u s")
-//   - backwards reading       ("what word is 'nus' backwards?")
-// Only words of 6 letters or fewer are used so a whole line stays on one row
-// in the two-column grid.
+// Anagram index over KNOWN_WORD_SET: sorted-letters key -> the distinct real
+// words with exactly those letters. Built once per module load (~1k words).
+const ANAGRAMS: Map<string, string[]> = (() => {
+    const map = new Map<string, string[]>();
+    for (const w of KNOWN_WORD_SET) {
+        const key = [...w].sort().join('');
+        const list = map.get(key);
+        if (list) {
+            if (!list.includes(w)) list.push(w);
+        } else {
+            map.set(key, [w]);
+        }
+    }
+    return map;
+})();
+
+// True when `word`'s letter multiset belongs to NO other known word — the
+// unscramble form is only well-posed for these (E4: "n t e" -> net AND ten).
+function anagramUnique(word: string): boolean {
+    const list = ANAGRAMS.get([...word].sort().join(''));
+    return !!list && list.length === 1;
+}
+
+// True when EXACTLY one known word matches the shown letters (`shown` holds
+// the full word; `blanks` are the hidden positions). The unambiguous-blanks
+// guard for uncued blank rows.
+function patternUnique(shown: string, blanks: number[]): boolean {
+    let matches = 0;
+    for (const w of KNOWN_WORD_SET) {
+        if (w.length !== shown.length) continue;
+        let ok = true;
+        for (let i = 0; i < shown.length; i++) {
+            if (!blanks.includes(i) && w[i] !== shown[i]) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok && ++matches > 1) return false;
+    }
+    return matches === 1;
+}
+
+// One look-alike real word (single-letter substitution that is itself known)
+// for the MC-match distractors. Null when 60 draws find none.
+function lookAlike(rng: Rng, word: string): string | null {
+    for (let guard = 0; guard < 60; guard++) {
+        const i = rng.int(0, word.length - 1);
+        const sub = String.fromCharCode(97 + rng.int(0, 25));
+        if (sub === word[i]) continue;
+        const cand = word.slice(0, i) + sub + word.slice(i + 1);
+        if (KNOWN_WORD_SET.has(cand)) return cand;
+    }
+    return null;
+}
+
+// Blending: see the letters, write the word (and the reverse). Only words of
+// 6 letters or fewer are used so a whole line stays on one row in the
+// two-column grid.
 //
-// The old four-form generator cycled after ~180-250 questions (forms x pool).
-// Blank positions, blank pairs and scramble permutations multiply the space
-// per word ~20x, so the sheet deals fresh questions past 100 pages.
-//
-// NON-REPEATING SAMPLING: words are dealt from a deck and every question
-// passes through sampleUnique keyed on the printed prompt.
+// NON-REPEATING SAMPLING: words are dealt from a deck, task kinds from a kind
+// deck, and every question passes through sampleUnique keyed on the printed
+// prompt. Blank positions, blank pairs and scramble permutations multiply the
+// space per word, so the sheet deals fresh questions past 100 pages.
 function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3 && w.length <= 6);
     const wordDeck = createDeck(rng, pool);
+    const kindDeck = createDeck(rng, [0, 1, 2, 3, 4, 5, 6]);
     // Print `letters` with every position in `blanks` replaced by "__".
     const withBlanks = (letters: string[], blanks: number[]) =>
         letters.map((ch, i) => (blanks.includes(i) ? '__' : ch)).join(' ');
@@ -66,6 +144,9 @@ function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
         if (j === i) j = (i + 1) % len;
         return [i, j];
     };
+    // The boxed-blank scaffold for blank/segment rows (early band only —
+    // PrintableSheet renders one write-box per "__" when tileBlanks is set).
+    const boxed = isEarlyCueBand(caps) ? { tileBlanks: 'letter' as const } : {};
     return sampleUnique(
         count,
         () => {
@@ -74,33 +155,48 @@ function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
             // One picture cue for this draw (undefined when the word has no
             // registered pictogram or the grade is Year 4+ — see picture()).
             const pic = picture(caps, word);
-            const r = rng.next();
-            if (r < 0.15) {
+            const kind = kindDeck.take();
+            if (kind === 0) {
                 // All letters shown, space-separated: "What word is: s u n?"
                 return { prompt: `What word is: ${letters.join(' ')}?`, answer: word, visual: pic };
             }
-            if (r < 0.45) {
-                // One blank at a random position (edges included):
-                // "Finish the word: s u __".
+            if (kind === 1) {
+                // One blank at a random position (edges included) — only when
+                // well-posed (see UNAMBIGUOUS BLANKS above).
                 const pos = rng.int(0, letters.length - 1);
+                if (!pic && !patternUnique(word, [pos])) {
+                    return { prompt: `What word is: ${letters.join(' ')}?`, answer: word, visual: pic };
+                }
                 return {
                     prompt: `Finish the word: ${withBlanks(letters, [pos])}`,
                     answer: word,
-                    visual: pic
+                    visual: pic,
+                    ...boxed
                 };
             }
-            if (r < 0.65) {
-                // Two blanks at once: "Finish the word: __ u __".
+            if (kind === 2) {
+                // Two blanks at once: "Finish the word: __ u __" — same guard.
+                const blanks = twoBlanks(letters.length);
+                if (!pic && !patternUnique(word, blanks)) {
+                    return { prompt: `What word is: ${letters.join(' ')}?`, answer: word, visual: pic };
+                }
                 return {
-                    prompt: `Finish the word: ${withBlanks(letters, twoBlanks(letters.length))}`,
+                    prompt: `Finish the word: ${withBlanks(letters, blanks)}`,
                     answer: word,
-                    visual: pic
+                    visual: pic,
+                    ...boxed
                 };
             }
-            if (r < 0.8) {
-                // Scrambled letters: "Unscramble the letters: n u s" — a
-                // different scramble of the same word is a different question
-                // (and never printed in the correct order, see shuffleWords).
+            if (kind === 3) {
+                // Scrambled letters — only for anagram-unique words (E4), and
+                // never printed in the correct order (see shuffleWords).
+                if (!anagramUnique(word)) {
+                    return {
+                        prompt: `What word is "${word.split('').reverse().join('')}" spelled backwards?`,
+                        answer: word,
+                        visual: pic
+                    };
+                }
                 const scrambled = shuffleWords(rng, letters);
                 return {
                     prompt: `Unscramble the letters: ${scrambled.join(' ')}`,
@@ -108,12 +204,42 @@ function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
                     visual: pic
                 };
             }
-            // Backwards reading: "What word is 'sun' spelled backwards?"
-            return {
-                prompt: `What word is "${word.split('').reverse().join('')}" spelled backwards?`,
-                answer: word,
-                visual: pic
-            };
+            if (kind === 4) {
+                // Backwards reading: "What word is 'nus' spelled backwards?"
+                return {
+                    prompt: `What word is "${word.split('').reverse().join('')}" spelled backwards?`,
+                    answer: word,
+                    visual: pic
+                };
+            }
+            if (kind === 5) {
+                // Segmenting (the reverse of blending): stretch the printed
+                // word into its sounds, one write-box per sound.
+                return {
+                    prompt: `Write the sounds in "${word}": ${letters.map(() => '__').join(' ')}`,
+                    answer: letters.join(' '),
+                    visual: pic,
+                    ...boxed
+                };
+            }
+            // MC match (kind 6): blend the printed sounds, pick the word.
+            // Distractors are real look-alikes so the task is listening-to-
+            // letters, not eliminating nonsense. Needs two look-alikes; if
+            // the word cannot supply them, fall back to the all-shown form.
+            const near: string[] = [];
+            let guard = 0;
+            while (near.length < 2 && guard < 24) {
+                guard++;
+                const cand = lookAlike(rng, word);
+                if (cand && cand !== word && !near.includes(cand)) near.push(cand);
+            }
+            if (near.length < 2) {
+                return { prompt: `What word is: ${letters.join(' ')}?`, answer: word, visual: pic };
+            }
+            const options = shuffleWords(rng, [word, ...near]);
+            // NO picture on this row: the options are words and the picture
+            // would print the answer's shape (cue-leak rule).
+            return { prompt: `Which word matches: ${letters.join(' ')}? (${options.join(', ')})`, answer: word };
         },
         (p) => p.prompt
     );
@@ -124,7 +250,8 @@ export const blendSpec: WorksheetSpec = {
     id: 'blend',
     label: 'Blending',
     icon: 'ab',
-    perPage: 24,
+    // E2 density: write-line rows — 8 per A4 page.
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('blend'),
     scope: (grade: GradeConfig) => `letters, word set ${grade.caps.wordTier}`,
     generate: generateBlend

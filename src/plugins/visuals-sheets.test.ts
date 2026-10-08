@@ -86,14 +86,18 @@ describe('learning visuals — exact cue density (Y1–Y3 band + Prep tracing)',
         const density: Record<string, [number, number]> = {
             // spec:grade -> [cued rows / total rows]
             // T4: Prep (tier 1) non-tracing sheets print PLAIN — zero cues.
-            'sounds:0': [0, 24], 'sounds:1': [11, 24], 'sounds:2': [7, 24], 'sounds:3': [5, 24],
-            'vowel:0': [0, 24], 'vowel:1': [11, 24], 'vowel:2': [7, 24], 'vowel:3': [7, 24],
-            'blend:1': [19, 24], 'blend:2': [18, 24], 'blend:3': [15, 24],
-            'rhyme:1': [17, 18], 'rhyme:2': [17, 18], 'rhyme:3': [17, 18],
-            'plural:1': [20, 24], 'plural:2': [16, 24], 'plural:3': [15, 24],
-            'opposite:1': [16, 24], 'opposite:2': [15, 24], 'opposite:3': [12, 24],
-            'grammar:2': [3, 24], 'grammar:3': [8, 24],
-            'wordTrace:0': [13, 26]
+            // T5E re-pin: the density wave cut every sheet to 4-8 rows/page
+            // and the task mixes grew (yes/no, MCQ and written families
+            // cannot all carry a neutral picture cue), so the cued counts
+            // moved with the banks — deliberate, re-pinned from measurement.
+            'sounds:0': [0, 8], 'sounds:1': [5, 8], 'sounds:2': [4, 8], 'sounds:3': [3, 8],
+            'vowel:0': [0, 8], 'vowel:1': [2, 8], 'vowel:2': [4, 8], 'vowel:3': [3, 8],
+            'blend:1': [6, 8], 'blend:2': [7, 8], 'blend:3': [5, 8],
+            'rhyme:1': [2, 8], 'rhyme:2': [0, 8], 'rhyme:3': [1, 8],
+            'plural:1': [6, 8], 'plural:2': [5, 8], 'plural:3': [5, 8],
+            'opposite:1': [1, 8], 'opposite:2': [1, 8], 'opposite:3': [1, 8],
+            'grammar:2': [1, 8], 'grammar:3': [2, 8],
+            'wordTrace:0': [2, 6]
         };
         for (const [name, spec] of VISUAL_SPECS) {
             for (const gradeId of [0, 1, 2, 3]) {
@@ -106,9 +110,10 @@ describe('learning visuals — exact cue density (Y1–Y3 band + Prep tracing)',
                 }
             }
         }
-        // The Prep word-tracing sheet: cues for 13 of the 26 A–Z words (the
-        // others have no registered pictogram and print plain — R3 graceful
-        // degradation).
+        // The Prep word-tracing sheet (T5E: a seeded deck deals 6 of the 26
+        // A–Z words per page): on the pinned page 1, cues for 2 of the 6
+        // dealt words — words without a registered pictogram print plain
+        // (R3 graceful degradation).
         const trace = sheet(wordTraceSpec, g(0));
         expect(trace.filter((p) => typeof p.visual === 'string').length).toBe(density['wordTrace:0'][0]);
         expect(trace.length).toBe(density['wordTrace:0'][1]);
@@ -137,13 +142,21 @@ describe('learning visuals — answer-neutral cues (cue-only rule)', () => {
             const rows = sheet(pluralSpec, g(gradeId));
             for (const p of rows) {
                 if (typeof p.visual !== 'string') continue;
+                if (p.prompt.startsWith('Choose the right word:')) {
+                    // T5E Format-3 sentence cloze: the direction lives in the
+                    // sentence grammar, not the prompt prefix — the cue must
+                    // still be a valid 1-vs-3 quantity contrast.
+                    expect([1, 3]).toContain(p.visualCount);
+                    continue;
+                }
                 const singularAsk = p.prompt.startsWith('What is the singular');
-                // The 1-vs-3 contrast is pinned per-sheet (12 singular-ask of
-                // 24 rows) and the direction must agree on EVERY cued row.
+                // The 1-vs-3 contrast must agree on EVERY cued row.
                 expect(p.visualCount).toBe(singularAsk ? 3 : 1);
             }
-            // Exact split: the ask deck alternates evenly (12/12 at Y1–3).
-            expect(rows.filter((p) => p.visualCount === 3).length).toBe(12);
+            // Exact split of the pinned page-1 sheet (T5E: 8 rows/page; the
+            // ask deck alternates evenly, so the singular-ask share of the
+            // 8-row page is 2 at Y1 and 3 at Y2/Y3).
+            expect(rows.filter((p) => p.visualCount === 3).length).toBe(gradeId === 1 ? 2 : 3);
         }
     });
 

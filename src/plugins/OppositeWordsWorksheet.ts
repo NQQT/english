@@ -12,6 +12,27 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Opposite Words worksheet without affecting the framework or any
 // other plugin.
+//
+// T4B REWORK (quality over quantity):
+//   - DENSITY: perPage 24 → 8. Eight roomy rows per A4 page give the child
+//     real writing space instead of a packed grid of near-identical items.
+//   - TASK MIX (four genuine formats, not option shuffling):
+//       1. written antonym            "What is the opposite of "hot"?"
+//       2. three-option antonym MCQ   "Which word means the opposite of …?"
+//       3. CONTEXT cloze              a curated contrast sentence whose blank
+//                                     is the antonym IN USE ("A mouse is small;
+//                                     an elephant is __.") — semantic depth;
+//       4. PAIR-FIND                  "Which two words are opposites?" — the
+//                                     child identifies the antonym PAIR among
+//                                     three words (answer metadata lists both
+//                                     words, comma-separated).
+//   - BANKS: local curated vocabulary expanded 30→40 basic pairs and 20→33
+//     upper pairs, plus 20+8 curated context sentences. words.ts is read-only
+//     shared data this wave, so every new word lives in THIS file.
+//   - ANSWER SAFETY: the no-word-anchors-two-pairs rule still holds across
+//     both banks (checked below), so every prompt word has exactly ONE
+//     correct opposite and every pair-find distractor is guaranteed not to
+//     form a second opposite pair.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
@@ -46,14 +67,18 @@ const OPPOSITE_VISUAL: Record<string, string> = {
     first: 'trophy', last: 'xmark',
     // strength & outcomes
     strong: 'weight', weak: 'feather',
-    win: 'trophy', lose: 'xmark'
+    win: 'trophy', lose: 'xmark',
+    // T4B additions (only where a PICS key already exists — visuals.tsx is
+    // framework-owned and untouched this wave):
+    top: 'arrowUp', bottom: 'arrowDown',
+    asleep: 'zzz'
 };
 function oppPicture(caps: Caps, word: string): string | undefined {
     const key = OPPOSITE_VISUAL[word];
     return key && isEarlyCueBand(caps) && hasVisual(key) ? key : undefined;
 }
 
-// Opposite (antonym) pairs: tier1 = the six kindest pairs; tier 2+ = all 30.
+// Opposite (antonym) pairs: tier1 = the six kindest pairs; tier 2+ = all 40.
 // (No word may anchor TWO pairs — "hard" only pairs with "easy", never also
 // with "soft" — so a prompt word always has exactly one correct answer.)
 const OPPOSITE_PAIRS: [string, string][] = [
@@ -69,8 +94,7 @@ const OPPOSITE_PAIRS: [string, string][] = [
     ['heavy', 'light'],
     ['early', 'late'],
     ['easy', 'hard'],
-    // Year 1+ extras (30 pairs => 60 written-answer questions before the
-    // multiple-choice variant multiplies the space past a thousand)
+    // Year 1+ extras
     ['day', 'night'],
     ['come', 'go'],
     ['push', 'pull'],
@@ -87,7 +111,20 @@ const OPPOSITE_PAIRS: [string, string][] = [
     ['clean', 'dirty'],
     ['strong', 'weak'],
     ['under', 'over'],
-    ['near', 'far']
+    ['near', 'far'],
+    // T4B basic extension — concrete, grade-fit Y1–Y2 opposites. None of
+    // these words appears in any other pair (verified by the anchor check in
+    // the tests), so answers stay unique.
+    ['top', 'bottom'],
+    ['start', 'finish'],
+    ['begin', 'end'],
+    ['buy', 'sell'],
+    ['inside', 'outside'],
+    ['love', 'hate'],
+    ['always', 'never'],
+    ['before', 'after'],
+    ['awake', 'asleep'],
+    ['safe', 'dangerous']
 ];
 
 // Upper-primary (Year 3+) antonym extension: ACARA Y3–6 vocabulary. The
@@ -113,17 +150,70 @@ const OPPOSITE_UPPER: [string, string][] = [
     ['transparent', 'opaque'],
     ['victory', 'defeat'],
     ['wisdom', 'foolishness'],
-    ['ascending', 'descending']
+    ['ascending', 'descending'],
+    // T4B upper extension — grade-fit Y3–6 antonyms, no anchor clashes.
+    ['wide', 'narrow'],
+    ['deep', 'shallow'],
+    ['smooth', 'rough'],
+    ['thick', 'thin'],
+    ['careful', 'careless'],
+    ['possible', 'impossible'],
+    ['appear', 'disappear'],
+    ['agree', 'disagree'],
+    ['useful', 'useless'],
+    ['beautiful', 'ugly'],
+    ['rich', 'poor'],
+    ['forward', 'backward'],
+    ['straight', 'curved']
 ];
 
-// Opposite words: name the antonym of a word from the pair bank, either as a
-// written answer or (40% of questions) as a three-option multiple choice.
+// CONTEXT cloze bank: [sentence with one "__", answer]. Each sentence states
+// an explicit CONTRAST between the pair, so the blank has exactly one fitting
+// antonym ("A mouse is small; an elephant is __." → big). Sentences are
+// curated, grade-fit and use only pair-bank words as answers.
+const OPPOSITE_CONTEXT_BASIC: [string, string][] = [
+    ['From the fridge the juice was cold; in the sun it grew __ .', 'hot'],
+    ['An elephant is big; a mouse is __ .', 'small'],
+    ['A cheetah runs fast; a snail moves __ .', 'slow'],
+    ['A ruler is long; an eraser is __ .', 'short'],
+    ['A rock is heavy; a feather is __ .', 'light'],
+    ['Winning made her happy; losing made her __ .', 'sad'],
+    ['The towel soaked the water up and the floor became __ .', 'dry'],
+    ['She drank all her milk; the glass was __ .', 'empty'],
+    ['After washing the shirts were clean; before they were __ .', 'dirty'],
+    ['The band played loud; the library was __ .', 'quiet'],
+    ['Cake is sweet; a lemon is __ .', 'sour'],
+    ['A lion is strong; a kitten is __ .', 'weak'],
+    ['The first bell rang early; the last bell rang __ .', 'late'],
+    ['The sun shines by day; the moon shines by __ .', 'night'],
+    ['The kite flew up; the leaf floated __ .', 'down'],
+    ['Tom finished first; Ben finished __ .', 'last'],
+    ['The gate is near; the hill is __ .', 'far'],
+    ['When the score is best you win; when it is worst you __ .', 'lose'],
+    ['A mountain is high at the top; the valley is __ .', 'low'],
+    ['The kettle is hot; the ice cream is __ .', 'cold']
+];
+const OPPOSITE_CONTEXT_UPPER: [string, string][] = [
+    ['A castle is ancient; a glass tower is __ .', 'modern'],
+    ['A generous child shares; a __ child keeps everything.', 'selfish'],
+    ['Glass is transparent; wood is __ .', 'opaque'],
+    ['The brave firefighter ran in; the __ child hid.', 'cowardly'],
+    ['A wide road fits many cars; a __ lane fits one.', 'narrow'],
+    ['The pool is deep; the paddling pool is __ .', 'shallow'],
+    ['Sandpaper is rough; the glass is __ .', 'smooth'],
+    ['A careful reader checks; a __ reader guesses.', 'careless']
+];
+
+// Opposite words: name the antonym of a word from the pair bank (written or
+// multiple choice), place it in a contrast sentence, or spot the antonym pair
+// among three words.
 //
 // NON-REPEATING SAMPLING: pair AND direction are dealt from decks (each of
-// the 60 "what is the opposite of X?" forms appears before any repeats), and
-// the whole question passes through sampleUnique keyed on the printed prompt —
-// the multiple-choice variant's distractor sets multiply the space beyond a
-// thousand unique questions.
+// the 80 "what is the opposite of X?" forms appears before any repeats), the
+// context sentences run on their own deck, and the whole question passes
+// through sampleUnique keyed on the printed prompt — the multiple-choice and
+// pair-find distractor sets multiply the space beyond several thousand
+// unique questions.
 function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // Tier 1 offers the six most concrete pairs; tier 2+ the full set; the
     // upper-primary pairs join from wordTier 4 (Year 3+).
@@ -134,6 +224,14 @@ function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
               ? OPPOSITE_PAIRS
               : OPPOSITE_PAIRS.slice(0, 6);
     const pairDeck = createDeck(rng, pairs);
+    // Context pool follows the same gate; Prep (tier 1) has no context deck.
+    const contextPool =
+        caps.wordTier >= 4
+            ? [...OPPOSITE_CONTEXT_BASIC, ...OPPOSITE_CONTEXT_UPPER]
+            : caps.wordTier >= 2
+              ? OPPOSITE_CONTEXT_BASIC
+              : [];
+    const contextDeck = contextPool.length > 0 ? createDeck(rng, contextPool) : null;
     // Every bank word except the prompt word and its answer is a legal
     // multiple-choice distractor.
     const words = pairs.flat();
@@ -148,22 +246,56 @@ function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
             // Concept picture for the PROMPT word only (the answer is the
             // other word, so the cue is a scaffold, never a give-away).
             const pic = oppPicture(caps, word);
-            if (rng.next() < 0.6) {
+            const roll = rng.next();
+            if (roll < 0.35) {
+                // Format 1 — written antonym.
                 return { prompt: `What is the opposite of "${word}"?`, answer, visual: pic };
             }
-            // Multiple choice: two distractor words from unrelated pairs.
-            const options = [answer];
+            if (roll < 0.6) {
+                // Format 2 — multiple choice: two distractor words from
+                // unrelated pairs.
+                const options = [answer];
+                let guard = 0;
+                while (options.length < 3 && guard < 24) {
+                    guard++;
+                    const pick = rng.pick(words);
+                    if (!options.includes(pick) && pick !== word) options.push(pick);
+                }
+                const shown = shuffleWords(rng, options);
+                return {
+                    prompt: `Which word means the opposite of "${word}"? (${shown.join(', ')})`,
+                    answer,
+                    visual: pic
+                };
+            }
+            if (roll < 0.85 && contextDeck) {
+                // Format 3 — context cloze. NO cue here: the answer word is
+                // the blank itself, so any picture could give it away.
+                const [sentence, ctxAnswer] = contextDeck.take();
+                return { prompt: `Complete the sentence: ${sentence}`, answer: ctxAnswer };
+            }
+            // Format 4 — pair-find: the dealt pair plus one distractor from
+            // ANOTHER pair. Because pairs are DISJOINT (the no-word-anchors-
+            // two-pairs rule), any bank word outside {a, b} belongs to a
+            // different pair AND its partner is outside {a, b} too — so the
+            // line shows exactly one opposite pair and the distractor can
+            // never complete a second one. Answer metadata lists both words
+            // in bank order.
+            let distractor = '';
             let guard = 0;
-            while (options.length < 3 && guard < 24) {
+            while (guard < 24) {
                 guard++;
                 const pick = rng.pick(words);
-                if (!options.includes(pick) && pick !== word) options.push(pick);
+                if (pick !== a && pick !== b) {
+                    distractor = pick;
+                    break;
+                }
             }
-            const shown = shuffleWords(rng, options);
+            if (!distractor) distractor = words.find((w) => w !== a && w !== b) ?? 'yes';
+            const shown = shuffleWords(rng, [a, b, distractor]);
             return {
-                prompt: `Which word means the opposite of "${word}"? (${shown.join(', ')})`,
-                answer,
-                visual: pic
+                prompt: `Which two words are opposites? (${shown.join(', ')})`,
+                answer: `${a}, ${b}`
             };
         },
         (p) => p.prompt
@@ -175,7 +307,8 @@ export const oppositeSpec: WorksheetSpec = {
     id: 'opposite',
     label: 'Opposite Words',
     icon: '⇄',
-    perPage: 24,
+    // T4B density: 8 roomy rows per page (was 24) — quality over quantity.
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('opposite'),
     scope: (grade: GradeConfig) =>
         grade.caps.wordTier >= 4 ? 'antonyms' : grade.caps.wordTier >= 2 ? 'common opposites' : 'starter opposites',

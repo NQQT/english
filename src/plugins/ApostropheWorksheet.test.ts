@@ -1,14 +1,14 @@
 // Unit tests for the APOSTROPHES worksheet plugin.
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm or item banks change,
-// these exact assertions fail — which is what we want, so a silent change to
-// the worksheet can't slip through.
+// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE page-1 sheet
+// (all prompts + answers) is pinned to exact expected values produced from the
+// real generator with the same seed the framework uses
+// (seedFrom([grade.id, spec.id, 0])). Pins cover page 1 only; generator
+// invariants (MC answer in options, no answer printed in compose prompts,
+// open-ended answers marked, 100-page capacity) cover the whole stream.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, generateSheet, generateDocument, createRng, type GradeConfig } from '../framework';
 import { apostropheSpec } from './ApostropheWorksheet';
 
 const g3 = getGradeConfig(3);
@@ -19,13 +19,37 @@ function sheet(grade: GradeConfig) {
     return generateSheet(apostropheSpec, grade, seedFrom([grade.id, apostropheSpec.id, 0]));
 }
 
+// Extract the trailing "(a, b, c)" option list from an MC prompt; null when
+// the prompt is not multiple-choice (a bare "(owner)" hint has no ', ').
+function optionsOf(prompt: string): string[] | null {
+    const m = prompt.match(/\(([^)]+)\)\s*$/);
+    if (!m) return null;
+    if (m[1].includes(' / ')) return m[1].split(' / ');
+    if (m[1].includes(', ')) return m[1].split(', ');
+    return null;
+}
+
+// Check prompts legitimately print the verdict word; compose prompts must NOT
+// print the apostrophe form the child has to produce.
+function isIdentifyOrCheck(prompt: string): boolean {
+    return /^(True or false|Is the|Is this|Does this|Find the|Who is speaking)/.test(prompt);
+}
+
+// A compose prompt must not print the answer. Single-word answers use
+// word-boundary matching; sentence answers use plain includes.
+function leaks(prompt: string, answer: string): boolean {
+    if (answer.includes(' ')) return prompt.includes(answer);
+    const escaped = answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(prompt);
+}
+
 describe('apostrophe plugin — declarative spec', () => {
     it('declares its sidebar label, glyph, page size and single-column layout', () => {
         expect(apostropheSpec.id).toBe('apostrophe');
         expect(apostropheSpec.label).toBe('Apostrophes');
         expect(apostropheSpec.icon).toBe("'");
-        expect(apostropheSpec.perPage).toBe(16);
-        // Prose lines run single-column.
+        // T4C: 6 roomy rows per page (was 16); prose lines run single-column.
+        expect(apostropheSpec.perPage).toBe(6);
         expect(apostropheSpec.singleColumn).toBe(true);
     });
 
@@ -49,30 +73,41 @@ describe('apostrophe plugin — declarative spec', () => {
 describe('apostrophe — Year 3', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g3)).toEqual([
-        {"prompt":"Write the contraction for \"it is\".","answer":"it's","id":1,"type":"apostrophe"},
-        {"prompt":"Which shows that Ben owns something? (Ben's, Bens', Bens)","answer":"Ben's","id":2,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: __ are my friends. (you're, youre, youre')","answer":"you're","id":3,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: He __ know the answer. (doesnt, doesn't, doesnt')","answer":"doesn't","id":4,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: I __ like spinach. (dont, don't, dont')","answer":"don't","id":5,"type":"apostrophe"},
-        {"prompt":"Which shows that The girl owns something? (The girls, The girls', The girl's)","answer":"The girl's","id":6,"type":"apostrophe"},
-        {"prompt":"Which shows that Our team owns something? (Our team's, Our teams, Our teams')","answer":"Our team's","id":7,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: The dog __ stop barking. (didnt', didn't, didnt)","answer":"didn't","id":8,"type":"apostrophe"},
-        {"prompt":"Which shows that The farmer owns something? (The farmers, The farmer's, The farmers')","answer":"The farmer's","id":9,"type":"apostrophe"},
-        {"prompt":"Which shows that The doctor owns something? (The doctor's, The doctors', The doctors)","answer":"The doctor's","id":10,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: __ going to the library. (were, we're, were')","answer":"we're","id":11,"type":"apostrophe"},
-        {"prompt":"Which shows that Ava owns something? (Avas', Ava's, Avas)","answer":"Ava's","id":12,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: She __ sing at the concert. (wont', won't, wont)","answer":"won't","id":13,"type":"apostrophe"},
-        {"prompt":"Write the contraction for \"do not\".","answer":"don't","id":14,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: We __ late for school. (wont', wont, won't)","answer":"won't","id":15,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: He __ eaten his lunch. (hasn't, hasnt', hasnt)","answer":"hasn't","id":16,"type":"apostrophe"}
+            {"prompt":"Which shows that Ella owns something? (Ellas, Ella's, Ellas')","answer":"Ella's","id":1,"type":"apostrophe"},
+            {"prompt":"Which contraction fits: You __ believe this! (won't, wont, wont')","answer":"won't","id":2,"type":"apostrophe"},
+            {"prompt":"Which contraction fits: __ are my friends. (you're, youre, youre')","answer":"you're","id":3,"type":"apostrophe"},
+            {"prompt":"Which shows that My aunt owns something? (My aunts, My aunts', My aunt's)","answer":"My aunt's","id":4,"type":"apostrophe"},
+            {"prompt":"Write the two words for \"won't\".","answer":"will not","id":5,"type":"apostrophe"},
+            {"prompt":"Fill in the missing word: __ pen leans over the creek. (the goats)","answer":"the goats'","id":6,"type":"apostrophe"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(apostropheSpec, g3, seedFrom([3, 'apostrophe', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which shows that My sister owns something? (My sister's, My sisters', My sisters)","answer":"My sister's","id":17,"type":"apostrophe"},
-        {"prompt":"Write the contraction for \"have not\".","answer":"haven't","id":18,"type":"apostrophe"},
-        {"prompt":"Which shows that The dog owns something? (The dog's, The dogs, The dogs')","answer":"The dog's","id":19,"type":"apostrophe"}
+            {"prompt":"Write the two words for \"hasn't\".","answer":"has not","id":7,"type":"apostrophe"},
+            {"prompt":"Fill in the missing word: __ garden is full of sunflowers. (the neighbours)","answer":"the neighbours'","id":8,"type":"apostrophe"},
+            {"prompt":"Which shows that Ben owns something? (Ben's, Bens', Bens)","answer":"Ben's","id":9,"type":"apostrophe"}
+        ]);
+    });
+});
+
+describe('apostrophe — Year 6', () => {
+    it('matches the exact page-1 sheet', () => {
+        expect(sheet(g6)).toEqual([
+            {"prompt":"Which shows that The baby owns something? (The baby's, The babys, The babys')","answer":"The baby's","id":1,"type":"apostrophe"},
+            {"prompt":"Which shows that My cousin owns something? (My cousin's, My cousins', My cousins)","answer":"My cousin's","id":2,"type":"apostrophe"},
+            {"prompt":"Write the contraction for \"I have\".","answer":"I've","id":3,"type":"apostrophe"},
+            {"prompt":"Write the two words for \"hasn't\".","answer":"has not","id":4,"type":"apostrophe"},
+            {"prompt":"Which shows that Our club owns something? (Our clubs, Our club's, Our clubs')","answer":"Our club's","id":5,"type":"apostrophe"},
+            {"prompt":"Write the contraction for \"does not\".","answer":"doesn't","id":6,"type":"apostrophe"}
+        ]);
+    });
+
+    it('page 2 continues the exact stream', () => {
+        expect(generateDocument(apostropheSpec, g6, seedFrom([6, 'apostrophe', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Write the two words for \"it's\".","answer":"it is","id":7,"type":"apostrophe"},
+            {"prompt":"Fill in the missing word: __ lunchbox is on the shelf. (Zoe)","answer":"Zoe's","id":8,"type":"apostrophe"},
+            {"prompt":"Which contraction fits: She __ sing at the concert. (wont', wont, won't)","answer":"won't","id":9,"type":"apostrophe"}
         ]);
     });
 
@@ -81,14 +116,35 @@ describe('apostrophe — Year 3', () => {
     });
 });
 
-describe('apostrophe — Year 6', () => {
-    it('matches the exact page-1 head (grade 6 rolls its own stream)', () => {
-        expect(sheet(g6).slice(0, 5)).toEqual([
-        {"prompt":"Which shows that The girl owns something? (The girls', The girl's, The girls)","answer":"The girl's","id":1,"type":"apostrophe"},
-        {"prompt":"Write the contraction for \"will not\".","answer":"won't","id":2,"type":"apostrophe"},
-        {"prompt":"Which contraction fits: __ going to the library. (were', we're, were)","answer":"we're","id":3,"type":"apostrophe"},
-        {"prompt":"Which shows that My brother owns something? (My brothers', My brother's, My brothers)","answer":"My brother's","id":4,"type":"apostrophe"},
-        {"prompt":"Fill in the missing word: Fill up __ bowl, please. (the cat)","answer":"the cat's","id":5,"type":"apostrophe"}
-        ]);
-    });
+describe('apostrophe — generator invariants', () => {
+    // Invariants run over the full 100-page request for every offered grade.
+    for (const grade of [g3, g6]) {
+        const ask = apostropheSpec.perPage * 100;
+        const problems = apostropheSpec.generate(createRng(seedFrom([grade.id, apostropheSpec.id, 0])), grade.caps, ask);
+
+        it(`year ${grade.id}: fills ${ask} unique prompts (capacity floor)`, () => {
+            expect(problems.length).toBe(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        });
+
+        it(`year ${grade.id}: every MC answer is one of its printed options`, () => {
+            for (const p of problems) {
+                const options = optionsOf(p.prompt);
+                if (options) expect(options).toContain(p.answer);
+            }
+        });
+
+        it(`year ${grade.id}: compose answers are never printed in their prompt`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:') || optionsOf(p.prompt) || isIdentifyOrCheck(p.prompt)) continue;
+                expect(leaks(p.prompt, p.answer)).toBe(false);
+            }
+        });
+
+        it(`year ${grade.id}: open-ended answers are explicitly marked`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:')) expect(p.answer).toContain('(any');
+            }
+        });
+    }
 });

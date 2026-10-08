@@ -1,31 +1,99 @@
-// Unit tests for the BEGINNING SOUNDS worksheet plugin.
+// Unit tests for the BEGINNING SOUNDS worksheet plugin (T4A rewrite).
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm, word banks, or caps
-// change, these exact assertions fail — which is what we want, so a silent
-// change to the worksheet can't slip through.
+// Strategy: exact pins lock the deterministic stream; the worksheet's REAL
+// guarantees are DERIVED invariants over whole documents:
+//   - CORRECTNESS (E4): every row's answer is the unique solution of the
+//     printed question; "same sound" rows are verified against an
+//     independent initial-phoneme model (digraphs sh/ch/th/wh/ph/qu, soft
+//     c/g) so 'sun'/'ship' and 'cat'/'circle' can never be posed as matches,
+//     while 'cat'/'kite' may.
+//   - DIVERSITY (E3): 100 pages fully unique at every grade, even at the OLD
+//     24-per-page ask of 2400 questions.
+//   - DENSITY (E2): perPage 8 (was 24); every page mixes >= 3 task kinds.
+//   - CUES: band-only, never an option word on MC rows.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, hasVisual, type GradeConfig } from '../framework';
 import { soundsSpec } from './BeginningSoundsWorksheet';
 
 const g0 = getGradeConfig(0);
 const g1 = getGradeConfig(1);
 const g2 = getGradeConfig(2);
 
-// Helper: regenerate a sheet using the same seed the framework computes.
 function sheet(grade: GradeConfig) {
     return generateSheet(soundsSpec, grade, seedFrom([grade.id, soundsSpec.id, 0]));
 }
 
+// Independent phoneme model (mirrors the plugin's guard — the test checks
+// the CONTRACT, not the generator's code).
+function initialSound(word: string): string {
+    const two = word.slice(0, 2);
+    if (['sh', 'ch', 'th', 'wh', 'ph', 'qu'].includes(two)) return two;
+    const c = word[0];
+    const next = word[1];
+    if (c === 'c') return 'ei y'.includes(next) ? 's' : 'k';
+    if (c === 'g') return 'ei y'.includes(next) ? 'j' : 'g';
+    return c;
+}
+
+function checkSoundTruths(grade: GradeConfig) {
+    for (const p of sheet(grade)) {
+        const base = p.prompt.match(/^Which letter does "([a-z]+)" start with\?$/);
+        const starts = p.prompt.match(/^Which word starts with the letter "([a-z])"\? \(([^)]+)\)$/);
+        const not = p.prompt.match(/^Which word does NOT start with the letter "([a-z])"\? \(([^)]+)\)$/);
+        const same = p.prompt.match(/^Which word starts with the same sound as "([a-z]+)"\? \(([^)]+)\)$/);
+        const yesno = p.prompt.match(/^Do "([a-z]+)" and "([a-z]+)" start with the same sound\? \(yes \/ no\)$/);
+        const shared = p.prompt.match(/^What sound do "([a-z]+)" and "([a-z]+)" start with\? Write the (?:letter|letters)\.$/);
+        const picture = p.prompt.match(/^Which word starts with the same sound as the picture\? \(([^)]+)\)$/);
+        if (base) {
+            expect(p.answer).toBe(base[1][0]);
+        } else if (starts) {
+            const options = starts[2].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => o[0] === starts[1])).toEqual([p.answer]);
+        } else if (not) {
+            const options = not[2].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => o[0] === not[1])).toHaveLength(2);
+            expect(p.answer[0]).not.toBe(not[1]);
+        } else if (same) {
+            const options = same[2].split(', ');
+            expect(options).toHaveLength(3);
+            const sound = initialSound(same[1]);
+            expect(initialSound(p.answer)).toBe(sound);
+            for (const o of options.filter((o) => o !== p.answer)) {
+                expect(initialSound(o)).not.toBe(sound);
+            }
+        } else if (yesno) {
+            const truth = initialSound(yesno[1]) === initialSound(yesno[2]) ? 'yes' : 'no';
+            expect(p.answer).toBe(truth);
+        } else if (shared) {
+            const a = initialSound(shared[1]);
+            expect(initialSound(shared[2])).toBe(a);
+            expect(p.answer).toBe(a);
+        } else if (picture) {
+            const options = picture[1].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options).toContain(p.answer);
+            // The cue is the (unprinted) base word: registered, and never one
+            // of the printed options.
+            expect(typeof p.visual).toBe('string');
+            expect(hasVisual(p.visual)).toBe(true);
+            expect(options).not.toContain(p.visual as string);
+            // The answer shares its initial sound with the cued base.
+            expect(initialSound(p.answer)).toBe(initialSound(p.visual as string));
+        } else {
+            throw new Error(`unrecognised sounds prompt: ${p.prompt}`);
+        }
+    }
+}
+
 describe('sounds plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph and REDUCED page size (E2)', () => {
         expect(soundsSpec.id).toBe('sounds');
         expect(soundsSpec.label).toBe('Beginning Sounds');
         expect(soundsSpec.icon).toBe('♪');
-        expect(soundsSpec.perPage).toBe(24);
+        expect(soundsSpec.perPage).toBe(8);
     });
 
     it('describes its word-set scope from the grade caps', () => {
@@ -44,162 +112,95 @@ describe('sounds plugin — declarative spec', () => {
     });
 });
 
-// Semantic invariants: every generator kind is answerable from the prompt
-// alone (see BeginningSoundsWorksheet.ts):
-//   base   — the answer IS the printed word's first letter
-//   MC     — exactly one option starts with the letter, and it is the answer
-//   NOT    — exactly two options start with the letter; the answer does not
-//   same   — the answer shares the printed word's first letter; the other two
-//            options do not (and are not the word itself)
-function checkSoundTruths(grade: GradeConfig) {
-    for (const p of sheet(grade)) {
-        const base = p.prompt.match(/^Which letter does "([a-z]+)" start with\?$/);
-        const starts = p.prompt.match(/^Which word starts with the letter "([a-z])"\? \(([^)]+)\)$/);
-        const not = p.prompt.match(/^Which word does NOT start with the letter "([a-z])"\? \(([^)]+)\)$/);
-        const same = p.prompt.match(/^Which word starts with the same sound as "([a-z]+)"\? \(([^)]+)\)$/);
-        if (base) {
-            expect(p.answer).toBe(base[1][0]);
-        } else if (starts) {
-            const options = starts[2].split(', ');
-            const matching = options.filter((o) => o[0] === starts[1]);
-            expect(matching).toEqual([p.answer]);
-        } else if (not) {
-            const options = not[2].split(', ');
-            expect(options.filter((o) => o[0] === not[1])).toHaveLength(2);
-            expect(p.answer[0]).not.toBe(not[1]);
-        } else if (same) {
-            const options = same[2].split(', ');
-            expect(p.answer[0]).toBe(same[1][0]);
-            const others = options.filter((o) => o !== p.answer);
-            expect(others).toHaveLength(2);
-            for (const o of others) expect(o[0]).not.toBe(same[1][0]);
-        } else {
-            // Every prompt must fall into exactly one of the four kinds.
-            throw new Error(`unrecognised sounds prompt: ${p.prompt}`);
-        }
+describe('sounds — exact pinned rows (determinism lock)', () => {
+    it('pins the first rows of the pinned-seed page 1 per grade', () => {
+        expect(sheet(g0).slice(0, 2)).toEqual([
+            { prompt: 'Which letter does "pen" start with?', answer: 'p', id: 1, type: 'sounds' },
+            { prompt: 'Which letter does "hat" start with?', answer: 'h', id: 2, type: 'sounds' }
+        ]);
+        expect(sheet(g1).slice(0, 2)).toEqual([
+            { prompt: 'What sound do "water" and "wig" start with? Write the letter.', answer: 'w', visual: 'water', id: 1, type: 'sounds' },
+            { prompt: 'Do "fish" and "sip" start with the same sound? (yes / no)', answer: 'no', visual: 'fish', id: 2, type: 'sounds' }
+        ]);
+        expect(sheet(g2).slice(0, 2)).toEqual([
+            { prompt: 'Which word starts with the same sound as "lemon"? (sun, rat, leg)', answer: 'leg', visual: 'lemon', id: 1, type: 'sounds' },
+            { prompt: 'Do "top" and "teacher" start with the same sound? (yes / no)', answer: 'yes', visual: 'top', id: 2, type: 'sounds' }
+        ]);
+    });
+});
+
+describe('sounds — semantic truth (every grade)', () => {
+    for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+        it(`grade ${gradeId}: every row's answer is the unique phoneme-correct solution`, () => {
+            checkSoundTruths(getGradeConfig(gradeId));
+        });
     }
-}
+});
 
-describe('sounds — Prep (tier-1 starter word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g0)).toEqual([
-        {"prompt":"Which letter does \"pen\" start with?","answer":"p","id":1,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"n\"? (sip, hat, net)","answer":"net","id":2,"type":"sounds"},
-        {"prompt":"Which letter does \"bus\" start with?","answer":"b","id":3,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"m\"? (jam, map, moon)","answer":"jam","id":4,"type":"sounds"},
-        {"prompt":"Which letter does \"pig\" start with?","answer":"p","id":5,"type":"sounds"},
-        {"prompt":"Which letter does \"moon\" start with?","answer":"m","id":6,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"pot\"? (pig, log, cat)","answer":"pig","id":7,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"c\"? (cup, bag, cat)","answer":"bag","id":8,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"l\"? (log, red, leg)","answer":"red","id":9,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"sun\"? (wig, leg, sip)","answer":"sip","id":10,"type":"sounds"},
-        {"prompt":"Which letter does \"bed\" start with?","answer":"b","id":11,"type":"sounds"},
-        {"prompt":"Which letter does \"box\" start with?","answer":"b","id":12,"type":"sounds"},
-        {"prompt":"Which letter does \"pin\" start with?","answer":"p","id":13,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"cup\"? (map, rat, cat)","answer":"cat","id":14,"type":"sounds"},
-        {"prompt":"Which letter does \"dog\" start with?","answer":"d","id":15,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"p\"? (pot, fan, top)","answer":"pot","id":16,"type":"sounds"},
-        {"prompt":"Which letter does \"net\" start with?","answer":"n","id":17,"type":"sounds"},
-        {"prompt":"Which letter does \"cup\" start with?","answer":"c","id":18,"type":"sounds"},
-        {"prompt":"Which letter does \"red\" start with?","answer":"r","id":19,"type":"sounds"},
-        {"prompt":"Which letter does \"wig\" start with?","answer":"w","id":20,"type":"sounds"},
-        {"prompt":"Which letter does \"cat\" start with?","answer":"c","id":21,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"s\"? (fan, sip, bag)","answer":"sip","id":22,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"r\"? (rat, bus, red)","answer":"bus","id":23,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"b\"? (jam, bag, bed)","answer":"jam","id":24,"type":"sounds"}
-        ]);
-        checkSoundTruths(g0);
+describe('sounds — cue band contract', () => {
+    it('Prep and Year 4+ rows carry NO cue (legacy markup)', () => {
+        for (const gradeId of [0, 4, 5, 6]) {
+            for (const p of sheet(getGradeConfig(gradeId))) {
+                expect(p.visual).toBeUndefined();
+            }
+        }
     });
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(soundsSpec, g0, seedFrom([0, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word starts with the letter \"s\"? (sip, bed, pot)","answer":"sip","id":25,"type":"sounds"},
-        {"prompt":"Which letter does \"hat\" start with?","answer":"h","id":26,"type":"sounds"},
-        {"prompt":"Which letter does \"sip\" start with?","answer":"s","id":27,"type":"sounds"}
-        ]);
+    it('every cue inside the band is a REGISTERED pictogram key', () => {
+        for (const gradeId of [1, 2, 3]) {
+            for (const p of sheet(getGradeConfig(gradeId))) {
+                if (p.visual !== undefined) expect(hasVisual(p.visual)).toBe(true);
+            }
+        }
     });
 });
 
-describe('sounds — Year 1 (tier-2 common word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g1)).toEqual([
-        {"prompt":"Which word starts with the same sound as \"bird\"? (rat, box, cat)","answer":"box","visual":"bird","id":1,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"w\"? (wig, plane, fan)","answer":"wig","id":2,"type":"sounds"},
-        {"prompt":"Which letter does \"bed\" start with?","answer":"b","visual":"bed","id":3,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"l\"? (net, log, lemon)","answer":"net","id":4,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"pot\"? (leg, bag, pin)","answer":"pin","visual":"pot","id":5,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"j\"? (jam, water, pig)","answer":"jam","id":6,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"cup\"? (cat, log, house)","answer":"cat","visual":"cup","id":7,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"r\"? (rabbit, box, wig)","answer":"rabbit","id":8,"type":"sounds"},
-        {"prompt":"Which letter does \"train\" start with?","answer":"t","visual":"train","id":9,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"n\"? (night, light, tree)","answer":"night","id":10,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"s\"? (bus, sun, moon)","answer":"sun","id":11,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"p\"? (chair, dog, plane)","answer":"plane","id":12,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"rabbit\"? (red, grass, pen)","answer":"red","visual":"rabbit","id":13,"type":"sounds"},
-        {"prompt":"Which letter does \"sun\" start with?","answer":"s","visual":"sun","id":14,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"f\"? (fan, fish, hat)","answer":"hat","id":15,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"g\"? (grass, night, green)","answer":"night","id":16,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"m\"? (moon, tiger, map)","answer":"tiger","id":17,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"red\"? (rabbit, bread, table)","answer":"rabbit","visual":"red","id":18,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"t\"? (table, tree, map)","answer":"map","id":19,"type":"sounds"},
-        {"prompt":"Which letter does \"fish\" start with?","answer":"f","visual":"fish","id":20,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"green\"? (grass, jam, top)","answer":"grass","visual":"green","id":21,"type":"sounds"},
-        {"prompt":"Which letter does \"purple\" start with?","answer":"p","visual":"purple","id":22,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"c\"? (lemon, apple, chair)","answer":"chair","id":23,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"pin\"? (leg, fish, pot)","answer":"pot","id":24,"type":"sounds"}
-        ]);
-        checkSoundTruths(g1);
-    });
-
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(soundsSpec, g1, seedFrom([1, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word starts with the letter \"h\"? (train, rat, house)","answer":"house","id":25,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"d\"? (fan, dog, bus)","answer":"dog","id":26,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"b\"? (bird, dog, green)","answer":"bird","id":27,"type":"sounds"}
-        ]);
+describe('sounds — density + kind mix (E2/E1)', () => {
+    it('pages hold exactly perPage rows and mix at least 3 task kinds', () => {
+        for (const gradeId of [0, 1, 2, 6]) {
+            const rows = sheet(getGradeConfig(gradeId));
+            expect(rows).toHaveLength(8);
+            const kinds = new Set(
+                rows.map((r) => (r.prompt.match(/^(Which letter does|Which word starts with the letter|Which word does NOT|Which word starts with the same sound as "|Do "|What sound do|Which word starts with the same sound as the picture)/) ?? ['?'])[1])
+            );
+            expect(kinds.size).toBeGreaterThanOrEqual(3);
+        }
     });
 });
 
-describe('sounds — Year 2 (tier-3 extended set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g2)).toEqual([
-        {"prompt":"Which word starts with the letter \"t\"? (train, sun, lemon)","answer":"train","id":1,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"f\"? (rat, bag, family)","answer":"family","id":2,"type":"sounds"},
-        {"prompt":"Which letter does \"light\" start with?","answer":"l","visual":"light","id":3,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"c\"? (pumpkin, dolphin, computer)","answer":"computer","id":4,"type":"sounds"},
-        {"prompt":"Which letter does \"rabbit\" start with?","answer":"r","visual":"rabbit","id":5,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"p\"? (shirt, bus, pot)","answer":"pot","id":6,"type":"sounds"},
-        {"prompt":"Which letter does \"train\" start with?","answer":"t","visual":"train","id":7,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"r\"? (red, hat, window)","answer":"red","id":8,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"s\"? (fish, school, sip)","answer":"fish","id":9,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"m\"? (leg, moon, tiger)","answer":"moon","id":10,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"b\"? (night, butterfly, dog)","answer":"butterfly","id":11,"type":"sounds"},
-        {"prompt":"Which letter does \"computer\" start with?","answer":"c","id":12,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"h\"? (house, hat, tree)","answer":"tree","id":13,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"box\"? (teacher, bag, plane)","answer":"bag","visual":"box","id":14,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"w\"? (window, school, water)","answer":"school","id":15,"type":"sounds"},
-        {"prompt":"Which word does NOT start with the letter \"n\"? (night, beautiful, net)","answer":"beautiful","id":16,"type":"sounds"},
-        {"prompt":"Which letter does \"cat\" start with?","answer":"c","visual":"cat","id":17,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"button\"? (house, jam, bird)","answer":"bird","id":18,"type":"sounds"},
-        {"prompt":"Which letter does \"elephant\" start with?","answer":"e","visual":"elephant","id":19,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"l\"? (lemon, dinosaur, top)","answer":"lemon","id":20,"type":"sounds"},
-        {"prompt":"Which letter does \"pot\" start with?","answer":"p","visual":"pot","id":21,"type":"sounds"},
-        {"prompt":"Which word starts with the letter \"e\"? (bird, elephant, chair)","answer":"elephant","id":22,"type":"sounds"},
-        {"prompt":"Which letter does \"wig\" start with?","answer":"w","id":23,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"chocolate\"? (red, chair, water)","answer":"chair","id":24,"type":"sounds"}
-        ]);
-        checkSoundTruths(g2);
+describe('sounds — non-repeating capacity (E3)', () => {
+    it('the new 100-page ask (800 questions) is fully unique at every grade', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = soundsSpec.perPage * 100;
+            const problems = soundsSpec.generate(createRng(seedFrom([grade.id, 'sounds', 0])), grade.caps, ask);
+            expect(problems).toHaveLength(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
     });
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(soundsSpec, g2, seedFrom([2, 'sounds', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which letter does \"cup\" start with?","answer":"c","visual":"cup","id":25,"type":"sounds"},
-        {"prompt":"Which word starts with the same sound as \"green\"? (table, grass, net)","answer":"grass","visual":"green","id":26,"type":"sounds"},
-        {"prompt":"Which letter does \"purple\" start with?","answer":"p","visual":"purple","id":27,"type":"sounds"}
-        ]);
+    it('even the OLD 24-per-page ask (2400 questions) stays fully unique', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = 2400;
+            const problems = soundsSpec.generate(createRng(seedFrom([grade.id, 'sounds', 0])), grade.caps, ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
+    });
+});
+
+describe('sounds — document assembly', () => {
+    it('page 2 continues the exact stream (ids continuous)', () => {
+        const d = generateDocument(soundsSpec, g1, seedFrom([1, 'sounds', 0]), 2);
+        expect(d.pages[1][0].id).toBe(9);
+        expect(d.total).toBe(16);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(soundsSpec, getGradeConfig(7), seedFrom([7, 'sounds', 0]))).toEqual([]);
+    });
+
+    it('a double generation is byte-identical (determinism)', () => {
+        expect(JSON.stringify(sheet(g2))).toBe(JSON.stringify(sheet(g2)));
     });
 });

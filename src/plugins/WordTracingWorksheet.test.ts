@@ -1,10 +1,12 @@
 // Unit tests for the WORD TRACING worksheet plugin.
 //
-// The tracing generators are ORDERED, not random: page 1 is the A–Z
-// beginning-word set in writing order and every further page repeats the SAME
-// ordered set, so the pins below are hand-computable without rolling any
-// seed. These are the exact page-1 sheets (all rows) plus the page-2
-// continuation head.
+// The tracing generators are SEEDED-DECK, not frozen: page 1 is the first
+// 6 [letter, word] pairs dealt from a shuffled A–Z word set, page 2
+// CONTINUES the same deck (a different group — the old sheet repeated a
+// frozen A–Z page instead), and a new refresh seed re-rolls the grouping.
+// Every pin below is the exact output of the pinned seed
+// (seedFrom([grade, id, refresh])) — the deck order was captured by running
+// the generator once, then hardcoded.
 
 import { describe, it, expect } from 'vitest';
 import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
@@ -21,12 +23,15 @@ function sheet(grade: GradeConfig) {
 }
 
 describe('wordTrace plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph, page size and single-column layout', () => {
         expect(wordTraceSpec.id).toBe('wordTrace');
         expect(wordTraceSpec.label).toBe('Word Tracing');
         expect(wordTraceSpec.icon).toBe('a');
-        // 26 rows = exactly one A–Z beginning-word page (two-column grid).
-        expect(wordTraceSpec.perPage).toBe(26);
+        // 6 rows on long full-width writing lines: a traced word needs the
+        // whole page width at the writable tracing scale, not a cramped
+        // half-column (the old sheet flooded 26 rows in two columns).
+        expect(wordTraceSpec.perPage).toBe(6);
+        expect(wordTraceSpec.singleColumn).toBe(true);
     });
 
     it('describes its scope (A–Z beginning words)', () => {
@@ -44,44 +49,63 @@ describe('wordTrace plugin — declarative spec', () => {
     });
 });
 
-describe('wordTrace — Prep (fixed ordered A–Z words, no rng draws)', () => {
-    it('matches the exact page-1 sheet (letter model + beginning word)', () => {
+describe('wordTrace — Prep (seeded deck over the A–Z word set, 6 per page)', () => {
+    it('matches the exact page-1 sheet (seed 0 deck: apple hat yellow open in leg)', () => {
         expect(sheet(g0)).toEqual([
         {"prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple","visual":"apple","id":1,"type":"wordTrace"},
-        {"prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird","visual":"bird","id":2,"type":"wordTrace"},
-        {"prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat","visual":"cat","id":3,"type":"wordTrace"},
-        {"prompt":"Trace the word \"dog\" (begins with \"D\")","answer":"dog","model":"D","trace":"dog","visual":"dog","id":4,"type":"wordTrace"},
-        {"prompt":"Trace the word \"eat\" (begins with \"E\")","answer":"eat","model":"E","trace":"eat","id":5,"type":"wordTrace"},
-        {"prompt":"Trace the word \"fish\" (begins with \"F\")","answer":"fish","model":"F","trace":"fish","visual":"fish","id":6,"type":"wordTrace"},
-        {"prompt":"Trace the word \"go\" (begins with \"G\")","answer":"go","model":"G","trace":"go","id":7,"type":"wordTrace"},
-        {"prompt":"Trace the word \"hat\" (begins with \"H\")","answer":"hat","model":"H","trace":"hat","visual":"hat","id":8,"type":"wordTrace"},
-        {"prompt":"Trace the word \"in\" (begins with \"I\")","answer":"in","model":"I","trace":"in","id":9,"type":"wordTrace"},
-        {"prompt":"Trace the word \"jam\" (begins with \"J\")","answer":"jam","model":"J","trace":"jam","id":10,"type":"wordTrace"},
-        {"prompt":"Trace the word \"kick\" (begins with \"K\")","answer":"kick","model":"K","trace":"kick","id":11,"type":"wordTrace"},
-        {"prompt":"Trace the word \"leg\" (begins with \"L\")","answer":"leg","model":"L","trace":"leg","id":12,"type":"wordTrace"},
-        {"prompt":"Trace the word \"map\" (begins with \"M\")","answer":"map","model":"M","trace":"map","visual":"map","id":13,"type":"wordTrace"},
-        {"prompt":"Trace the word \"net\" (begins with \"N\")","answer":"net","model":"N","trace":"net","visual":"net","id":14,"type":"wordTrace"},
-        {"prompt":"Trace the word \"open\" (begins with \"O\")","answer":"open","model":"O","trace":"open","id":15,"type":"wordTrace"},
-        {"prompt":"Trace the word \"pen\" (begins with \"P\")","answer":"pen","model":"P","trace":"pen","visual":"pen","id":16,"type":"wordTrace"},
-        {"prompt":"Trace the word \"queen\" (begins with \"Q\")","answer":"queen","model":"Q","trace":"queen","id":17,"type":"wordTrace"},
-        {"prompt":"Trace the word \"rat\" (begins with \"R\")","answer":"rat","model":"R","trace":"rat","visual":"rat","id":18,"type":"wordTrace"},
-        {"prompt":"Trace the word \"sun\" (begins with \"S\")","answer":"sun","model":"S","trace":"sun","visual":"sun","id":19,"type":"wordTrace"},
-        {"prompt":"Trace the word \"top\" (begins with \"T\")","answer":"top","model":"T","trace":"top","visual":"top","id":20,"type":"wordTrace"},
-        {"prompt":"Trace the word \"up\" (begins with \"U\")","answer":"up","model":"U","trace":"up","id":21,"type":"wordTrace"},
-        {"prompt":"Trace the word \"van\" (begins with \"V\")","answer":"van","model":"V","trace":"van","id":22,"type":"wordTrace"},
-        {"prompt":"Trace the word \"water\" (begins with \"W\")","answer":"water","model":"W","trace":"water","visual":"water","id":23,"type":"wordTrace"},
-        {"prompt":"Trace the word \"xylophone\" (begins with \"X\")","answer":"xylophone","model":"X","trace":"xylophone","id":24,"type":"wordTrace"},
-        {"prompt":"Trace the word \"yellow\" (begins with \"Y\")","answer":"yellow","model":"Y","trace":"yellow","id":25,"type":"wordTrace"},
-        {"prompt":"Trace the word \"zoo\" (begins with \"Z\")","answer":"zoo","model":"Z","trace":"zoo","id":26,"type":"wordTrace"}
+        {"prompt":"Trace the word \"hat\" (begins with \"H\")","answer":"hat","model":"H","trace":"hat","visual":"hat","id":2,"type":"wordTrace"},
+        {"prompt":"Trace the word \"yellow\" (begins with \"Y\")","answer":"yellow","model":"Y","trace":"yellow","id":3,"type":"wordTrace"},
+        {"prompt":"Trace the word \"open\" (begins with \"O\")","answer":"open","model":"O","trace":"open","id":4,"type":"wordTrace"},
+        {"prompt":"Trace the word \"in\" (begins with \"I\")","answer":"in","model":"I","trace":"in","id":5,"type":"wordTrace"},
+        {"prompt":"Trace the word \"leg\" (begins with \"L\")","answer":"leg","model":"L","trace":"leg","id":6,"type":"wordTrace"}
 ]);
     });
 
-    it('page 2 repeats the A–Z word stream from the top (ids continue at 27)', () => {
-        expect(generateDocument(wordTraceSpec, g0, seedFrom([0, 'wordTrace', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple","visual":"apple","id":27,"type":"wordTrace"},
-        {"prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird","visual":"bird","id":28,"type":"wordTrace"},
-        {"prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat","visual":"cat","id":29,"type":"wordTrace"}
+    it('page 2 continues the SAME deck with a different group (ids 7..12)', () => {
+        const d = generateDocument(wordTraceSpec, g0, seedFrom([0, 'wordTrace', 0]), 2);
+        // Same cycle, next six pairs — no word repeats across the page
+        // boundary, and the group/order differs from page 1.
+        expect(d.pages[1]).toEqual([
+        {"prompt":"Trace the word \"map\" (begins with \"M\")","answer":"map","model":"M","trace":"map","visual":"map","id":7,"type":"wordTrace"},
+        {"prompt":"Trace the word \"dog\" (begins with \"D\")","answer":"dog","model":"D","trace":"dog","visual":"dog","id":8,"type":"wordTrace"},
+        {"prompt":"Trace the word \"queen\" (begins with \"Q\")","answer":"queen","model":"Q","trace":"queen","id":9,"type":"wordTrace"},
+        {"prompt":"Trace the word \"go\" (begins with \"G\")","answer":"go","model":"G","trace":"go","id":10,"type":"wordTrace"},
+        {"prompt":"Trace the word \"van\" (begins with \"V\")","answer":"van","model":"V","trace":"van","id":11,"type":"wordTrace"},
+        {"prompt":"Trace the word \"jam\" (begins with \"J\")","answer":"jam","model":"J","trace":"jam","id":12,"type":"wordTrace"}
 ]);
+        expect(d.pages[1].map((p) => p.answer)).not.toEqual(d.pages[0].map((p) => p.answer));
+    });
+
+    it('Randomize re-rolls the grouping (refresh 1 deck: zoo yellow sun net cat rat)', () => {
+        expect(generateSheet(wordTraceSpec, g0, seedFrom([0, 'wordTrace', 1]))).toEqual([
+        {"prompt":"Trace the word \"zoo\" (begins with \"Z\")","answer":"zoo","model":"Z","trace":"zoo","id":1,"type":"wordTrace"},
+        {"prompt":"Trace the word \"yellow\" (begins with \"Y\")","answer":"yellow","model":"Y","trace":"yellow","id":2,"type":"wordTrace"},
+        {"prompt":"Trace the word \"sun\" (begins with \"S\")","answer":"sun","model":"S","trace":"sun","visual":"sun","id":3,"type":"wordTrace"},
+        {"prompt":"Trace the word \"net\" (begins with \"N\")","answer":"net","model":"N","trace":"net","visual":"net","id":4,"type":"wordTrace"},
+        {"prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat","visual":"cat","id":5,"type":"wordTrace"},
+        {"prompt":"Trace the word \"rat\" (begins with \"R\")","answer":"rat","model":"R","trace":"rat","visual":"rat","id":6,"type":"wordTrace"}
+]);
+    });
+
+    // Exact cue density for the pinned seed: 2 of the 6 dealt words
+    // (apple, hat) have a registered pictogram; the rest print plain
+    // (graceful degradation — see framework/visuals.tsx hasVisual).
+    it('page 1 carries cues for exactly the 2 registered words of the dealt group', () => {
+        const rows = sheet(g0);
+        expect(rows.filter((p) => typeof p.visual === 'string').length).toBe(2);
+        expect(rows.filter((p) => typeof p.visual === 'string').map((p) => p.visual)).toEqual(['apple', 'hat']);
+    });
+
+    // Deck contract: the 26-word set is finite, so long documents repeat by
+    // nature — but ONE full cycle (the first 26 deals) covers every word
+    // exactly once. Evenly spread practice, no fabricated capacity.
+    it('one full deck cycle (first 26 rows) deals every word exactly once', () => {
+        const first26 = generateDocument(wordTraceSpec, g0, seedFrom([0, 'wordTrace', 0]), 5)
+            .pages.flat()
+            .slice(0, 26);
+        expect(first26.map((p) => p.answer).sort()).toEqual(
+            ['apple','bird','cat','dog','eat','fish','go','hat','in','jam','kick','leg','map','net','open','pen','queen','rat','sun','top','up','van','water','xylophone','yellow','zoo']
+        );
     });
 
     // Semantic invariants: the trace target IS the word (the answer), the

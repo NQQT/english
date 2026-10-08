@@ -19,28 +19,58 @@ import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem
 import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
 
+// ── Task design (T4A) ────────────────────────────────────────────────────────
+// SEVEN materially different connected beginning-sound tasks, dealt evenly
+// from a kind deck so each page mixes recognize / choose / check / explain
+// work instead of one template repeated 24×:
+//
+//   0 RECOGNIZE "Which letter does 'cat' start with?"        (written answer)
+//   1 CHOOSE    "Which word starts with the letter 'b'? (...)"
+//   2 CHECK     "Which word does NOT start with the letter 'b'? (...)"
+//   3 APPLY     "Which word starts with the same sound as 'cat'? (...)"
+//               (phoneme-level — 'kite' matches 'cat', guarded below)
+//   4 CHECK     "Do 'bed' and 'ball' start with the same sound? (yes / no)"
+//   5 EXPLAIN   "What sound do 'bed' and 'ball' start with? Write the
+//               letter." — the say-why move: name the shared sound
+//   6 APPLY     "Which word starts with the same sound as the picture?"
+//               (the base word is PICTURED, not printed — Y1–Y3 band only)
+//
+// DENSITY (E2): perPage 24 -> 8.
+//
+// PHONICS UNAMBIGUITY (E4): "same sound" compares INITIAL PHONEMES, not
+// first letters — a local initialSound() resolves the digraphs (sh/ch/th/
+// wh/ph/qu) and the soft c/g, so 'sun' never pairs with 'ship' (/s/ vs /sh/),
+// 'cat' never pairs with 'circle' (/k/ vs /s/), and 'cat' MAY pair with
+// 'kite' (/k/ = /k/) — the deeper skill. Letter-name kinds (1, 2) stay
+// literal.
+
 // LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
-// tiers 2..4): a picture cue next to the base word's row, so a Year 1 child
-// sees the cat when naming its first letter. Only the KINDS THAT NAME A WORD
-// carry a cue: the letter-kinds ("which word starts with b") have no single
-// concept to depict, and the picture must never reveal an answer. Bank words
-// without a registered pictogram print plain (hasVisual check). The band
-// EXCLUDES Prep (tier 1) and Years 4+ (tiers 5-6), so Prep's non-tracing
-// sheets and every senior sheet keep their legacy markup.
+// tiers 2..4): a picture cue next to the rows that NAME a base word, so a
+// Year 1 child sees the cat when working on its first sound. The cue is
+// always the base word — never an option and never the answer (the answers
+// are a letter, a yes/no, or an option word). The letter-kinds ("which word
+// starts with b") have no single concept to depict and print plain. Bank
+// words without a registered pictogram print plain (hasVisual check). The
+// band EXCLUDES Prep (tier 1) and Years 4+ (tiers 5-6), so Prep's non-
+// tracing sheets and every senior sheet keep their legacy markup.
 function picture(caps: Caps, word: string): string | undefined {
     return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
 }
 
-// Beginning sounds — FOUR procedural question kinds over the grade word set:
-//   0. "Which letter does X start with?"          (the written-answer base)
-//   1. "Which word starts with the letter 'b'?"   (3 options, one matches)
-//   2. "Which word does NOT start with 'b'?"      (3 options, two match)
-//   3. "Which word starts with the same sound as X?" (3 options, one matches)
-//
-// The old single-kind generator asked each word once and cycled after ~25-61
-// questions (the pool WAS the fact space). The multiple-choice kinds make the
-// question space the cross-product of letters x option sets, so the sheet
-// deals fresh questions far past 100 pages.
+// The initial PHONEME of a bank word: digraphs first, then the soft/hard
+// c-and-g rules, then the plain letter. Conservative — unknown patterns fall
+// back to the letter itself. Used only to decide "same starting sound".
+function initialSound(word: string): string {
+    const two = word.slice(0, 2);
+    if (['sh', 'ch', 'th', 'wh', 'ph', 'qu'].includes(two)) return two;
+    const c = word[0];
+    const next = word[1];
+    if (c === 'c') return 'ei y'.includes(next) ? 's' : 'k';
+    if (c === 'g') return 'ei y'.includes(next) ? 'j' : 'g';
+    return c;
+}
+
+// Beginning sounds — the seven kinds above over the grade word set.
 //
 // NON-REPEATING SAMPLING: letters AND words are dealt from decks (even pool
 // coverage) and every question passes through sampleUnique keyed on the
@@ -48,16 +78,21 @@ function picture(caps: Caps, word: string): string | undefined {
 // different question.
 function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = wordSet(caps.wordTier).filter((w) => w.length >= 3);
-    // First-letter index: which words start with each letter. Kinds 1-3 need
-    // words grouped by (and excluded by) their initial letter.
+    // First-LETTER index (kinds 1-2 are letter-name tasks) and first-
+    // PHONEME index (kinds 3-6 are sound tasks).
     const byLetter = new Map<string, string[]>();
+    const bySound = new Map<string, string[]>();
     for (const w of pool) {
         if (!byLetter.has(w[0])) byLetter.set(w[0], []);
         byLetter.get(w[0])!.push(w);
+        const s = initialSound(w);
+        if (!bySound.has(s)) bySound.set(s, []);
+        bySound.get(s)!.push(w);
     }
     const letters = [...byLetter.keys()];
     const letterDeck = createDeck(rng, letters);
     const wordDeck = createDeck(rng, pool);
+    const kindDeck = createDeck(rng, [0, 1, 2, 3, 4, 5, 6]);
     // Build a 3-option multiple-choice set: `answer` plus two words chosen by
     // `isDistractor` (the answer's complement), printed shuffled.
     const choiceSet = (answer: string, isDistractor: (w: string) => boolean) => {
@@ -68,13 +103,29 @@ function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
             const pick = wordDeck.take();
             if (isDistractor(pick) && !options.includes(pick)) options.push(pick);
         }
-        const shown = shuffleWords(rng, options);
-        return shown;
+        return shuffleWords(rng, options);
+    };
+    // A same-sound word PAIR (kind 4/5 true rows) or a different-sound pair
+    // (kind 4 false rows). Null when the pool cannot supply it (never for
+    // these banks, but the draw must stay well-posed).
+    const soundPair = (same: boolean): [string, string] | null => {
+        const groups = [...bySound.values()].filter((g) => g.length >= 2);
+        if (same) {
+            if (groups.length === 0) return null;
+            const g = rng.pick(groups);
+            const a = rng.pick(g);
+            return [a, rng.pick(g.filter((w) => w !== a))];
+        }
+        if (bySound.size < 2) return null;
+        const keys = [...bySound.keys()];
+        const k1 = rng.pick(keys);
+        const k2 = keys.find((k) => k !== k1)!;
+        return [rng.pick(bySound.get(k1)!), rng.pick(bySound.get(k2)!)];
     };
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 3);
+            const kind = kindDeck.take();
             if (kind === 0) {
                 // Base kind: name the first letter of a dealt word.
                 const word = wordDeck.take();
@@ -117,11 +168,69 @@ function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 const shown = shuffleWords(rng, [w1, w2, answer]);
                 return { prompt: `Which word does NOT start with the letter "${letter}"? (${shown.join(', ')})`, answer };
             }
-            // Same sound: one option shares the dealt word's first letter.
+            if (kind === 3) {
+                // Same SOUND (phoneme-guarded): one option shares the dealt
+                // word's initial phoneme; the other two do not.
+                const word = wordDeck.take();
+                const sound = initialSound(word);
+                const starts = bySound.get(sound)!;
+                if (starts.length < 2) {
+                    // No sibling word with the same initial sound — fall back
+                    // to the base kind so the draw is never wasted.
+                    return {
+                        prompt: `Which letter does "${word}" start with?`,
+                        answer: word[0],
+                        visual: picture(caps, word)
+                    };
+                }
+                const answer = rng.pick(starts.filter((w) => w !== word));
+                const shown = choiceSet(answer, (w) => initialSound(w) !== sound);
+                // The picture cues the BASE word (the answer is an OPTION
+                // word, so depicting the base never reveals it).
+                return {
+                    prompt: `Which word starts with the same sound as "${word}"? (${shown.join(', ')})`,
+                    answer,
+                    visual: picture(caps, word)
+                };
+            }
+            if (kind === 4) {
+                // CHECK: a yes/no judgement about a word pair. Half the rows
+                // are true, half false (both directions are real learning).
+                const sameAsk = rng.next() < 0.5;
+                const pair = soundPair(sameAsk);
+                if (!pair) {
+                    const word = wordDeck.take();
+                    return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+                }
+                const [a, b] = rng.next() < 0.5 ? pair : [pair[1], pair[0]];
+                return {
+                    prompt: `Do "${a}" and "${b}" start with the same sound? (yes / no)`,
+                    answer: sameAsk ? 'yes' : 'no',
+                    visual: picture(caps, a)
+                };
+            }
+            if (kind === 5) {
+                // EXPLAIN-lite: name the shared starting sound of a true pair.
+                const pair = soundPair(true);
+                if (!pair) {
+                    const word = wordDeck.take();
+                    return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+                }
+                const [a, b] = pair;
+                const sound = initialSound(a);
+                return {
+                    prompt: `What sound do "${a}" and "${b}" start with? Write the ${sound.length === 1 ? 'letter' : 'letters'}.`,
+                    answer: sound,
+                    visual: picture(caps, a)
+                };
+            }
+            // APPLY (kind 6): the base word is PICTURED, not printed — the
+            // child names the picture, then finds its sound among the words.
+            // Band-only (needs the cue); outside the band fall back to kind 0.
             const word = wordDeck.take();
-            const starts = byLetter.get(word[0])!;
-            if (starts.length < 2) {
-                // No sibling word with the same first letter — fall back.
+            const sound = initialSound(word);
+            const starts = bySound.get(sound)!;
+            if (!isEarlyCueBand(caps) || !hasVisual(word) || starts.length < 2) {
                 return {
                     prompt: `Which letter does "${word}" start with?`,
                     answer: word[0],
@@ -129,13 +238,11 @@ function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 };
             }
             const answer = rng.pick(starts.filter((w) => w !== word));
-            const shown = choiceSet(answer, (w) => w[0] !== word[0]);
-            // The picture cues the BASE word (the answer is an OPTION word,
-            // so depicting the base never reveals it).
+            const shown = choiceSet(answer, (w) => initialSound(w) !== sound);
             return {
-                prompt: `Which word starts with the same sound as "${word}"? (${shown.join(', ')})`,
+                prompt: `Which word starts with the same sound as the picture? (${shown.join(', ')})`,
                 answer,
-                visual: picture(caps, word)
+                visual: word
             };
         },
         (p) => p.prompt
@@ -147,7 +254,8 @@ export const soundsSpec: WorksheetSpec = {
     id: 'sounds',
     label: 'Beginning Sounds',
     icon: '♪',
-    perPage: 24,
+    // E2 density: 8 rows per A4 page.
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('sounds'),
     scope: (grade: GradeConfig) => `beginnings, word set ${grade.caps.wordTier}`,
     generate: generateSounds

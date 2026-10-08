@@ -14,6 +14,13 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Nouns & Verbs worksheet without affecting the framework or any
 // other plugin.
+//
+// T4C REDESIGN (quality over quantity): the page shrank from 24 cramped rows
+// to 8 roomy ones. The sheet now mixes connected task families — written
+// classify (identify), multiple-choice identify, find-the-word IN A SENTENCE
+// (apply), and an open-ended COMPOSE whose key gives one example sentence and
+// explicitly accepts any sensible one. Word banks grew ~40% with age-fit
+// vocabulary; sentence slots are curated so every assembled line reads.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
@@ -33,18 +40,22 @@ function earlyPicture(caps: Caps, key: string): string | undefined {
 }
 
 // Noun / verb word lists for the Year 2 parts-of-speech type. Grown from
-// 20+20 to 28+28 words.
+// 28+28 to 40+40 words.
 const NOUN_WORDS = [
     'cat', 'book', 'tree', 'ball', 'school', 'house', 'dog', 'apple',
     'fish', 'bird', 'chair', 'table', 'tiger', 'train', 'plane', 'grass',
     'rabbit', 'window', 'garden', 'button',
-    'kitten', 'pencil', 'flower', 'robot', 'rocket', 'monkey', 'river', 'cloud'
+    'kitten', 'pencil', 'flower', 'robot', 'rocket', 'monkey', 'river', 'cloud',
+    'spider', 'pumpkin', 'helmet', 'basket', 'puppet', 'island', 'volcano',
+    'boomerang', 'kangaroo', 'suitcase', 'dinosaur', 'telescope'
 ] as const;
 const VERB_WORDS = [
     'run', 'jump', 'eat', 'read', 'sleep', 'sing', 'kick', 'draw',
     'walk', 'play', 'swim', 'hop', 'clap', 'write', 'drive', 'drink',
     'fly', 'cry', 'wash', 'open',
-    'climb', 'carry', 'smile', 'push', 'pull', 'paint', 'dance', 'crawl'
+    'climb', 'carry', 'smile', 'push', 'pull', 'paint', 'dance', 'crawl',
+    'dig', 'catch', 'throw', 'count', 'cook', 'hammer', 'surf', 'skate',
+    'whistle', 'gallop', 'shiver', 'giggle'
 ] as const;
 
 // Third-person -s form of a verb ("run" -> "runs", "wash" -> "washes",
@@ -60,48 +71,64 @@ function verbSForm(verb: string): string {
 // draws its subject from this subset; the MC kinds still use the full banks.
 const ANIMATE_NOUNS = [
     'cat', 'dog', 'fish', 'bird', 'tiger', 'rabbit', 'kitten', 'monkey',
-    'boy', 'girl', 'dad', 'mum', 'baby', 'frog'
+    'boy', 'girl', 'dad', 'mum', 'baby', 'frog',
+    'spider', 'puppy', 'kangaroo', 'dinosaur'
+] as const;
+
+// Intransitive-safe verbs for the ASSEMBLED-SENTENCE kinds: these read with a
+// bare subject ("The cat sleeps.", "The boy runs every day.") while transitive
+// bank verbs would hang ("The clever boy carries." — carries WHAT?). The MC
+// and classify kinds still use the full banks.
+const SENTENCE_SAFE_VERBS = [
+    'run', 'jump', 'sleep', 'sing', 'walk', 'play', 'swim', 'hop', 'clap',
+    'smile', 'dance', 'crawl', 'fly', 'shiver', 'giggle', 'gallop', 'whistle'
 ] as const;
 
 // Upper-primary (Year 3+) word-class extension: ACARA Y3–6 grammar adds
 // ADJECTIVES (describing words) and ADVERBS (how/when/where words) to the
 // noun/verb split. The senior kinds below classify these two classes only —
 // they never mix with the noun/verb banks, which keep their Y2 shape.
+// Grown from 20+20 to 30+30 words.
 const ADJECTIVE_WORDS = [
     'bright', 'brave', 'calm', 'cheerful', 'gentle', 'gloomy', 'greedy',
     'honest', 'lazy', 'polite', 'proud', 'quiet', 'rude', 'silly',
-    'tidy', 'wise', 'curious', 'generous', 'patient', 'loyal'
+    'tidy', 'wise', 'curious', 'generous', 'patient', 'loyal',
+    'clever', 'friendly', 'grumpy', 'helpful', 'nervous', 'playful',
+    'serious', 'thirsty', 'wealthy', 'wicked'
 ] as const;
 const ADVERB_WORDS = [
     'quickly', 'slowly', 'loudly', 'softly', 'gently', 'kindly', 'bravely',
     'happily', 'sadly', 'anxiously', 'carefully', 'carelessly', 'eagerly',
-    'neatly', 'politely', 'rudely', 'silently', 'sweetly', 'wisely', 'proudly'
+    'neatly', 'politely', 'rudely', 'silently', 'sweetly', 'wisely', 'proudly',
+    'cheerfully', 'dreamily', 'firmly', 'grumpily', 'hungrily', 'nervously',
+    'playfully', 'sleepily', 'tiredly', 'thankfully'
 ] as const;
 
-// Nouns & verbs — FOUR procedural kinds (Year 2); Year 3+ (wordTier 4)
-// switches to the adjective/adverb classify kinds below:
-//   0. "Is the word X a noun or a verb?"        (the written classify base)
-//   1. "Which word is a noun?"                  (3 options: 1 noun, 2 verbs)
-//   2. "Which word is a verb?"                  (3 options: 1 verb, 2 nouns)
-//   3. "Find the noun / verb: The cat sleeps."  (assembled sentence)
-//
-// The old classify-only generator cycled after the 40-word bank; the MC and
-// sentence kinds make the space options x words x sentence slots — deep
-// enough for 100 pages.
+// Nouns & verbs — FIVE procedural kinds (Year 2); Year 3+ (wordTier 4)
+// switches to the adjective/adverb families below:
+//   0. "Is the word X a noun or a verb?"        (written identify)
+//   1. "Which word is a noun?"                  (MC identify: 1 noun, 2 verbs)
+//   2. "Which word is a verb?"                  (MC identify: 1 verb, 2 nouns)
+//   3. "Find the noun / verb: The cat sleeps."  (apply in a sentence)
+//   4. "Write a sentence that uses '<verb>'."   (open-ended compose —
+//      the key gives one example and accepts any sensible sentence)
 //
 // NON-REPEATING SAMPLING: [word, isNoun] pairs and sentence slots are dealt
 // from decks and every question passes through sampleUnique keyed on the
 // printed prompt.
 function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // Upper-primary gate: wordTier 4 (Year 3+) switches to the ACARA Y3–6
-    // word-class work — adjectives vs adverbs (MC + written classify).
+    // word-class work — adjectives vs adverbs (MC + written classify +
+    // find-in-sentence + open-ended compose).
     if (caps.wordTier >= 4) {
         const adjDeck = createDeck(rng, ADJECTIVE_WORDS);
         const advDeck = createDeck(rng, ADVERB_WORDS);
+        const nounDeck = createDeck(rng, ANIMATE_NOUNS);
+        const verbDeck = createDeck(rng, SENTENCE_SAFE_VERBS);
         return sampleUnique(
             count,
             () => {
-                const kind = rng.int(0, 2);
+                const kind = rng.int(0, 5);
                 if (kind === 0) {
                     // Written classify: is the dealt word an adjective or an adverb?
                     const isAdj = rng.next() < 0.5;
@@ -114,22 +141,60 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
                         visual: earlyPicture(caps, isAdj ? 'sparkle' : 'action')
                     };
                 }
-                // MC: one adjective beside two adverbs (kind 1), or one adverb
-                // beside two adjectives (kind 2).
-                const wantAdj = kind === 1;
-                const answer = wantAdj ? adjDeck.take() : advDeck.take();
-                const otherDeck = wantAdj ? advDeck : adjDeck;
-                const options = [answer];
-                let guard = 0;
-                while (options.length < 3 && guard < 24) {
-                    guard++;
-                    const pick = otherDeck.take();
-                    if (!options.includes(pick)) options.push(pick);
+                if (kind === 1 || kind === 2) {
+                    // MC: one adjective beside two adverbs (kind 1), or one adverb
+                    // beside two adjectives (kind 2).
+                    const wantAdj = kind === 1;
+                    const answer = wantAdj ? adjDeck.take() : advDeck.take();
+                    const otherDeck = wantAdj ? advDeck : adjDeck;
+                    const options = [answer];
+                    let guard = 0;
+                    while (options.length < 3 && guard < 24) {
+                        guard++;
+                        const pick = otherDeck.take();
+                        if (!options.includes(pick)) options.push(pick);
+                    }
+                    const shown = shuffleWords(rng, options);
+                    return {
+                        prompt: `Which word is an ${wantAdj ? 'adjective (describes a thing)' : 'adverb (tells how)'}? (${shown.join(', ')})`,
+                        answer
+                    };
                 }
-                const shown = shuffleWords(rng, options);
+                if (kind === 3) {
+                    // Apply: find the adjective inside an assembled line.
+                    // "The brave dog barked." — every slot is curated so the
+                    // sentence reads (animate subject + any bank verb).
+                    const adj = adjDeck.take();
+                    const noun = nounDeck.take();
+                    const verb = verbSForm(verbDeck.take());
+                    return { prompt: `Find the adjective: The ${adj} ${noun} ${verb}.`, answer: adj };
+                }
+                if (kind === 4) {
+                    // Apply: find the adverb inside an assembled line.
+                    // "The cat runs quickly." — all bank adverbs are manner
+                    // adverbs, so they fit any animate-subject action line.
+                    const adv = advDeck.take();
+                    const noun = nounDeck.take();
+                    const verb = verbSForm(verbDeck.take());
+                    return { prompt: `Find the adverb: The ${noun} ${verb} ${adv}.`, answer: adv };
+                }
+                // OPEN-ENDED compose: the key shows one correct sentence and
+                // explicitly accepts any sensible one using the word.
+                const isAdj = rng.next() < 0.5;
+                const word = isAdj ? adjDeck.take() : advDeck.take();
+                if (isAdj) {
+                    const noun = rng.pick(ANIMATE_NOUNS);
+                    const verb = verbSForm(rng.pick(SENTENCE_SAFE_VERBS));
+                    return {
+                        prompt: `Write a sentence that uses the describing word "${word}".`,
+                        answer: `Example: The ${word} ${noun} ${verb}. (any sensible sentence using "${word}" is correct)`
+                    };
+                }
+                const noun = rng.pick(ANIMATE_NOUNS);
+                const verb = verbSForm(rng.pick(SENTENCE_SAFE_VERBS));
                 return {
-                    prompt: `Which word is an ${wantAdj ? 'adjective (describes a thing)' : 'adverb (tells how)'}? (${shown.join(', ')})`,
-                    answer
+                    prompt: `Write a sentence that uses the how-word "${word}".`,
+                    answer: `Example: The ${noun} ${verb} ${word}. (any sensible sentence using "${word}" is correct)`
                 };
             },
             (p) => p.prompt
@@ -142,6 +207,10 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
     ]);
     const nounDeck = createDeck(rng, NOUN_WORDS);
     const verbDeck = createDeck(rng, VERB_WORDS);
+    // Sentence slots draw only intransitive-safe verbs so every assembled
+    // line reads ("The cat sleeps." never "The cat carries.").
+    const safeVerbDeck = createDeck(rng, SENTENCE_SAFE_VERBS);
+    const animateDeck = createDeck(rng, ANIMATE_NOUNS);
     // Build a 3-option set: the answer plus two words of the OPPOSITE class,
     // printed shuffled.
     const choiceSet = (answer: string, isNoun: boolean) => {
@@ -158,7 +227,7 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 3);
+            const kind = rng.int(0, 4);
             if (kind === 0) {
                 // Base kind: classify a dealt word.
                 const [w, isNoun] = pairDeck.take();
@@ -178,26 +247,42 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 const shown = choiceSet(answer, isNoun);
                 return { prompt: `Which word is a ${isNoun ? 'noun (thing)' : 'verb (action)'}? (${shown.join(', ')})`, answer };
             }
-            // Sentence find: "The cat sleeps." — find the noun or the verb.
-            // Subjects come from the animate subset so every line reads.
-            const noun = rng.pick(ANIMATE_NOUNS);
-            const verb = verbDeck.take();
-            const line = `The ${noun} ${verbSForm(verb)}.`;
-            const findNoun = rng.next() < 0.5;
-            return findNoun
-                ? { prompt: `Find the noun: ${line}`, answer: noun }
-                : { prompt: `Find the verb: ${line}`, answer: verbSForm(verb) };
+            if (kind === 3) {
+                // Sentence find: "The cat sleeps." — find the noun or the verb.
+                // Subjects come from the animate subset and verbs from the
+                // intransitive-safe subset so every line reads; two curated
+                // templates keep the lines varied but grammatical.
+                const noun = animateDeck.take();
+                const verb = safeVerbDeck.take();
+                const line = rng.next() < 0.5
+                    ? `The ${noun} ${verbSForm(verb)}.`
+                    : `The ${noun} ${verbSForm(verb)} every day.`;
+                const findNoun = rng.next() < 0.5;
+                return findNoun
+                    ? { prompt: `Find the noun: ${line}`, answer: noun }
+                    : { prompt: `Find the verb: ${line}`, answer: verbSForm(verb) };
+            }
+            // OPEN-ENDED compose: any sensible sentence using the action word
+            // is correct; the key models one with the safe "I ... every day"
+            // frame, drawn from the intransitive-safe subset so the example
+            // always reads.
+            const verb = safeVerbDeck.take();
+            return {
+                prompt: `Write a sentence that uses the action word "${verb}".`,
+                answer: `Example: I ${verb} every day. (any sensible sentence using "${verb}" is correct)`
+            };
         },
         (p) => p.prompt
     );
 }
 
-// The plugin's declarative spec (exported for its own tests).
+// The plugin's declarative spec (exported for its own tests). T4C: 8 roomy
+// rows per page instead of 24 cramped ones.
 export const grammarSpec: WorksheetSpec = {
     id: 'grammar',
     label: 'Nouns & Verbs',
     icon: '&',
-    perPage: 24,
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('grammar'),
     scope: (grade: GradeConfig) =>
         grade.caps.wordTier >= 4 ? 'adjectives vs adverbs' : 'noun (thing) vs verb (action)',

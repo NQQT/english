@@ -175,25 +175,32 @@ const ProblemVisual = styledComponent('span', {
 // exemplar plus faded dashed copies the child traces over, all riding on one
 // dashed "stay-on-the-line" rule. `flex: 1` stretches the line to the rest of
 // the problem row so the rule reads as a full writing line (wide full-width
-// lines on single-column number sheets, half-page lines on the letter/word
-// two-column sheets).
+// lines on the single-column word/number sheets, half-page lines on the
+// letter two-column sheet).
+//
+// WRITABLE SCALE: the tracing sheets print only a small dealt group per page
+// (8 letters / 6 words / 5 digits), so the grid's `gridAutoRows: 1fr` gives
+// every trace row ~150–210px of height. The row uses that room: a wide gap
+// between model and target and deep padding under the glyphs put the child's
+// pencil ON a real writing line instead of a cramped mini-row.
 const TraceLine = styledComponent('div', {
     display: 'flex',
     alignItems: 'baseline',
-    gap: '18px',
+    gap: '26px',
     flex: 1,
     minWidth: '0',
-    paddingBottom: '4px',
+    paddingBottom: '12px',
     borderBottom: '2px dashed #b7c9c4',
     whiteSpace: 'nowrap'
 });
 
 // The solid model shape to copy from: mid-grey so it is clearly readable
-// yet distinct from the child's own (dashed) work. Same 44px face as the
-// trace target so the two share one baseline in TraceLine.
+// yet distinct from the child's own (dashed) work. Same 64px face as the
+// trace target so the two share one baseline in TraceLine — a Prep-sized
+// exemplar (~17mm tall), not a body-text glyph.
 const ModelText = styledComponent('span', {
     display: 'inline-block',
-    fontSize: '44px',
+    fontSize: '64px',
     fontWeight: 600,
     lineHeight: '1.1',
     color: '#64748b',
@@ -205,15 +212,17 @@ const ModelText = styledComponent('span', {
 // the preview tree and the hidden print tree share this exact markup). The
 // almost-invisible pale fill is the graceful fallback: an engine without
 // text-stroke still paints a light solid shape a child can trace, never an
-// empty gap.
+// empty gap. The stroke scales with the 64px face so the outlined shapes
+// stay bold at writable size (vector text — crisp at any print DPI, never a
+// decorative raster).
 const TraceText = styledComponent('span', {
     display: 'inline-block',
-    fontSize: '44px',
+    fontSize: '64px',
     fontWeight: 600,
     lineHeight: '1.1',
     letterSpacing: '0.05em',
     color: '#f1f5f4',
-    WebkitTextStroke: '2.5px #94a3b8',
+    WebkitTextStroke: '3px #94a3b8',
     userSelect: 'none'
 });
 
@@ -298,8 +307,12 @@ export function PrintableSheet({
                         {/* Learning-visual cue (early-years sheets only): the
                             pictogram for p.visual, printed `visualCount` times
                             (quantity contrast). No visual field => nothing
-                            renders, so legacy rows are unchanged. */}
-                        {p.visual && <ProblemVisual>{<PictogramRow icon={p.visual} count={p.visualCount ?? 1} />}</ProblemVisual>}
+                            renders, so legacy rows are unchanged. TRACING rows
+                            pass the enlarged uniform `size` so the picture
+                            matches the writable scale of the 64px trace
+                            target; normal rows keep the compact default
+                            ladder (one-line rows stay one line tall). */}
+                        {p.visual && <ProblemVisual>{<PictogramRow icon={p.visual} count={p.visualCount ?? 1} size={p.trace ? 44 : undefined} />}</ProblemVisual>}
                         {p.trace ? (
                             // Tracing row: [cue] solid model + faded dashed
                             // target on a dashed writing rule (see

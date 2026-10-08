@@ -1,16 +1,21 @@
-// Unit tests for the PLURALS worksheet plugin.
+// Unit tests for the PLURALS worksheet plugin (T4B rework).
 //
 // Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
 // prompts + answers) is pinned to exact expected values produced from the real
 // generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm, pair banks, or caps
+// (seedFrom([grade.id, spec.id, 0])). If the algorithm, pair bank, or caps
 // change, these exact assertions fail — which is what we want, so a silent
 // change to the worksheet can't slip through.
+//
+// T4B additions: exact per-format counts (written, MCQ, sentence cloze,
+// ending rule, form spelling), the quantity-contrast cue contract, and the
+// exact unique-question capacity at the 100-page ask.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, type GradeConfig } from '../framework';
 import { pluralSpec } from './PluralsWorksheet';
 
+const g0 = getGradeConfig(0);
 const g1 = getGradeConfig(1);
 const g2 = getGradeConfig(2);
 
@@ -20,106 +25,142 @@ function sheet(grade: GradeConfig) {
 }
 
 describe('plural plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph and T4B page size', () => {
         expect(pluralSpec.id).toBe('plural');
         expect(pluralSpec.label).toBe('Plurals');
         expect(pluralSpec.icon).toBe('s');
-        expect(pluralSpec.perPage).toBe(24);
+        // T4B density: 8 roomy rows (was 24).
+        expect(pluralSpec.perPage).toBe(8);
     });
 
-    it('describes its pair scope from the grade caps (regular vs +irregular)', () => {
+    it('describes its scope from the grade caps (regular vs regular & irregular)', () => {
         expect(pluralSpec.scope(g1)).toBe('regular -s endings');
         expect(pluralSpec.scope(g2)).toBe('regular & irregular');
     });
 
     it('is gated by the grade catalogue (Year 1..6 offer it, Year 7 does not)', () => {
-        expect(pluralSpec.offered(getGradeConfig(0))).toBe(false);
+        expect(pluralSpec.offered(g0)).toBe(false);
         expect(pluralSpec.offered(g1)).toBe(true);
         expect(pluralSpec.offered(g2)).toBe(true);
         expect(pluralSpec.offered(getGradeConfig(3))).toBe(true);
         expect(pluralSpec.offered(getGradeConfig(6))).toBe(true);
         expect(pluralSpec.offered(getGradeConfig(7))).toBe(false);
+        // Unoffered type => empty sheet even with a dashboard-shaped seed.
+        expect(generateSheet(pluralSpec, g0, seedFrom([0, 'plural', 0]))).toEqual([]);
     });
 });
 
-describe('plural — Year 1 (regular -s/-es endings only)', () => {
+describe('plural — Year 1 (regular set only)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"prompt":"What is the singular of \"birds\"? (bird, kids, buses)","answer":"bird","visual":"bird","visualCount":3,"id":1,"type":"plural"},
-        {"prompt":"What is the plural of \"leg\"? (nets, legs, watches)","answer":"legs","visualCount":1,"id":2,"type":"plural"},
-        {"prompt":"What is the singular of \"cats\"?","answer":"cat","visual":"cat","visualCount":3,"id":3,"type":"plural"},
-        {"prompt":"What is the plural of \"door\"?","answer":"doors","visual":"door","visualCount":1,"id":4,"type":"plural"},
-        {"prompt":"What is the singular of \"frogs\"?","answer":"frog","visual":"frog","visualCount":3,"id":5,"type":"plural"},
-        {"prompt":"What is the plural of \"moon\"?","answer":"moons","visual":"moon","visualCount":1,"id":6,"type":"plural"},
-        {"prompt":"What is the singular of \"trees\"? (tree, balls, boats)","answer":"tree","visual":"tree","visualCount":3,"id":7,"type":"plural"},
-        {"prompt":"What is the plural of \"cup\"?","answer":"cups","visual":"cup","visualCount":1,"id":8,"type":"plural"},
-        {"prompt":"What is the singular of \"pigs\"? (jams, wigs, pig)","answer":"pig","visual":"pig","visualCount":3,"id":9,"type":"plural"},
-        {"prompt":"What is the plural of \"bus\"? (buses, tree, hats)","answer":"buses","visual":"bus","visualCount":1,"id":10,"type":"plural"},
-        {"prompt":"What is the singular of \"stars\"? (doors, star, pot)","answer":"star","visual":"star","visualCount":3,"id":11,"type":"plural"},
-        {"prompt":"What is the plural of \"map\"?","answer":"maps","visual":"map","visualCount":1,"id":12,"type":"plural"},
-        {"prompt":"What is the singular of \"dogs\"? (fans, dog, box)","answer":"dog","visual":"dog","visualCount":3,"id":13,"type":"plural"},
-        {"prompt":"What is the plural of \"boat\"? (boats, moon, tops)","answer":"boats","visual":"boat","visualCount":1,"id":14,"type":"plural"},
-        {"prompt":"What is the singular of \"pens\"?","answer":"pen","visual":"pen","visualCount":3,"id":15,"type":"plural"},
-        {"prompt":"What is the plural of \"jam\"? (jams, buses, wig)","answer":"jams","visualCount":1,"id":16,"type":"plural"},
-        {"prompt":"What is the singular of \"logs\"? (log, hat, balls)","answer":"log","visualCount":3,"id":17,"type":"plural"},
-        {"prompt":"What is the plural of \"hat\"?","answer":"hats","visual":"hat","visualCount":1,"id":18,"type":"plural"},
-        {"prompt":"What is the singular of \"balls\"?","answer":"ball","visual":"ball","visualCount":3,"id":19,"type":"plural"},
-        {"prompt":"What is the plural of \"fan\"?","answer":"fans","visual":"fan","visualCount":1,"id":20,"type":"plural"},
-        {"prompt":"What is the singular of \"bags\"?","answer":"bag","visual":"bag","visualCount":3,"id":21,"type":"plural"},
-        {"prompt":"What is the plural of \"net\"?","answer":"nets","visual":"net","visualCount":1,"id":22,"type":"plural"},
-        {"prompt":"What is the singular of \"tops\"?","answer":"top","visual":"top","visualCount":3,"id":23,"type":"plural"},
-        {"prompt":"What is the plural of \"book\"? (books, frogs, map)","answer":"books","visualCount":1,"id":24,"type":"plural"}
+        {"prompt":"What is the singular of \"maps\"? (dish, map, wigs)","answer":"map","visual":"map","visualCount":3,"id":1,"type":"plural"},
+        {"prompt":"Choose the right word: The __ make honey in the hive. (bees, bee)","answer":"bees","visual":"bee","visualCount":1,"id":2,"type":"plural"},
+        {"prompt":"Choose the right word: We saw six __ in the pond. (frogs, frog)","answer":"frogs","visual":"frog","visualCount":1,"id":3,"type":"plural"},
+        {"prompt":"What is the plural of \"tree\"?","answer":"trees","visual":"tree","visualCount":1,"id":4,"type":"plural"},
+        {"prompt":"Which is the plural of \"dish\" spelled correctly? (dishs, dishes, dishies)","answer":"dishes","id":5,"type":"plural"},
+        {"prompt":"Choose the right word: A __ lives in a hive. (bees, bee)","answer":"bee","visual":"bee","visualCount":3,"id":6,"type":"plural"},
+        {"prompt":"Which ending makes \"van\" plural? (-s, -es, -ies)","answer":"-s","id":7,"type":"plural"},
+        {"prompt":"Choose the right word: We planted three __ in spring. (trees, tree)","answer":"trees","visual":"tree","visualCount":1,"id":8,"type":"plural"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(pluralSpec, g1, seedFrom([1, 'plural', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"What is the singular of \"boxes\"?","answer":"box","visual":"box","visualCount":3,"id":25,"type":"plural"},
-        {"prompt":"What is the plural of \"kid\"? (net, nets, kids)","answer":"kids","visualCount":1,"id":26,"type":"plural"},
-        {"prompt":"What is the singular of \"watches\"? (dog, log, watch)","answer":"watch","visual":"watch","visualCount":3,"id":27,"type":"plural"}
+        {"prompt":"Choose the right word: Mum bought fresh __ at the market. (eggs, egg)","answer":"eggs","visualCount":1,"id":9,"type":"plural"},
+        {"prompt":"Choose the right word: The farmer has ten __. (pigs, pig)","answer":"pigs","visual":"pig","visualCount":1,"id":10,"type":"plural"},
+        {"prompt":"Which ending makes \"fan\" plural? (-s, -es, -ies)","answer":"-s","id":11,"type":"plural"}
         ]);
+    });
+
+    it('Year 1 never asks an irregular pair (tricky gate)', () => {
+        const problems = pluralSpec.generate(createRng(seedFrom([1, 'plural', 0])), g1.caps, 200);
+        const irregulars = ['child', 'children', 'man', 'men', 'woman', 'women', 'foot', 'feet', 'tooth', 'teeth', 'mouse', 'mice', 'goose', 'geese', 'ox', 'oxen', 'person', 'people', 'leaf', 'leaves', 'life', 'lives', 'knife', 'knives', 'half', 'halves', 'hero', 'heroes'];
+        // No irregular word may appear as the PROMPT word of a plural/singular
+        // ask or ending-rule item at Year 1.
+        for (const p of problems) {
+            const m = p.prompt.match(/"(?:([^"]+))"/);
+            if (m && (p.prompt.startsWith('What is the') || p.prompt.startsWith('Which ending'))) {
+                expect(irregulars).not.toContain(m[1]);
+            }
+        }
     });
 });
 
-describe('plural — Year 2 (adds the irregular set)', () => {
+describe('plural — Year 2 (irregular set joins via tricky)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"prompt":"What is the plural of \"bus\"?","answer":"buses","visual":"bus","visualCount":1,"id":1,"type":"plural"},
-        {"prompt":"What is the singular of \"doors\"? (foot, door, balls)","answer":"door","visual":"door","visualCount":3,"id":2,"type":"plural"},
-        {"prompt":"What is the plural of \"cup\"? (cups, ball, balls)","answer":"cups","visual":"cup","visualCount":1,"id":3,"type":"plural"},
-        {"prompt":"What is the singular of \"geese\"?","answer":"goose","visualCount":3,"id":4,"type":"plural"},
-        {"prompt":"What is the plural of \"log\"?","answer":"logs","visualCount":1,"id":5,"type":"plural"},
-        {"prompt":"What is the singular of \"pigs\"? (star, pig, pots)","answer":"pig","visual":"pig","visualCount":3,"id":6,"type":"plural"},
-        {"prompt":"What is the plural of \"map\"? (child, maps, hat)","answer":"maps","visual":"map","visualCount":1,"id":7,"type":"plural"},
-        {"prompt":"What is the singular of \"people\"? (person, net, men)","answer":"person","visualCount":3,"id":8,"type":"plural"},
-        {"prompt":"What is the plural of \"boat\"? (tooth, boats, mouse)","answer":"boats","visual":"boat","visualCount":1,"id":9,"type":"plural"},
-        {"prompt":"What is the singular of \"nets\"?","answer":"net","visual":"net","visualCount":3,"id":10,"type":"plural"},
-        {"prompt":"What is the plural of \"tooth\"?","answer":"teeth","visualCount":1,"id":11,"type":"plural"},
-        {"prompt":"What is the singular of \"tops\"? (top, wig, log)","answer":"top","visual":"top","visualCount":3,"id":12,"type":"plural"},
-        {"prompt":"What is the plural of \"leg\"? (boats, star, legs)","answer":"legs","visualCount":1,"id":13,"type":"plural"},
-        {"prompt":"What is the singular of \"jams\"?","answer":"jam","visualCount":3,"id":14,"type":"plural"},
-        {"prompt":"What is the plural of \"box\"? (boxes, wig, boat)","answer":"boxes","visual":"box","visualCount":1,"id":15,"type":"plural"},
-        {"prompt":"What is the singular of \"hats\"?","answer":"hat","visual":"hat","visualCount":3,"id":16,"type":"plural"},
-        {"prompt":"What is the plural of \"cat\"? (bird, cats, birds)","answer":"cats","visual":"cat","visualCount":1,"id":17,"type":"plural"},
-        {"prompt":"What is the singular of \"dogs\"?","answer":"dog","visual":"dog","visualCount":3,"id":18,"type":"plural"},
-        {"prompt":"What is the plural of \"ball\"?","answer":"balls","visual":"ball","visualCount":1,"id":19,"type":"plural"},
-        {"prompt":"What is the singular of \"watches\"?","answer":"watch","visual":"watch","visualCount":3,"id":20,"type":"plural"},
-        {"prompt":"What is the plural of \"frog\"? (child, stars, frogs)","answer":"frogs","visual":"frog","visualCount":1,"id":21,"type":"plural"},
-        {"prompt":"What is the singular of \"oxen\"?","answer":"ox","visualCount":3,"id":22,"type":"plural"},
-        {"prompt":"What is the plural of \"bird\"? (birds, pot, woman)","answer":"birds","visual":"bird","visualCount":1,"id":23,"type":"plural"},
-        {"prompt":"What is the singular of \"women\"?","answer":"woman","visualCount":3,"id":24,"type":"plural"}
+        {"prompt":"What is the plural of \"fan\"? (fans, wig, children)","answer":"fans","visual":"fan","visualCount":1,"id":1,"type":"plural"},
+        {"prompt":"What is the singular of \"trees\"?","answer":"tree","visual":"tree","visualCount":3,"id":2,"type":"plural"},
+        {"prompt":"What is the plural of \"pen\"? (top, pens, boat)","answer":"pens","visual":"pen","visualCount":1,"id":3,"type":"plural"},
+        {"prompt":"What is the singular of \"knives\"?","answer":"knife","visualCount":3,"id":4,"type":"plural"},
+        {"prompt":"Choose the right word: The story has three __. (heroes, hero)","answer":"heroes","visualCount":1,"id":5,"type":"plural"},
+        {"prompt":"Choose the right word: The __ flew south for winter. (geese, goose)","answer":"geese","visualCount":1,"id":6,"type":"plural"},
+        {"prompt":"What is the plural of \"boat\"?","answer":"boats","visual":"boat","visualCount":1,"id":7,"type":"plural"},
+        {"prompt":"What is the singular of \"nets\"? (net, foot, sandwich)","answer":"net","visual":"net","visualCount":3,"id":8,"type":"plural"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(pluralSpec, g2, seedFrom([2, 'plural', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"What is the plural of \"tree\"? (boat, box, trees)","answer":"trees","visual":"tree","visualCount":1,"id":25,"type":"plural"},
-        {"prompt":"What is the singular of \"pots\"? (bags, pot, fan)","answer":"pot","visual":"pot","visualCount":3,"id":26,"type":"plural"},
-        {"prompt":"What is the plural of \"kid\"? (kid, pen, kids)","answer":"kids","visualCount":1,"id":27,"type":"plural"}
+        {"prompt":"What is the plural of \"watch\"?","answer":"watches","visual":"watch","visualCount":1,"id":9,"type":"plural"},
+        {"prompt":"Which ending makes \"flower\" plural? (-s, -es, -ies)","answer":"-s","id":10,"type":"plural"},
+        {"prompt":"What is the plural of \"woman\"?","answer":"women","visualCount":1,"id":11,"type":"plural"}
         ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(pluralSpec, getGradeConfig(7), seedFrom([7, 'plural', 0]))).toEqual([]);
+    });
+});
+
+describe('plural — T4B format mix & capacity', () => {
+    // Exact per-format counts over a deterministic 200-question Year-1 sheet
+    // (measured from the real generator). The sentence-cloze count is capped
+    // at 10 because the Year-1 sentence pool holds exactly 10 regular items
+    // (each prints in both option orders, but this seed dealt these 10).
+    it('Year 1: exact format counts over 200 questions', () => {
+        const problems = pluralSpec.generate(createRng(seedFrom([1, 'plural', 0])), g1.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        expect(count('What is the plural of')).toBe(69);
+        expect(count('What is the singular of')).toBe(75);
+        expect(count('Choose the right word:')).toBe(10);
+        expect(count('Which ending makes')).toBe(22);
+        expect(count('Which is the plural of')).toBe(24);
+    });
+
+    it('Year 3: exact format counts over 200 questions', () => {
+        const g3 = getGradeConfig(3);
+        const problems = pluralSpec.generate(createRng(seedFrom([3, 'plural', 0])), g3.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        expect(count('What is the plural of')).toBe(71);
+        expect(count('What is the singular of')).toBe(73);
+        expect(count('Choose the right word:')).toBe(19);
+        expect(count('Which ending makes')).toBe(14);
+        expect(count('Which is the plural of')).toBe(23);
+    });
+
+    // QUANTITY-CONTRAST CUE: a pluralised answer prints ONE picture of the
+    // singular concept; a singularised answer prints THREE.
+    it('Year 1: cue count follows the quantity contrast', () => {
+        const problems = pluralSpec.generate(createRng(seedFrom([1, 'plural', 0])), g1.caps, 200);
+        for (const p of problems) {
+            if (p.visual === undefined) continue;
+            if (p.prompt.startsWith('What is the plural of') || p.prompt.startsWith('Choose the right word')) {
+                // Answer is the plural form (or the cloze answer is plural) —
+                // one picture when the answer is the plural, three when it is
+                // the singular; the pinned rule is answer===plural ? 1 : 3.
+                const cloze = p.prompt.startsWith('Choose the right word');
+                const answerIsPlural = cloze ? p.answer.endsWith('s') : true;
+                expect(p.visualCount).toBe(answerIsPlural ? 1 : 3);
+            } else if (p.prompt.startsWith('What is the singular of')) {
+                expect(p.visualCount).toBe(3);
+            }
+        }
+    });
+
+    // CAPACITY: the 100-page ask (8 x 100 = 800 questions) is fully unique.
+    it('Year 1: 800-question (100-page) ask yields 800 unique questions', () => {
+        const problems = pluralSpec.generate(createRng(seedFrom([1, 'plural', 0])), g1.caps, 800);
+        expect(new Set(problems.map((p) => p.prompt)).size).toBe(800);
     });
 });

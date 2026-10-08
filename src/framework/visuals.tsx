@@ -1115,17 +1115,36 @@ export function Pictogram({ icon, size = 26, announce = true }: PictogramProps) 
 // questions: ONE cat vs THREE cats). Extra copies are slightly smaller so a
 // page row stays one line tall.
 //
+// WRITABLE SCALE (`size`): an explicit px size renders EVERY copy at that
+// size — the tracing sheets pass a large size so the picture cue matches the
+// 64px trace target it scaffolds (a 26px cue beside a 17mm word is a
+// footnote, not a learning picture). Omitted => the compact one-line ladder
+// below, byte-identical to the legacy markup for every normal row.
+//
 // ACCESSIBLE QUANTITY: the row is ONE conceptual image, so the WRAPPER
 // announces the whole quantity ("Picture of a cat, 3 copies") and the
 // individual svgs are aria-hidden. Announcing only the first copy (the old
 // behaviour) meant assistive tech could not tell ONE cat from THREE — the
 // very distinction the quantity contrast exists to teach.
-export function PictogramRow({ icon, count = 1 }: { icon: string; count?: number }) {
+export function PictogramRow({
+    icon,
+    count = 1,
+    size
+}: {
+    icon: string;
+    count?: number;
+    // Uniform copy size in px (writable-scale rows); default = the ladder.
+    size?: number;
+}) {
     if (!hasVisual(icon)) return null;
     // Cap at 3 copies — a printing row has no room for more, and the
     // generators only ever ask for 1 or 3.
     const n = Math.max(1, Math.min(3, Math.floor(count)));
-    const sizes = n === 3 ? [18, 22, 18] : n === 2 ? [20, 20] : [26];
+    // Explicit size => every copy at that px size; otherwise the compact
+    // quantity-contrast ladder (pinned by visuals.test.tsx).
+    const sizes = size !== undefined
+        ? Array.from<number>({ length: n }).fill(size)
+        : n === 3 ? [18, 22, 18] : n === 2 ? [20, 20] : [26];
     const name = visualLabel(icon);
     const quantity = n === 1 ? `Picture of ${name}` : `Picture of ${name}, ${n} copies`;
     return (

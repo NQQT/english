@@ -1,14 +1,14 @@
-// Unit tests for the PREFIXES & SUFFIXES worksheet plugin.
+// Unit tests for the PREFIXES & SUFFIXES (affix) worksheet plugin.
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm or affix banks change,
-// these exact assertions fail — which is what we want, so a silent change to
-// the worksheet can't slip through.
+// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE page-1 sheet
+// (all prompts + answers) is pinned to exact expected values produced from the
+// real generator with the same seed the framework uses
+// (seedFrom([grade.id, spec.id, 0])). Pins cover page 1 only; generator
+// invariants (MC answer in options, no answer printed in compose prompts,
+// open-ended answers marked, 100-page capacity) cover the whole stream.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, generateSheet, generateDocument, createRng, type GradeConfig } from '../framework';
 import { affixSpec } from './AffixWorksheet';
 
 const g3 = getGradeConfig(3);
@@ -19,12 +19,31 @@ function sheet(grade: GradeConfig) {
     return generateSheet(affixSpec, grade, seedFrom([grade.id, affixSpec.id, 0]));
 }
 
+// Extract the trailing "(a, b, c)" option list from an MC prompt; null when
+// the prompt is not multiple-choice.
+function optionsOf(prompt: string): string[] | null {
+    const m = prompt.match(/\(([^)]+)\)\s*$/);
+    if (!m) return null;
+    if (m[1].includes(' / ')) return m[1].split(' / ');
+    if (m[1].includes(', ')) return m[1].split(', ');
+    return null;
+}
+
+// A compose prompt must not print the answer. Single-word answers use
+// word-boundary matching; sentence answers use plain includes.
+function leaks(prompt: string, answer: string): boolean {
+    if (answer.includes(' ')) return prompt.includes(answer);
+    const escaped = answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(prompt);
+}
+
 describe('affix plugin — declarative spec', () => {
     it('declares its sidebar label, glyph and page size', () => {
         expect(affixSpec.id).toBe('affix');
         expect(affixSpec.label).toBe('Prefixes & Suffixes');
         expect(affixSpec.icon).toBe('±');
-        expect(affixSpec.perPage).toBe(18);
+        // T4C: 8 roomy rows per page (was 18).
+        expect(affixSpec.perPage).toBe(8);
     });
 
     it('describes its scope (word building blocks)', () => {
@@ -47,32 +66,45 @@ describe('affix plugin — declarative spec', () => {
 describe('affix — Year 3', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g3)).toEqual([
-        {"prompt":"Which word has the suffix \"er\"? (refill, teacher, preview)","answer":"teacher","id":1,"type":"affix"},
-        {"prompt":"Which word has the prefix \"un\"? (teacher, hopeless, unpack)","answer":"unpack","id":2,"type":"affix"},
-        {"prompt":"What does the suffix \"ly\" do? (in that way, make/become, person who)","answer":"in that way","id":3,"type":"affix"},
-        {"prompt":"Which word has the prefix \"under\"? (undersize, organise, slowly)","answer":"undersize","id":4,"type":"affix"},
-        {"prompt":"Add the prefix \"sub\" to \"marine\".","answer":"submarine","id":5,"type":"affix"},
-        {"prompt":"What does the prefix \"re\" mean in \"replay\"?","answer":"again","id":6,"type":"affix"},
-        {"prompt":"Which word has the suffix \"ing\"? (running, replay, disagree)","answer":"running","id":7,"type":"affix"},
-        {"prompt":"Add the prefix \"dis\" to \"honest\".","answer":"dishonest","id":8,"type":"affix"},
-        {"prompt":"What does the suffix \"ed\" do? (in that way, already happened, doing now)","answer":"already happened","id":9,"type":"affix"},
-        {"prompt":"Add the suffix \"ise\" to \"apolog\".","answer":"apologise","id":10,"type":"affix"},
-        {"prompt":"What does the suffix \"able\" mean in \"comfortable\"?","answer":"able to be","id":11,"type":"affix"},
-        {"prompt":"What does the prefix \"over\" mean in \"overcook\"?","answer":"too much","id":12,"type":"affix"},
-        {"prompt":"Add the suffix \"less\" to \"hope\".","answer":"hopeless","id":13,"type":"affix"},
-        {"prompt":"What does the suffix \"less\" mean in \"careless\"?","answer":"without","id":14,"type":"affix"},
-        {"prompt":"Add the prefix \"un\" to \"fair\".","answer":"unfair","id":15,"type":"affix"},
-        {"prompt":"What does the prefix \"un\" mean in \"unlock\"?","answer":"reverse","id":16,"type":"affix"},
-        {"prompt":"Which word has the prefix \"dis\"? (disagree, organise, realise)","answer":"disagree","id":17,"type":"affix"},
-        {"prompt":"Add the prefix \"dis\" to \"appear\".","answer":"disappear","id":18,"type":"affix"}
+            {"prompt":"Split \"rewrite\" into its prefix and base word.","answer":"re + write","id":1,"type":"affix"},
+            {"prompt":"What does the suffix \"er\" do? (make/become, full of, person who)","answer":"person who","id":2,"type":"affix"},
+            {"prompt":"What does the prefix \"uni\" do? (one, before, not)","answer":"one","id":3,"type":"affix"},
+            {"prompt":"Split \"helpless\" into its suffix and base word.","answer":"help + less","id":4,"type":"affix"},
+            {"prompt":"Write a word that has the suffix \"ing\".","answer":"Example: running (any real word with the suffix \"ing\" is correct)","id":5,"type":"affix"},
+            {"prompt":"Write a word that has the suffix \"less\".","answer":"Example: helpless (any real word with the suffix \"less\" is correct)","id":6,"type":"affix"},
+            {"prompt":"Add the suffix \"ness\" to \"kind\".","answer":"kindness","id":7,"type":"affix"},
+            {"prompt":"Add the prefix \"un\" to \"fair\".","answer":"unfair","id":8,"type":"affix"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(affixSpec, g3, seedFrom([3, 'affix', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word has the suffix \"er\"? (singer, dishonest, disappear)","answer":"singer","id":19,"type":"affix"},
-        {"prompt":"Which word has the prefix \"re\"? (teacher, jumped, refill)","answer":"refill","id":20,"type":"affix"},
-        {"prompt":"Which word has the suffix \"ise\"? (refill, unlock, organise)","answer":"organise","id":21,"type":"affix"}
+            {"prompt":"Which word has the prefix \"sub\"? (submarine, colourful, comfortable)","answer":"submarine","id":9,"type":"affix"},
+            {"prompt":"What does the suffix \"ise\" mean in \"apologise\"?","answer":"make/become","id":10,"type":"affix"},
+            {"prompt":"What does the suffix \"ise\" do? (full of, doing now, make/become)","answer":"make/become","id":11,"type":"affix"}
+        ]);
+    });
+});
+
+describe('affix — Year 6', () => {
+    it('matches the exact page-1 sheet', () => {
+        expect(sheet(g6)).toEqual([
+            {"prompt":"Write a word that has the prefix \"pre\".","answer":"Example: preschool (any real word with the prefix \"pre\" is correct)","id":1,"type":"affix"},
+            {"prompt":"What does the prefix \"un\" mean in \"unlock\"?","answer":"reverse","id":2,"type":"affix"},
+            {"prompt":"Write a word that has the suffix \"ful\".","answer":"Example: colourful (any real word with the suffix \"ful\" is correct)","id":3,"type":"affix"},
+            {"prompt":"What does the prefix \"dis\" do? (not, opposite, again)","answer":"opposite","id":4,"type":"affix"},
+            {"prompt":"Which word fits: The cat crept __ past the sleeping dog. (silently, rudely, sweetly)","answer":"silently","id":5,"type":"affix"},
+            {"prompt":"Which word has the suffix \"ing\"? (misspell, interview, teaching)","answer":"teaching","id":6,"type":"affix"},
+            {"prompt":"Write a word that has the prefix \"dis\".","answer":"Example: disobey (any real word with the prefix \"dis\" is correct)","id":7,"type":"affix"},
+            {"prompt":"What does the prefix \"non\" mean in \"nonsense\"?","answer":"not","id":8,"type":"affix"}
+        ]);
+    });
+
+    it('page 2 continues the exact stream', () => {
+        expect(generateDocument(affixSpec, g6, seedFrom([6, 'affix', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Write a word that has the suffix \"able\".","answer":"Example: movable (any real word with the suffix \"able\" is correct)","id":9,"type":"affix"},
+            {"prompt":"Which word fits: Be __ when you carry the glass jug. (careful, careless, colourful)","answer":"careful","id":10,"type":"affix"},
+            {"prompt":"Split \"supermarket\" into its prefix and base word.","answer":"super + market","id":11,"type":"affix"}
         ]);
     });
 
@@ -81,14 +113,35 @@ describe('affix — Year 3', () => {
     });
 });
 
-describe('affix — Year 6', () => {
-    it('matches the exact page-1 head (grade 6 rolls its own stream)', () => {
-        expect(sheet(g6).slice(0, 5)).toEqual([
-        {"prompt":"What does the prefix \"un\" mean in \"unpack\"?","answer":"reverse","id":1,"type":"affix"},
-        {"prompt":"What does the prefix \"re\" do? (again, opposite, under)","answer":"again","id":2,"type":"affix"},
-        {"prompt":"What does the prefix \"mis\" do? (again, opposite, wrongly)","answer":"wrongly","id":3,"type":"affix"},
-        {"prompt":"What does the suffix \"less\" mean in \"careless\"?","answer":"without","id":4,"type":"affix"},
-        {"prompt":"What does the prefix \"over\" mean in \"overcook\"?","answer":"too much","id":5,"type":"affix"}
-        ]);
-    });
+describe('affix — generator invariants', () => {
+    // Invariants run over the full 100-page request for every offered grade.
+    for (const grade of [g3, g6]) {
+        const ask = affixSpec.perPage * 100;
+        const problems = affixSpec.generate(createRng(seedFrom([grade.id, affixSpec.id, 0])), grade.caps, ask);
+
+        it(`year ${grade.id}: fills ${ask} unique prompts (capacity floor)`, () => {
+            expect(problems.length).toBe(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        });
+
+        it(`year ${grade.id}: every MC answer is one of its printed options`, () => {
+            for (const p of problems) {
+                const options = optionsOf(p.prompt);
+                if (options) expect(options).toContain(p.answer);
+            }
+        });
+
+        it(`year ${grade.id}: compose answers are never printed in their prompt`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:') || optionsOf(p.prompt)) continue;
+                expect(leaks(p.prompt, p.answer)).toBe(false);
+            }
+        });
+
+        it(`year ${grade.id}: open-ended answers are explicitly marked`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:')) expect(p.answer).toContain('(any');
+            }
+        });
+    }
 });

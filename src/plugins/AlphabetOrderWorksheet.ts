@@ -11,24 +11,37 @@
 //     standard worksheet recipe (dashboard.createWorksheet).
 //
 // Fully self-contained: deleting this file and its line in plugins/index.ts
-// removes the Alphabet Order worksheet without affecting the framework or any
-// other plugin.
+// removes the Alphabet Order worksheet without affecting the framework or
+// any other plugin.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
 
-// Alphabet order — FIFTEEN procedural kinds. The old five covered the
-// ±1 neighbourhood of the alphabet (122 questions total, then the space had
-// to cycle). The added kinds widen the neighbourhood (3-runs, skip-2 runs,
-// positions from either end, UPPERCASE variants) and apply letter order to
-// WORDS ("which word comes first in the alphabet?"), whose space is the
-// cross-product of the grade word set — the sheet stays fresh far past 100
-// pages.
+// ── Task design (T4A) ────────────────────────────────────────────────────────
+// TWENTY procedural kinds — the fifteen letter-neighbourhood / word-order
+// kinds plus four deeper connected task types so a page mixes recognize /
+// build / apply / CHECK work instead of one template repeated 24×:
+//
+//   15 APPLY    "Which letter comes between 'p' and 'r'?"          (answer q)
+//   16 CHECK    "Do the letters 'b' and 'f' come in alphabetical
+//               order? (yes / no)"                                  (true+false)
+//   17 CHECK    "Do the words 'ant' and 'bee' come in alphabetical
+//               order? (yes / no)"
+//   18 BUILD    "Write in alphabetical order: (sun, ant, pen)"
+//               (model answer "ant, pen, sun" — the full sorted list)
+//   19 RECOGNIZE "Which is the 5th UPPERCASE letter of the alphabet?" (E)
+//
+// DENSITY (E2): perPage 24 -> 8.
+//
+// The earlier widening (3-runs, skip-2 runs, positions from either end,
+// UPPERCASE variants, word order over the grade word set) is kept: the
+// question space is the cross-product of letters x neighbourhoods x word
+// sets, so the sheet stays fresh far past 100 pages.
 //
 // NON-REPEATING SAMPLING: every question passes through sampleUnique keyed on
-// the printed prompt; word-order triples are dealt from a deck.
+// the printed prompt; word-order triples and task kinds are dealt from decks.
 const A = 97; // 'a'
 const letter = (x: number) => String.fromCharCode(A + x);
 // 1st, 2nd, 3rd, 4th, ... for the position questions.
@@ -36,26 +49,32 @@ function ordinal(n: number): string {
     if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
     return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
 }
-// Word-order question over `pool`: three distinct dealt words, shuffled for
-// printing; `first` asks for the alphabetically FIRST word, `false` the LAST.
-function wordOrder(rng: Rng, wordDeck: { take: () => string }, first: boolean) {
+// Three DISTINCT dealt words (decks reshuffle, so the redraw always
+// terminates). Null on the unreachable guard breach — callers fall back.
+function threeWords(rng: Rng, wordDeck: { take: () => string }): string[] | null {
     let w1 = wordDeck.take();
     let w2 = wordDeck.take();
     let w3 = wordDeck.take();
-    // Redraw until three distinct words are in hand (decks reshuffle, so this
-    // always terminates).
     let guard = 0;
     while ((w2 === w1 || w3 === w1 || w3 === w2) && guard < 48) {
         guard++;
         if (w2 === w1) w2 = wordDeck.take();
         if (w3 === w1 || w3 === w2) w3 = wordDeck.take();
     }
-    if (w2 === w1 || w3 === w1 || w3 === w2) {
+    if (w2 === w1 || w3 === w1 || w3 === w2) return null;
+    return [w1, w2, w3];
+}
+// Word-order question over `pool`: three distinct dealt words, shuffled for
+// printing; `first` asks for the alphabetically FIRST word, `false` the LAST.
+function wordOrder(rng: Rng, wordDeck: { take: () => string }, first: boolean) {
+    const words = threeWords(rng, wordDeck);
+    if (!words) {
         // Practically unreachable fallback: keep the draw well-posed by
         // returning a letter question instead.
         const x = rng.int(0, 24);
         return { prompt: `Which letter comes after "${letter(x)}"?`, answer: letter(x + 1) };
     }
+    const [w1, w2, w3] = words;
     const sorted = [w1, w2, w3].sort();
     const answer = first ? sorted[0] : sorted[2];
     const shown = shuffleWords(rng, [w1, w2, w3]);
@@ -76,10 +95,11 @@ function generateLetters(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const wordDeck = createDeck(rng, wordSet(caps.wordTier));
     // {} outside the cue band → the row object stays byte-identical to legacy.
     const boxed = isEarlyCueBand(caps) ? { tileBlanks: 'letter' as const } : {};
+    const kindDeck = createDeck(rng, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 14);
+            const kind = kindDeck.take();
             if (kind === 0) {
                 // Letter AFTER x (x in a..y so an answer always exists).
                 const x = rng.int(0, 24);
@@ -153,8 +173,62 @@ function generateLetters(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 // Word order: which of three dealt words sorts FIRST.
                 return wordOrder(rng, wordDeck, true);
             }
-            // Word order: which of three dealt words sorts LAST.
-            return wordOrder(rng, wordDeck, false);
+            if (kind === 14) {
+                // Word order: which of three dealt words sorts LAST.
+                return wordOrder(rng, wordDeck, false);
+            }
+            if (kind === 15) {
+                // APPLY: the letter strictly between two neighbours.
+                const x = rng.int(0, 24);
+                return { prompt: `Which letter comes between "${letter(x)}" and "${letter(x + 2)}"?`, answer: letter(x + 1) };
+            }
+            if (kind === 16) {
+                // CHECK: a yes/no judgement about letter order (both
+                // polarities posed — the child cannot learn to always say yes).
+                let x = rng.int(0, 25);
+                let y = rng.int(0, 25);
+                let guard = 0;
+                while (y === x && guard < 12) {
+                    guard++;
+                    y = rng.int(0, 25);
+                }
+                if (y === x) y = (x + 1) % 26;
+                return {
+                    prompt: `Do the letters "${letter(x)}" and "${letter(y)}" come in alphabetical order? (yes / no)`,
+                    answer: x < y ? 'yes' : 'no'
+                };
+            }
+            if (kind === 17) {
+                // CHECK: the same judgement over two dealt WORDS.
+                const words = threeWords(rng, wordDeck);
+                if (!words) {
+                    const x = rng.int(0, 24);
+                    return { prompt: `Which letter comes after "${letter(x)}"?`, answer: letter(x + 1) };
+                }
+                const [a, b] = [words[0], words[1]];
+                return {
+                    prompt: `Do the words "${a}" and "${b}" come in alphabetical order? (yes / no)`,
+                    answer: a < b ? 'yes' : 'no'
+                };
+            }
+            if (kind === 18) {
+                // BUILD: sort three dealt words; the model answer is the full
+                // ordered list (comma-separated — the framework's multi-value
+                // answer form).
+                const words = threeWords(rng, wordDeck);
+                if (!words) {
+                    const x = rng.int(0, 24);
+                    return { prompt: `Which letter comes after "${letter(x)}"?`, answer: letter(x + 1) };
+                }
+                const shown = shuffleWords(rng, words);
+                return {
+                    prompt: `Write in alphabetical order: (${shown.join(', ')})`,
+                    answer: [...shown].sort().join(', ')
+                };
+            }
+            // RECOGNIZE: UPPERCASE position from the start of the alphabet.
+            const n = rng.int(1, 26);
+            return { prompt: `Which is the ${ordinal(n)} UPPERCASE letter of the alphabet?`, answer: letter(n - 1).toUpperCase() };
         },
         (p) => p.prompt
     );
@@ -165,7 +239,8 @@ export const lettersSpec: WorksheetSpec = {
     id: 'letters',
     label: 'Alphabet Order',
     icon: 'Az',
-    perPage: 24,
+    // E2 density: 8 rows per A4 page.
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('letters'),
     scope: () => 'a–z order',
     generate: generateLetters

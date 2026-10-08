@@ -113,31 +113,34 @@ function text(el: Element | null | undefined) {
 }
 
 // Pinned rows (see SightWordsWorksheet.test.ts, seedFrom([grade, type, 0])):
-//   Year 1 sight — page 1 rows 1..2, page 2 head (id 19), page 3 head (id 37)
+//   Year 1 sight — page 1 rows 1..2, page 2 head (id 7), page 3 head (id 13)
 //   Year 2 sight — page 1 row 1   |  Prep sight — page 1 row 1
 //   Randomize streams: refresh 1 rows 1..2, refresh 2 rows 1..2
-const g1sightRow1 = '1.Which is a real word? (jaa, table, boa, mooa)';
-const g1sightRow2 = '2.Which is a real word? (pia, housa, rat, shira)';
-const g1sightP2row1 = '19.Which is a real word? (bira, caa, cua, purple)';
-const g1sightP3row1 = '37.Which is a real word? (doa, trea, top, plana)';
-const g1sightP2prompt = 'Which is a real word? (bira, caa, cua, purple)';
-const g2sightRow1 = '1.Which is a real word? (chickea, doa, butterfly, housa)';
-const g0sightRow1 = '1.Which is a real word? (doa, pig, mooa, jaa)';
-const r1sightRow1 = '1.Which is a real word? (trea, raa, boa, pig)';
-const r1sightRow2 = '2.Which is a real word? (night, rabbia, lea, nigha)';
-const r2sightRow1 = '1.Which is a real word? (rat, boa, lea, trea)';
-const r2sightRow2 = '2.Which is a real word? (caa, poa, faa, grass)';
-// Pinned PREP TRACING rows (fixed ordered sheets — no seed involved, see the
-// tracing plugin tests): a trace row's visible text is the id + solid model +
-// faded copies concatenated WITHOUT separator spaces between elements, e.g.
-// row 1 of letter tracing reads "1." + "A" + "A A A" = "1.AA A A".
-const g0letterRow1 = '1.AA A A';
-const g0letterRow26 = '26.ZZ Z Z';
+// T5E re-pin: sight is 6 rows/page and rotates four task kinds (recognize /
+// check / attend / apply), so the pinned heads are gap-fill and attend rows.
+const g1sightRow1 = '1.Fill the gap: You sleep in a . (hat, bed, cup)';
+const g1sightRow2 = '2.Which one is exactly the word "table"? (toble, tjble, teble, table)';
+const g1sightP2row1 = '7.Which is a real word? (sup, net, housse, shhirt)';
+const g1sightP3row1 = '13.Fill the gap: The  is in the sky. (fish, sun, rock)';
+const g1sightP2prompt = 'Which is a real word? (sup, net, housse, shhirt)';
+const g2sightRow1 = '1.Which is NOT a real word? (green, butterfly, bird, eouse)';
+const g0sightRow1 = '1.Which is NOT a real word? (pig, top, wam, box)';
+const r1sightRow1 = '1.Which is a real word? (boxx, ratt, pig, trhe)';
+const r1sightRow2 = '2.Fill the gap: Snow is . (happy, hot, cold)';
+const r2sightRow1 = '1.Which one is exactly the word "rat"? (ray, rat, bat, rap)';
+const r2sightRow2 = '2.Fill the gap: Fish live in . (fire, water, rock)';
+// Pinned PREP TRACING rows (T5E: seeded DECKS deal 8 letters / 6 words /
+// 5 digits per page — the sheet is no longer a frozen A–Z list, see the
+// tracing plugin tests). A trace row's visible text is the id + solid model
+// + faded copies concatenated WITHOUT separator spaces between elements,
+// e.g. row 1 of letter tracing reads "1." + "G" + "G G G" = "1.GG G G".
+const g0letterRow1 = '1.GG G G';
+const g0letterRow8 = '8.YY Y Y';
 const g0wordRow1 = '1.Aapple';
-const g0wordRow24 = '24.Xxylophone';
-const g0numRow1 = '1.00 0 0';
-const g0numRow9 = '9.88 8 8';
-const g0numRow10 = '10.99 9 9';
+const g0wordRow6 = '6.Lleg';
+const g0numRow1 = '1.33 3 3';
+const g0numRow4 = '4.11 1 1';
+const g0numRow5 = '5.44 4 4';
 
 describe('EnglishDashboard — layout', () => {
     it('renders the app title and year-1 sight-word preview by default', async () => {
@@ -209,12 +212,9 @@ describe('EnglishDashboard — english type selection (left)', () => {
             await screen.findByRole('button', { name: 'Blending' }, { timeout: LOAD_TIMEOUT })
         );
 
-        // Preview now reflects the (Year 1, Blending) sheet. Row 1 is
-        // "Finish the word: __ e __" — the blanks render as empty fill-in
-        // spans (no underscores in text), so the raw text is "…word: " +
-        // blank + " e " + blank = a double space before "e" and a trailing
-        // space after it.
-        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Finish the word:  e ');
+        // Preview now reflects the (Year 1, Blending) sheet. T5E row 1 is
+        // an unscramble row — "Unscramble the letters: e l g" (answer leg).
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.Unscramble the letters: e l g');
         // Toolbar title updates to the new type (+ pinned tier-2 scope label).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Blending');
     });
@@ -233,12 +233,12 @@ describe('EnglishDashboard — english type selection (left)', () => {
         expect(pageText).toContain('1.Put the words in the correct order');
         expect(pageText).not.toContain('(');
         // Row 1's word bank reads from the accessible tile list (sentence g1
-        // pin row 1: answer "Sue skips", shown/scrambled tiles
-        // ["skips", "Sue"] — the answer order is never printed).
+        // pin row 1: answer "Leo sings", shown/scrambled tiles
+        // ["sings", "Leo"] — the answer order is never printed).
         const firstTiles = screen.getAllByTestId('word-tiles')[0];
         expect([...firstTiles.querySelectorAll('[role="listitem"]')].map((el) => el.textContent)).toEqual([
-            'skips',
-            'Sue'
+            'sings',
+            'Leo'
         ]);
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Sentence Building');
     });
@@ -249,9 +249,8 @@ describe('EnglishDashboard — english type selection (left)', () => {
             await screen.findByRole('button', { name: 'Rhyming Words' }, { timeout: LOAD_TIMEOUT })
         );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
-        // Year 1 rhyme, row 1 (pin: base "rat", options fat/leaf/hand).
-        expect(pageText).toContain('1.Which word rhymes with "rat"?');
-        expect(pageText).toContain('(fat, leaf, hand)');
+        // Year 1 rhyme, row 1 (T5E format mix: a yes/no rhyme-check row).
+        expect(pageText).toContain('1.Do "nap" and "lap" rhyme? (yes / no)');
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Rhyming Words');
     });
 
@@ -266,11 +265,11 @@ describe('EnglishDashboard — english type selection (left)', () => {
             { timeout: LOAD_TIMEOUT }
         );
 
-        // Pick it; the sheet matches the pinned Year 2 tense stream (row 1
-        // base verb "point" -> "pointed").
+        // Pick it; the sheet matches the pinned Year 2 tense stream (T5E
+        // row 1 is a true/false irregular-verb row: "feel" -> "felt").
         fireEvent.click(pastTense);
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 2 — Past Tense');
-        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.What is the past tense of "point"?');
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('1.True or false: the past tense of "feel" is "felt".');
     });
 });
 
@@ -333,9 +332,10 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
         // Title + pinned tier scope subtitle (see LetterTracingWorksheet.test.ts).
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Letter Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
-        // First and last alphabet rows (rows are the id + model + 3 copies).
+        // First and last rows of the 8-letter dealt page (id + model + 3
+        // copies). T5E: the letters come from a seeded deck, not a frozen A–Z.
         expect(page).toContain(g0letterRow1);
-        expect(page).toContain(g0letterRow26);
+        expect(page).toContain(g0letterRow8);
     });
 
     it('Word Tracing previews the letter + beginning-word rows', async () => {
@@ -346,9 +346,10 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
         );
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Word Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
-        // Row 1 = model "A" + faded "apple"; row 24 = "X" + "xylophone".
+        // Row 1 = model "A" + faded "apple"; row 6 (last of the dealt page)
+        // = "L" + "leg". T5E: six words dealt from the A–Z deck.
         expect(page).toContain(g0wordRow1);
-        expect(page).toContain(g0wordRow24);
+        expect(page).toContain(g0wordRow6);
     });
 
     it('Number Tracing previews the 0–9 model + faded-copy rows', async () => {
@@ -359,9 +360,10 @@ describe('EnglishDashboard — tracing worksheets (Prep only)', () => {
         );
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Prep — Number Tracing');
         const page = text(screen.getByTestId('sheet-preview-page1'));
+        // T5E: five digits dealt per page — pin rows 1, 4 and 5.
         expect(page).toContain(g0numRow1);
-        expect(page).toContain(g0numRow9);
-        expect(page).toContain(g0numRow10);
+        expect(page).toContain(g0numRow4);
+        expect(page).toContain(g0numRow5);
     });
 });
 
@@ -398,8 +400,8 @@ describe('EnglishDashboard — page count (unbounded −/n/+ stepper)', () => {
 
         // Page 1 keeps the original first rows; pages 2 and 3 continue the
         // exact deterministic stream pinned in SightWordsWorksheet.test.ts
-        // (sight is 18 rows/page, so page 2 starts at id 19 and page 3 at
-        // id 37).
+        // (sight is 6 rows/page, so page 2 starts at id 7 and page 3 at
+        // id 13).
         expect(text(screen.getByTestId('sheet-preview-page1'))).toContain(g1sightRow1);
         expect(text(screen.getByTestId('sheet-preview-page2'))).toContain(g1sightP2row1);
         expect(text(screen.getByTestId('sheet-preview-page3'))).toContain(g1sightP3row1);
@@ -538,7 +540,7 @@ describe('EnglishDashboard — print flow (native dialog, preview IS the preview
         const printPages = document.querySelectorAll('.print-page');
         expect(printPages.length).toBe(5);
         // Each block carries its worksheet page; page 2 is the pinned
-        // continuation row (sight = 18 rows/page, so page 2 opens at id 19).
+        // continuation row (sight = 6 rows/page, so page 2 opens at id 7).
         expect(printPages[1].textContent).toContain(g1sightP2prompt);
         expect(printPages[1].textContent).toContain('Page 2 of 5');
         // The on-screen preview (the print preview) shows the same 5 pages.

@@ -12,6 +12,23 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Similar Words worksheet without affecting the framework or any
 // other plugin.
+//
+// T4B REWORK (quality over quantity):
+//   - DENSITY: perPage 18 → 8 roomy rows.
+//   - TASK MIX (four genuine formats beyond option shuffling):
+//       1. synonym MCQ          "Which word means the same as …?"
+//       2. ODD-ONE-OUT          two same-meaning words + one different — the
+//                               child names the ODD word out (inverse skill);
+//       3. SAME-MEANING YES/NO  "Do "glad" and "happy" mean the same thing?"
+//                               — a judgement task with a fixed yes/no answer;
+//       4. CONTEXT cloze        a curated sentence where the synonym is the
+//                               only word that fits the meaning.
+//   - BANKS: local curated tuples expanded 11→21 (tier 2), 6→12 (tier 3),
+//     24→34 (upper), plus 10 curated context sentences. words.ts untouched.
+//   - ANSWER SAFETY: distractors are rejected when they are ANY synonym of
+//     the target (synonyms map built across all tuples), so an MCQ never has
+//     two correct options and a yes/no "no" pair is verified non-synonymous
+//     in BOTH directions.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
@@ -19,7 +36,6 @@ import { createDeck, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // Similar (synonym) tuples: [target, synonym, distractor A, distractor B].
-// Grown from 14 to 17 tuples; Year 2 (tricky) adds the extended set.
 const SIMILAR_TIER2: [string, string, string, string][] = [
     ['happy', 'glad', 'sad', 'angry'],
     ['big', 'large', 'small', 'new'],
@@ -31,7 +47,21 @@ const SIMILAR_TIER2: [string, string, string, string][] = [
     ['sad', 'unhappy', 'happy', 'tired'],
     ['small', 'little', 'big', 'tall'],
     ['look', 'see', 'hear', 'walk'],
-    ['loud', 'noisy', 'quiet', 'still']
+    ['loud', 'noisy', 'quiet', 'still'],
+    // T4B tier-2 extension — grade-fit Y1 synonyms.
+    ['big', 'huge', 'small', 'fast'],
+    ['begin', 'start', 'stop', 'sleep'],
+    ['end', 'finish', 'begin', 'jump'],
+    ['talk', 'speak', 'walk', 'eat'],
+    ['shop', 'store', 'house', 'bed'],
+    ['street', 'road', 'river', 'wall'],
+    ['house', 'home', 'tree', 'chair'],
+    ['gift', 'present', 'box', 'book'],
+    ['angry', 'mad', 'happy', 'sleepy'],
+    ['brave', 'bold', 'timid', 'strong'],
+    ['jump', 'leap', 'sit', 'run'],
+    ['laugh', 'giggle', 'cry', 'sleep'],
+    ['pretty', 'beautiful', 'small', 'quick']
 ];
 const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
     ['angry', 'cross', 'happy', 'calm'],
@@ -39,7 +69,19 @@ const SIMILAR_TIER3_EXTRA: [string, string, string, string][] = [
     ['quiet', 'silent', 'loud', 'noisy'],
     ['scared', 'afraid', 'brave', 'calm'],
     ['strong', 'mighty', 'weak', 'tiny'],
-    ['easy', 'simple', 'hard', 'tricky']
+    ['easy', 'simple', 'hard', 'tricky'],
+    // T4B tier-3 extension — Y2 synonyms.
+    ['glow', 'shine', 'dark', 'cold'],
+    ['help', 'assist', 'watch', 'sleep'],
+    ['huge', 'giant', 'tiny', 'soft'],
+    ['pleased', 'happy', 'angry', 'tired'],
+    ['frightened', 'scared', 'brave', 'angry'],
+    ['puzzled', 'confused', 'clever', 'sleepy'],
+    ['whisper', 'murmur', 'shout', 'laugh'],
+    ['gift', 'present', 'basket', 'letter'],
+    ['noise', 'sound', 'silence', 'light'],
+    ['run', 'sprint', 'crawl', 'sleep'],
+    ['soft', 'gentle', 'hard', 'loud']
 ];
 // Upper-primary (Year 3+) extension: ACARA Y3–6 vocabulary — harder synonyms
 // with plausible distractors, printed beside two words that do NOT match.
@@ -67,18 +109,44 @@ const SIMILAR_UPPER: [string, string, string, string][] = [
     ['silent', 'noiseless', 'deafening', 'chatty'],
     ['tidy', 'neat', 'messy', 'chaotic'],
     ['tired', 'exhausted', 'refreshed', 'awake'],
-    ['wise', 'sensible', 'foolish', 'reckless']
+    ['wise', 'sensible', 'foolish', 'reckless'],
+    // T4B upper extension — Y3–6 synonyms.
+    ['enormous', 'gigantic', 'tiny', 'light'],
+    ['peculiar', 'strange', 'common', 'plain'],
+    ['rapid', 'swift', 'slow', 'heavy'],
+    ['anxious', 'worried', 'calm', 'cheerful'],
+    ['essential', 'necessary', 'useless', 'minor'],
+    ['observe', 'watch', 'ignore', 'sleep'],
+    ['purchase', 'buy', 'sell', 'borrow'],
+    ['donate', 'give', 'take', 'steal'],
+    ['weary', 'tired', 'energetic', 'angry'],
+    ['delightful', 'lovely', 'awful', 'boring']
 ];
 
-// Similar words (synonyms): multiple-choice on word meaning — the target's
-// synonym beside two words that do NOT mean the same. Distractors are drawn
-// from the whole bank (minus the target's own tuple), so each distinct
-// distractor pair is a distinct question — the combination space clears a
-// thousand unique questions many times over.
+// CONTEXT cloze bank: [sentence with one "__", fitting synonym, distractor].
+// The sentence meaning selects the synonym uniquely; the distractor is a
+// grade-fit word that does NOT fit (shown as the second option).
+const SIMILAR_CONTEXT: [string, string, string][] = [
+    ['Mia felt sad, but her gift made her __ .', 'glad', 'cross'],
+    ['The puppy is __ like a mouse.', 'tiny', 'huge'],
+    ['Dad was __ after the long day.', 'sleepy', 'awake'],
+    ['The library was __ : not a single sound.', 'silent', 'noisy'],
+    ['A lion is __ ; it lifted the log.', 'mighty', 'weak'],
+    ['The test was __ : ten easy questions.', 'simple', 'hard'],
+    ['She felt __ of the dark.', 'afraid', 'brave'],
+    ['A __ child shares toys with everyone.', 'generous', 'selfish'],
+    ['The __ child never says "please".', 'rude', 'polite'],
+    ['My __ room has everything in its place.', 'tidy', 'messy']
+];
+
+// Similar words (synonyms): synonym MCQ, odd-one-out, same-meaning yes/no and
+// context cloze. Distractors are drawn from the whole bank (minus the
+// target's own synonyms), so each distinct distractor set is a distinct
+// question — the combination space clears several thousand unique questions.
 //
 // NON-REPEATING SAMPLING: targets are dealt from a deck (every word gets its
-// turn before any repeats) and the question passes through sampleUnique keyed
-// on the printed prompt.
+// turn before any repeats), context sentences run on their own deck, and the
+// question passes through sampleUnique keyed on the printed prompt.
 function generateSimilar(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // The similar-word bank exists from Year 1; tiers 2 and 3 share it, with
     // the extra tuples gated by tricky (Y2) and the upper-primary set by
@@ -91,6 +159,7 @@ function generateSimilar(rng: Rng, caps: Caps, count: number): RawProblem[] {
               ? [...SIMILAR_TIER2, ...SIMILAR_TIER3_EXTRA]
               : SIMILAR_TIER2;
     const targetDeck = createDeck(rng, pool);
+    const contextDeck = createDeck(rng, SIMILAR_CONTEXT);
     // Global distractor pool: every word in the bank, any tuple.
     const bankWords = pool.flat();
     // A word may anchor several tuples (e.g. "small" -> tiny AND little); a
@@ -101,24 +170,83 @@ function generateSimilar(rng: Rng, caps: Caps, count: number): RawProblem[] {
         if (!synonyms.has(target)) synonyms.set(target, new Set());
         synonyms.get(target)!.add(syn);
     }
+    // True when w1 and w2 must NOT be presented as a "same meaning" pair:
+    // either is a listed synonym of the other.
+    const clash = (w1: string, w2: string) =>
+        synonyms.get(w1)?.has(w2) || synonyms.get(w2)?.has(w1);
     return sampleUnique(
         count,
         () => {
             const tuple = targetDeck.take();
             const [target, syn] = tuple;
             const wrongSynonyms = synonyms.get(target)!;
-            // Two distractors from other tuples (own-tuple words would give
-            // away the answer or clash with the synonym).
-            const options = [syn];
-            let guard = 0;
-            while (options.length < 3 && guard < 24) {
-                guard++;
-                const pick = rng.pick(bankWords);
-                if (pick === target || wrongSynonyms.has(pick)) continue;
-                if (!options.includes(pick)) options.push(pick);
+            const roll = rng.next();
+            if (roll < 0.4) {
+                // Format 1 — synonym MCQ: two distractors from other tuples
+                // (own-tuple words would give away the answer or clash with
+                // the synonym).
+                const options = [syn];
+                let guard = 0;
+                while (options.length < 3 && guard < 24) {
+                    guard++;
+                    const pick = rng.pick(bankWords);
+                    if (pick === target || wrongSynonyms.has(pick)) continue;
+                    if (!options.includes(pick)) options.push(pick);
+                }
+                const shown = shuffleWords(rng, options);
+                return { prompt: `Which word means the same as "${target}"? (${shown.join(', ')})`, answer: syn };
             }
-            const shown = shuffleWords(rng, options);
-            return { prompt: `Which word means the same as "${target}"? (${shown.join(', ')})`, answer: syn };
+            if (roll < 0.6) {
+                // Format 2 — odd-one-out: the target and its synonym mean the
+                // same; the child names the third word that does NOT.
+                let distractor = '';
+                let guard = 0;
+                while (guard < 24) {
+                    guard++;
+                    const pick = rng.pick(bankWords);
+                    if (pick === target || pick === syn || wrongSynonyms.has(pick) || clash(target, pick)) continue;
+                    distractor = pick;
+                    break;
+                }
+                if (!distractor) distractor = tuple[2];
+                const shown = shuffleWords(rng, [target, syn, distractor]);
+                return {
+                    prompt: `Which word does NOT mean the same as the other two? (${shown.join(', ')})`,
+                    answer: distractor
+                };
+            }
+            if (roll < 0.8) {
+                // Format 3 — same-meaning yes/no. "yes" uses a dealt tuple;
+                // "no" pairs the target with a verified non-synonym.
+                const sayYes = rng.next() < 0.5;
+                if (sayYes) {
+                    const shown = rng.next() < 0.5 ? [target, syn] : [syn, target];
+                    return {
+                        prompt: `Do "${shown[0]}" and "${shown[1]}" mean the same thing? (yes / no)`,
+                        answer: 'yes'
+                    };
+                }
+                let other = '';
+                let guard = 0;
+                while (guard < 24) {
+                    guard++;
+                    const pick = rng.pick(bankWords);
+                    if (pick === target || clash(target, pick)) continue;
+                    other = pick;
+                    break;
+                }
+                if (!other) other = tuple[3];
+                const shown = rng.next() < 0.5 ? [target, other] : [other, target];
+                return {
+                    prompt: `Do "${shown[0]}" and "${shown[1]}" mean the same thing? (yes / no)`,
+                    answer: 'no'
+                };
+            }
+            // Format 4 — context cloze: the synonym is the only word that
+            // fits the sentence meaning.
+            const [sentence, fit, bad] = contextDeck.take();
+            const shown = shuffleWords(rng, [fit, bad]);
+            return { prompt: `Which word fits: ${sentence} (${shown.join(', ')})`, answer: fit };
         },
         (p) => p.prompt
     );
@@ -129,7 +257,8 @@ export const similarSpec: WorksheetSpec = {
     id: 'similar',
     label: 'Similar Words',
     icon: '≡',
-    perPage: 18,
+    // T4B density: 8 roomy rows per page (was 18).
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('similar'),
     scope: (grade: GradeConfig) => (grade.caps.wordTier >= 4 ? 'synonyms' : 'word meanings'),
     generate: generateSimilar

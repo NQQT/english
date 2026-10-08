@@ -16,74 +16,140 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Homographs worksheet without affecting the framework or any
 // other plugin.
+//
+// DENSITY (distribution quality pass): perPage dropped 18 → 8. Eight rows on
+// the A4 grid (framework PrintableSheet `gridAutoRows: 1fr`) gives every task
+// real writing room — several families ask the child to write a sentence or
+// explain a meaning, which an 18-row page cannot accommodate.
+//
+// TASK VARIETY: SIX connected families instead of three MC-heavy kinds —
+// interpret (gap, meaning-in-sentence, meaning-choice), compare (fits-both),
+// edit (spot-and-replace a misused word) and apply (write-your-own). Families
+// are dealt from a KIND DECK so a page never clumps into one task type.
+//
+// ANSWER VALIDITY: every multiple-choice distractor is CURATED per item
+// (fields d1/d2) — a bank word that fits NEITHER of the item's sense
+// sentences — so each MCQ has exactly one defensible answer. Written sense
+// answers come from the per-sense gloss (no fallback guesses). Open-ended
+// "write your own" rows carry an "Example:" model answer in the answer field
+// so the teacher key is clearly a sample, not the only right answer.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { sampleUnique } from '../framework';
 
-// Homograph items: [word, meaning A sentence, meaning B sentence] — the word
-// fits BOTH sentences; the child matches word -> meaning.
-const HOMOGRAPH_ITEMS: [string, string, string][] = [
-    ['bat', 'A __ flew out of the cave at dusk.', 'Pick up the __ and hit the ball.'],
-    ['light', 'The room felt dark until she turned on the __ .', 'This bag is very __ to carry.'],
-    ['wave', 'The surfer rode a huge __ .', 'Give your friend a friendly __ goodbye.'],
-    ['ring', 'The boxer stepped into the __ .', 'Grandma wears a gold __ .'],
-    ['bank', 'We had a picnic on the river __ .', 'I keep my savings in the __ .'],
-    ['match', 'The two teams played a close __ .', 'Use a __ to light the candle.'],
-    ['palm', 'A tall __ tree shaded the beach.', 'The __ of my hand itched.'],
-    ['trunk', 'The elephant sprayed water from its __ .', 'We packed the car boot and the __ .'],
-    ['band', 'A rubber __ held the letters together.', 'The school __ played at assembly.'],
-    ['bark', 'The dog gave a loud __ .', 'The __ of the tree is rough.'],
-    ['watch', '__ the baby birds until they fly.', 'I checked my __ for the time.'],
-    ['play', 'The children __ in the park.', 'We saw a __ at the theatre.'],
-    ['letter', 'I posted a __ to my cousin.', 'Every __ of the alphabet has a shape.'],
-    ['seal', 'A __ flopped onto the rocks.', 'She pressed a __ on the envelope.'],
-    ['crane', 'A __ bird waded through the shallows.', 'The building __ lifted the steel beams.'],
-    ['current', 'The river __ pulled the canoe sideways.', 'Electric __ flows through the wire.'],
-    ['file', 'Keep the papers in a __ .', 'The carpenter smoothed the edge with a __ .'],
-    ['fly', 'A __ buzzed around the kitchen.', 'The birds __ south for winter.'],
-    ['rock', 'The boat bumped against a __ .', 'Guitars, drums and a singer make a __ band.'],
-    ['spring', 'Water bubbled from a natural __ .', 'The mattress __ creaked under him.']
+// Homograph items: [word, sense A sentence, sense A gloss, sense B sentence,
+// sense B gloss, distractor word 1, distractor word 2]. The word fits BOTH
+// sense sentences; d1/d2 are bank words that fit NEITHER (curated, so the MC
+// families are unambiguous). Sentences print the gap as "__".
+// (Exported for the plugin's own tests — the answer-correctness invariants
+// re-derive expected answers straight from this bank.)
+export const HOMOGRAPH_ITEMS: [string, string, string, string, string, string, string][] = [
+    ['bat', 'A __ flew out of the cave at dusk.', 'a night-flying animal', 'Pick up the __ and hit the ball.', 'a stick for hitting a ball', 'seal', 'ring'],
+    ['light', 'The room was dark until she turned on the __ .', 'a bright lamp or glow', 'This bag is very __ to carry.', 'not heavy', 'trunk', 'crane'],
+    ['wave', 'The surfer rode a huge __ to the shore.', 'a moving ridge of sea water', 'Give your friend a friendly __ goodbye.', 'a greeting with your hand', 'file', 'stamp'],
+    ['ring', 'The boxer stepped into the __ .', 'the roped area for a fight', 'Grandma wears a gold __ on her finger.', 'a band worn on a finger', 'bank', 'palm'],
+    ['bank', 'We had a picnic on the river __ .', 'the land beside a river', 'I keep my savings in the __ .', 'a place that keeps money', 'bat', 'wave'],
+    ['match', 'The two teams played a close __ .', 'a game between two sides', 'Strike a __ to light the candle.', 'a small stick that makes fire', 'mouse', 'organ'],
+    ['palm', 'A tall __ tree shaded the beach.', 'a tropical tree with fronds', 'The __ of my hand itched.', 'the middle of your hand', 'ring', 'bat'],
+    ['trunk', 'The elephant sprayed water from its __ .', "an elephant's long nose", 'We packed the __ in the car boot for the trip.', 'a large suitcase', 'light', 'seal'],
+    ['band', 'A rubber __ held the letters together.', 'a stretchy strip', 'The school __ played at assembly.', 'a group of musicians', 'wave', 'file'],
+    ['bark', 'The dog gave a loud __ at the stranger.', 'the sharp sound a dog makes', 'The __ of the tree is rough.', 'the outer covering of a tree', 'match', 'palm'],
+    ['watch', '__ the baby birds until they fly.', 'to look at for a while', 'I checked my __ for the time.', 'a small clock you wear', 'spring', 'tail'],
+    ['play', 'The children __ in the park after lunch.', 'to take part in a game', 'We saw a __ at the theatre.', 'a show on a stage', 'ring', 'bat'],
+    ['letter', 'I posted a __ to my cousin.', 'a message in an envelope', 'Every __ of the alphabet has a shape.', 'a symbol of the alphabet', 'wave', 'bank'],
+    ['seal', 'A __ flopped onto the rocks.', 'a flippered sea animal', 'She pressed a wax __ on the envelope.', 'a stamp that closes a letter', 'light', 'match'],
+    ['crane', 'A __ bird waded through the shallows.', 'a long-legged, long-necked bird', 'The building __ lifted the steel beams.', 'a machine that lifts heavy loads', 'palm', 'trunk'],
+    ['current', 'The river __ pulled the canoe sideways.', 'a moving flow of water', "She is the __ champion, not last year's winner.", 'of right now', 'bat', 'seal'],
+    ['file', 'Keep the papers in a __ .', 'a folder for papers', 'The carpenter smoothed the edge with a __ .', 'a tool for smoothing wood or metal', 'wave', 'band'],
+    ['fly', 'A __ buzzed around the kitchen.', 'a small winged insect', 'The birds __ south for winter.', 'to travel through the air', 'ring', 'current'],
+    ['rock', 'The boat bumped against a __ .', 'a large piece of stone', 'Guitars, drums and a singer make a __ band.', 'a style of loud music', 'file', 'light'],
+    ['spring', 'Water bubbled from a natural __ .', 'a place where water rises from the ground', 'The mattress __ creaked under him.', 'a coiled ring that bounces', 'watch', 'bank'],
+    ['date', 'A __ is a sweet fruit that grows on tall palms.', 'a sweet brown fruit', 'Check the __ on the invitation to see when the show starts.', 'a day on the calendar', 'bat', 'wave'],
+    ['minute', 'Wait one __ and I will be ready.', 'sixty seconds', 'The crack in the wall was almost __ .', 'very small', 'seal', 'rock'],
+    ['park', 'We played football in the __ after school.', 'a public green area', 'Dad had to __ the car twice to find a space.', 'to stop and leave a vehicle', 'ring', 'bat'],
+    ['well', 'The village drew water from the old __ .', 'a deep hole that holds water', 'The choir sang __ at the concert.', 'in a good way', 'light', 'wave'],
+    ['mouse', 'A __ squeaked behind the cupboard.', 'a small grey animal', 'Click the __ to open the file.', 'a hand-held computer pointer', 'palm', 'crane'],
+    ['organ', 'The heart is an __ that pumps blood.', 'a part of a living body', 'The __ music filled the church hall.', 'a large keyboard instrument', 'bat', 'match'],
+    ['head', 'The boy bumped his __ on the low branch.', 'the top part of a body', 'The __ of the line waved at the teacher.', 'the person in charge', 'file', 'band'],
+    ['tail', 'The dog wagged its __ happily.', 'the tail end of an animal', 'The police decided to __ the suspect.', 'to follow secretly', 'light', 'seal']
 ];
 
-// Homographs — THREE procedural kinds (upper primary):
-//   0. MC: "which meaning fits '<word>'?" (two meaning glosses + one from
-//      another word; keyed on the sentence pairs)
-//   1. written: "write a sentence-sense for '<word>' — animal, thing or
-//      action?" (the child names the class of the drawn sense)
-//   2. MC: which word completes BOTH kinds of sentence (the homograph beside
-//      two bank words that fit neither)
+// All sense glosses (the meaning pool for the MC-meaning family's third
+// option). Every gloss string is unique across the bank, so a foreign gloss
+// can never equal the item's own two senses.
+const ALL_GLOSSES: string[] = HOMOGRAPH_ITEMS.flatMap(([, , gA, , gB]) => [gA, gB]);
+
+// Homographs — SIX connected families (upper primary):
+//   0. MC gap (interpret): which bank word fits the printed sense sentence
+//   1. written sense (interpret): what does the word mean in this sentence
+//   2. MC meaning (interpret): which gloss fits the word in this sentence
+//      (the item's other-sense gloss + one foreign gloss as distractors)
+//   3. MC edit (edit): a misused word in a sentence — which word replaces it
+//   4. written apply (apply): write your own sentence for a given sense
+//      (open-ended → the answer field carries an "Example:" model)
+//   5. MC both (compare): which word fits BOTH sense sentences
 //
-// NON-REPEATING SAMPLING: items AND sense direction are dealt from decks and
-// every question passes through sampleUnique keyed on the printed prompt.
+// NON-REPEATING SAMPLING: items AND families are dealt from decks (the kind
+// deck spreads task types evenly across a page) and every question passes
+// through sampleUnique keyed on the printed prompt.
 function generateHomograph(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     const itemDeck = localDeck(rng, HOMOGRAPH_ITEMS);
-    // The bank's word list (distractor pool for the MC kinds).
-    const bankWords = HOMOGRAPH_ITEMS.map(([w]) => w);
+    const kindDeck = localDeck(rng, [0, 1, 2, 3, 4, 5] as const);
     return sampleUnique(
         count,
         () => {
-            // The dealt item ALREADY carries both senses — kind 0 uses them
-            // directly (no re-lookup by word).
-            const [word, senseA, senseB] = itemDeck.take();
-            const kind = rng.int(0, 2);
+            const [word, senseA, glossA, senseB, glossB, d1, d2] = itemDeck.take();
+            const kind = kindDeck.take();
             if (kind === 0) {
-                // MC: ask which bank word fits ONE of the dealt word's two
-                // sense sentences; the two distractor bank words fit it not.
-                const target = rng.next() < 0.5 ? [word, senseA] : [word, senseB];
-                const others = shuffleLocal(rng, bankWords.filter((w) => w !== word)).slice(0, 2);
-                const shown = shuffleLocal(rng, [target[0], ...others]);
-                return { prompt: `Which word fits the gap: ${target[1]} (${shown.join(', ')})`, answer: target[0] };
+                // MC gap: one sense sentence, the word beside its two curated
+                // non-fitting distractors.
+                const [sense] = rng.next() < 0.5 ? [senseA] : [senseB];
+                const shown = shuffleLocal(rng, [word, d1, d2]);
+                return { prompt: `Which word fits the gap: ${sense} (${shown.join(', ')})`, answer: word };
             }
             if (kind === 1) {
-                // Sense class: does the word mean an animal, a thing or an
-                // action in the printed sentence? (Curated per item sense.)
-                const sense = rng.next() < 0.5 ? senseA : senseB;
-                return { prompt: `What does "${word}" mean in this sentence? ${sense}`, answer: HOMOGRAPH_SENSE[`${word}|${sense}`] ?? 'thing' };
+                // Written sense: the printed sentence's gloss is the exact
+                // answer (curated per sense — never a fallback guess).
+                const useA = rng.next() < 0.5;
+                const sense = useA ? senseA : senseB;
+                return { prompt: `What does "${word}" mean in this sentence? ${sense}`, answer: useA ? glossA : glossB };
             }
-            // MC: which bank word can have BOTH printed meanings?
-            const others = shuffleLocal(rng, bankWords.filter((w) => w !== word)).slice(0, 2);
-            const shown = shuffleLocal(rng, [word, ...others]);
+            if (kind === 2) {
+                // MC meaning: the correct gloss beside the word's OTHER-sense
+                // gloss (wrong for this sentence) and one foreign gloss.
+                const useA = rng.next() < 0.5;
+                const sense = useA ? senseA : senseB;
+                const right = useA ? glossA : glossB;
+                const own = useA ? glossB : glossA;
+                const foreign = pickForeignGloss(rng, glossA, glossB);
+                const shown = shuffleLocal(rng, [right, own, foreign]);
+                return { prompt: `Which meaning fits "${word}" in "${sense}"? (${shown.join(' / ')})`, answer: right };
+            }
+            if (kind === 3) {
+                // MC edit: Mia wrote the sentence with a word that fits
+                // neither sense — the child names the replacement.
+                const useA = rng.next() < 0.5;
+                const sense = useA ? senseA : senseB;
+                const wrong = useA ? d1 : d2;
+                const other = useA ? d2 : d1;
+                const edited = sense.replace('__', wrong);
+                const shown = shuffleLocal(rng, [word, wrong, other]);
+                return { prompt: `Mia wrote: "${edited}" Which word should replace "${wrong}"? (${shown.join(', ')})`, answer: word };
+            }
+            if (kind === 4) {
+                // Written apply: open-ended sentence writing. The answer
+                // field is a LABELED example (the item's own sense sentence),
+                // so the key shows one valid model without claiming to be the
+                // only correct response.
+                const useA = rng.next() < 0.5;
+                const gloss = useA ? glossA : glossB;
+                const sense = useA ? senseA : senseB;
+                return { prompt: `Write your own sentence using "${word}" to mean ${gloss}.`, answer: `Example: ${sense.replace('__', word)}` };
+            }
+            // MC both (compare): the homograph beside its two non-fitting
+            // distractors — only the homograph completes BOTH sentences.
+            const shown = shuffleLocal(rng, [word, d1, d2]);
             return {
                 prompt: `Which word fits both sentences: "${senseA}" and "${senseB}"? (${shown.join(', ')})`,
                 answer: word
@@ -93,50 +159,16 @@ function generateHomograph(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     );
 }
 
-// Sense-class gloss keyed by "word|sentence" — hand-curated for each item
-// sense (kind 1 above). Any unlisted key falls back to 'thing'.
-const HOMOGRAPH_SENSE: Record<string, string> = {
-    'bat|A __ flew out of the cave at dusk.': 'an animal',
-    'bat|Pick up the __ and hit the ball.': 'a thing',
-    'light|The room felt dark until she turned on the __ .': 'a thing',
-    'light|This bag is very __ to carry.': 'a describing word',
-    'wave|The surfer rode a huge __ .': 'a thing',
-    'wave|Give your friend a friendly __ goodbye.': 'an action',
-    'ring|The boxer stepped into the __ .': 'a place',
-    'ring|Grandma wears a gold __ .': 'a thing',
-    'bank|We had a picnic on the river __ .': 'a place',
-    'bank|I keep my savings in the __ .': 'a place',
-    'match|The two teams played a close __ .': 'an event',
-    'match|Use a __ to light the candle.': 'a thing',
-    'palm|A tall __ tree shaded the beach.': 'a plant',
-    'palm|The __ of my hand itched.': 'a body part',
-    'trunk|The elephant sprayed water from its __ .': 'a body part',
-    'trunk|We packed the car boot and the __ .': 'a thing',
-    'band|A rubber __ held the letters together.': 'a thing',
-    'band|The school __ played at assembly.': 'a group',
-    'bark|The dog gave a loud __ .': 'a sound',
-    'bark|The __ of the tree is rough.': 'a thing',
-    'watch|__ the baby birds until they fly.': 'an action',
-    'watch|I checked my __ for the time.': 'a thing',
-    'play|The children __ in the park.': 'an action',
-    'play|We saw a __ at the theatre.': 'an event',
-    'letter|I posted a __ to my cousin.': 'a thing',
-    'letter|Every __ of the alphabet has a shape.': 'a symbol',
-    'seal|A __ flopped onto the rocks.': 'an animal',
-    'seal|She pressed a __ on the envelope.': 'a thing',
-    'crane|A __ bird waded through the shallows.': 'an animal',
-    'crane|The building __ lifted the steel beams.': 'a machine',
-    'current|The river __ pulled the canoe sideways.': 'a flow',
-    'current|Electric __ flows through the wire.': 'a flow',
-    'file|Keep the papers in a __ .': 'a thing',
-    'file|The carpenter smoothed the edge with a __ .': 'a tool',
-    'fly|A __ buzzed around the kitchen.': 'an insect',
-    'fly|The birds __ south for winter.': 'an action',
-    'rock|The boat bumped against a __ .': 'a thing',
-    'rock|Guitars, drums and a singer make a __ band.': 'music',
-    'spring|Water bubbled from a natural __ .': 'a place',
-    'spring|The mattress __ creaked under him.': 'a thing'
-};
+// Pick a gloss from another item (never the dealt item's own two senses) —
+// the third option for the MC-meaning family. Guarded loop: the pool is far
+// larger than the two excluded glosses, so it always resolves.
+function pickForeignGloss(rng: Rng, ownA: string, ownB: string): string {
+    for (let guard = 0; guard < 24; guard++) {
+        const g = rng.pick(ALL_GLOSSES);
+        if (g !== ownA && g !== ownB) return g;
+    }
+    return ALL_GLOSSES.find((g) => g !== ownA && g !== ownB) as string;
+}
 
 // Local Fisher–Yates shuffle (plugin isolation: no cross-plugin imports).
 function shuffleLocal<T>(rng: Rng, items: readonly T[]): T[] {
@@ -160,12 +192,13 @@ function localDeck<T>(rng: Rng, pool: readonly T[]): { take: () => T } {
     };
 }
 
-// The plugin's declarative spec (exported for its own tests).
+// The plugin's declarative spec (exported for its own tests). perPage 8:
+// low density so the written/apply families have real writing room.
 export const homographSpec: WorksheetSpec = {
     id: 'homograph',
     label: 'Homographs',
     icon: '⚭',
-    perPage: 18,
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('homograph'),
     scope: () => 'same spelling, new meaning',
     generate: generateHomograph

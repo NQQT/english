@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // NUMBER TRACING WORKSHEET — a self-contained dashboard plugin (Prep
-// handwriting: trace the numbers 0–9).
+// handwriting: tracing the number shapes 0–9).
 //
 // The dashboard loads this plugin by calling
 // `NumberTracingWorksheet(dashboard)` with its configurations + layouts
@@ -15,29 +15,45 @@
 // removes the Number Tracing worksheet without affecting the framework or any
 // other plugin.
 //
-// DETERMINISM: the generator deliberately draws NO random numbers — the sheet
-// content is the fixed ordered set 0–9, which is exactly what number-shape
-// practice needs. "Randomize" is a no-op for this type by design; multi-page
-// documents repeat the same ordered set (repeated practice runs).
+// PRACTICE DESIGN (quality over quantity): the old sheet printed all ten
+// digits in a frozen 0–9 order and every extra page repeated it. The sheet
+// now prints FIVE digits per page — half the set — as long full-width
+// writing lines at the enlarged writable scale, and the five come from a
+// seeded DECK over 0–9 (createDeck, framework/sampling.ts): each digit is
+// dealt exactly once per cycle, the deck reshuffles between cycles, and no
+// digit repeats back-to-back across a cycle boundary. Page 1 and page 2 of
+// one document therefore practise DIFFERENT groups of digits, and
+// "Randomize" re-rolls the grouping. The digit set is finite, so long
+// documents repeat digits by nature — spread evenly by the deck.
+//
+// DETERMINISM (unchanged contract): the deck draws from the document's ONE
+// seeded Rng stream (seed = seedFrom([grade, id, refresh]), seed packing
+// untouched), so the same seed always yields the same document and preview
+// and print can never disagree.
 //
 // LAYOUT: numberTrace runs single-column — number rows print on long
-// full-width writing lines ("0 0 0"), which suits number shapes (letter/word
-// tracing stays two-column).
+// full-width writing lines ("0 0 0"), which suits number shapes (letter
+// tracing stays two-column; word tracing is single-column for its long
+// trace targets).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck } from '../framework';
 
-// The numbers traced on number pages, in counting order.
+// The numbers traced on number pages — the deck pool. Dealt in seeded
+// shuffled order (five per page), not as a frozen 0–9 list.
 const TRACE_NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 // Number tracing: "look at the model, then trace the number three times",
-// one ordered row per digit 0–9 (10 rows = exactly one page; extra pages
-// repeat 0–9 from the top). The model exemplar + dashed trace target switch
+// one row per dealt digit. The model exemplar + dashed trace target switch
 // the row to the tracing layout in the framework's PrintableSheet.
-function generateNumberTrace(_rng: Rng, _caps: Caps, count: number): RawProblem[] {
+function generateNumberTrace(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+    // Seeded deck: every page is a fresh group of digits, and one full
+    // cycle (10 rows) covers every digit exactly once.
+    const deck = createDeck(rng, TRACE_NUMBERS);
     const out: RawProblem[] = [];
     for (let i = 0; i < count; i++) {
-        const n = TRACE_NUMBERS[i % TRACE_NUMBERS.length];
+        const n = deck.take();
         out.push({
             prompt: `Trace the number "${n}"`,
             answer: n,
@@ -53,7 +69,9 @@ export const numberTraceSpec: WorksheetSpec = {
     id: 'numberTrace',
     label: 'Number Tracing',
     icon: '12',
-    perPage: 10,
+    // 5 rows (half the digit set) on long full-width lines: big writable
+    // numbers instead of a dense 0–9 list.
+    perPage: 5,
     singleColumn: true,
     offered: (grade: GradeConfig) => grade.available.includes('numberTrace'),
     scope: () => '0–9 number shapes',

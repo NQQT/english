@@ -1,14 +1,14 @@
 // Unit tests for the COMMA LISTS worksheet plugin.
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm or list themes change,
-// these exact assertions fail — which is what we want, so a silent change to
-// the worksheet can't slip through.
+// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE page-1 sheet
+// (all prompts + answers) is pinned to exact expected values produced from the
+// real generator with the same seed the framework uses
+// (seedFrom([grade.id, spec.id, 0])). Pins cover page 1 only; generator
+// invariants (MC answer in options, no answer printed in compose prompts,
+// open-ended answers marked, 100-page capacity) cover the whole stream.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, generateSheet, generateDocument, createRng, type GradeConfig } from '../framework';
 import { commaSpec } from './CommaListWorksheet';
 
 const g3 = getGradeConfig(3);
@@ -19,13 +19,38 @@ function sheet(grade: GradeConfig) {
     return generateSheet(commaSpec, grade, seedFrom([grade.id, commaSpec.id, 0]));
 }
 
+// Extract the trailing "(a / b / c)" option list from an MC prompt (comma
+// options themselves contain commas, so ' / ' is the separator); null when the
+// prompt is not multiple-choice.
+function optionsOf(prompt: string): string[] | null {
+    const m = prompt.match(/\(([^)]+)\)\s*$/);
+    if (!m) return null;
+    if (m[1].includes(' / ')) return m[1].split(' / ');
+    if (m[1].includes(', ')) return m[1].split(', ');
+    return null;
+}
+
+// Check prompts legitimately print the verdict word ("correctly" contains
+// "correct"); rewrite prompts must NOT print the comma-punctuated answer.
+function isIdentifyOrCheck(prompt: string): boolean {
+    return /^(True or false|Is the|Is this|Does this|Find the|Who is speaking)/.test(prompt);
+}
+
+// A compose prompt must not print the answer. Single-word answers use
+// word-boundary matching; sentence answers use plain includes.
+function leaks(prompt: string, answer: string): boolean {
+    if (answer.includes(' ')) return prompt.includes(answer);
+    const escaped = answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(prompt);
+}
+
 describe('comma plugin — declarative spec', () => {
     it('declares its sidebar label, glyph, page size and single-column layout', () => {
         expect(commaSpec.id).toBe('comma');
         expect(commaSpec.label).toBe('Comma Lists');
         expect(commaSpec.icon).toBe(',');
-        expect(commaSpec.perPage).toBe(16);
-        // Prose lines run single-column.
+        // T4C: 6 roomy rows per page (was 16); prose lines run single-column.
+        expect(commaSpec.perPage).toBe(6);
         expect(commaSpec.singleColumn).toBe(true);
     });
 
@@ -49,30 +74,41 @@ describe('comma plugin — declarative spec', () => {
 describe('comma — Year 3', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g3)).toEqual([
-        {"prompt":"Rewrite with commas: My favourite sports are cricket swimming netball.","answer":"my favourite sports are cricket, swimming, netball","id":1,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (counting, singing and dancing / counting, and singing, and dancing / counting singing dancing)","answer":"counting, singing and dancing","id":2,"type":"comma"},
-        {"prompt":"How many items are in this list? spelling, counting, singing","answer":"3","id":3,"type":"comma"},
-        {"prompt":"How many items are in this list? reading, writing, spelling, counting","answer":"4","id":4,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (emus possums platypuses / emus, possums and platypuses / emus, and possums, and platypuses)","answer":"emus, possums and platypuses","id":5,"type":"comma"},
-        {"prompt":"Rewrite with commas: For lunch I packed apples bananas pears grapes.","answer":"for lunch i packed apples, bananas, pears, grapes","id":6,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (reading, and writing, and spelling / reading writing spelling / reading, writing and spelling)","answer":"reading, writing and spelling","id":7,"type":"comma"},
-        {"prompt":"How many items are in this list? kangaroos, koalas, wombats, emus, possums","answer":"5","id":8,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (bananas, pears, grapes, oranges and mangoes / bananas, and pears, and grapes, and oranges, and mangoes / bananas pears grapes oranges mangoes)","answer":"bananas, pears, grapes, oranges and mangoes","id":9,"type":"comma"},
-        {"prompt":"Rewrite with commas: At the zoo we saw kangaroos koalas wombats emus.","answer":"at the zoo we saw kangaroos, koalas, wombats, emus","id":10,"type":"comma"},
-        {"prompt":"Rewrite with commas: On our holiday we visited Sydney Brisbane Perth Adelaide.","answer":"on our holiday we visited Sydney, Brisbane, Perth, Adelaide","id":11,"type":"comma"},
-        {"prompt":"Rewrite with commas: In my school bag I keep erasers paintbrushes scissors.","answer":"in my school bag i keep erasers, paintbrushes, scissors","id":12,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (wombats emus possums / wombats, emus and possums / wombats, and emus, and possums)","answer":"wombats, emus and possums","id":13,"type":"comma"},
-        {"prompt":"Rewrite with commas: My favourite sports are cricket swimming netball soccer.","answer":"my favourite sports are cricket, swimming, netball, soccer","id":14,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (swimming, netball, soccer, athletics and tennis / swimming, and netball, and soccer, and athletics, and tennis / swimming netball soccer athletics tennis)","answer":"swimming, netball, soccer, athletics and tennis","id":15,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (rulers, and erasers, and paintbrushes, and scissors / rulers, erasers, paintbrushes and scissors / rulers erasers paintbrushes scissors)","answer":"rulers, erasers, paintbrushes and scissors","id":16,"type":"comma"}
+            {"prompt":"Rewrite with commas: At the zoo we saw koalas possums platypuses.","answer":"At the zoo we saw koalas, possums, platypuses.","id":1,"type":"comma"},
+            {"prompt":"Is this list punctuated correctly? \"apples, bananas, pears, grapes and oranges\"","answer":"correct","id":2,"type":"comma"},
+            {"prompt":"Rewrite with commas: For lunch I packed carrots pumpkins spinach peas.","answer":"For lunch I packed carrots, pumpkins, spinach, peas.","id":3,"type":"comma"},
+            {"prompt":"Is this list punctuated correctly? \"potatoes spinach peas\"","answer":"incorrect","id":4,"type":"comma"},
+            {"prompt":"Is this list punctuated correctly? \"carrots, potatoes, spinach, corn and peas\"","answer":"correct","id":5,"type":"comma"},
+            {"prompt":"How many items are in this list? Sydney, Adelaide, Darwin, Hobart","answer":"4","id":6,"type":"comma"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(commaSpec, g3, seedFrom([3, 'comma', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"How many items are in this list? rulers, erasers, paintbrushes, scissors, gluesticks","answer":"5","id":17,"type":"comma"},
-        {"prompt":"Rewrite with commas: In the garden we planted writing spelling counting.","answer":"in the garden we planted writing, spelling, counting","id":18,"type":"comma"},
-        {"prompt":"Rewrite with commas: At the zoo we saw wombats emus possums.","answer":"at the zoo we saw wombats, emus, possums","id":19,"type":"comma"}
+            {"prompt":"Which list uses commas correctly? (Perth, Darwin and Hobart / Perth, and Darwin, and Hobart / Perth Darwin Hobart)","answer":"Perth, Darwin and Hobart","id":7,"type":"comma"},
+            {"prompt":"How many items are in this list? pencils, erasers, scissors, gluesticks","answer":"4","id":8,"type":"comma"},
+            {"prompt":"Is this list punctuated correctly? \"carrots, potatoes, pumpkins, corn and peas\"","answer":"correct","id":9,"type":"comma"}
+        ]);
+    });
+});
+
+describe('comma — Year 6', () => {
+    it('matches the exact page-1 sheet', () => {
+        expect(sheet(g6)).toEqual([
+            {"prompt":"Is this list punctuated correctly? \"guitars, pianos and violins\"","answer":"correct","id":1,"type":"comma"},
+            {"prompt":"Which list uses commas correctly? (apples, bananas, grapes and oranges / apples, and bananas, and grapes, and oranges / apples bananas grapes oranges)","answer":"apples, bananas, grapes and oranges","id":2,"type":"comma"},
+            {"prompt":"Which list uses commas correctly? (carrots, and pumpkins, and spinach, and corn, and peas / carrots, pumpkins, spinach, corn and peas / carrots pumpkins spinach corn peas)","answer":"carrots, pumpkins, spinach, corn and peas","id":3,"type":"comma"},
+            {"prompt":"Which list uses commas correctly? (potatoes pumpkins spinach / potatoes, pumpkins and spinach / potatoes, and pumpkins, and spinach)","answer":"potatoes, pumpkins and spinach","id":4,"type":"comma"},
+            {"prompt":"Rewrite with commas: My dream jobs are nurse teacher farmer chef pilot.","answer":"My dream jobs are nurse, teacher, farmer, chef, pilot.","id":5,"type":"comma"},
+            {"prompt":"Is this list punctuated correctly? \"pears oranges mangoes\"","answer":"incorrect","id":6,"type":"comma"}
+        ]);
+    });
+
+    it('page 2 continues the exact stream', () => {
+        expect(generateDocument(commaSpec, g6, seedFrom([6, 'comma', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Rewrite with commas: For lunch I packed carrots pumpkins spinach corn.","answer":"For lunch I packed carrots, pumpkins, spinach, corn.","id":7,"type":"comma"},
+            {"prompt":"Rewrite with commas: In my school bag I keep rulers erasers paintbrushes scissors gluesticks.","answer":"In my school bag I keep rulers, erasers, paintbrushes, scissors, gluesticks.","id":8,"type":"comma"},
+            {"prompt":"Write your own list of three colours separated by commas.","answer":"Example: blue, green and yellow (any sensible list is correct)","id":9,"type":"comma"}
         ]);
     });
 
@@ -81,14 +117,35 @@ describe('comma — Year 3', () => {
     });
 });
 
-describe('comma — Year 6', () => {
-    it('matches the exact page-1 head (grade 6 rolls its own stream)', () => {
-        expect(sheet(g6).slice(0, 5)).toEqual([
-        {"prompt":"Which list uses commas correctly? (pears, grapes and oranges / pears grapes oranges / pears, and grapes, and oranges)","answer":"pears, grapes and oranges","id":1,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (reading writing spelling / reading, and writing, and spelling / reading, writing and spelling)","answer":"reading, writing and spelling","id":2,"type":"comma"},
-        {"prompt":"How many items are in this list? Sydney, Brisbane, Perth","answer":"3","id":3,"type":"comma"},
-        {"prompt":"Which list uses commas correctly? (writing, spelling, counting and singing / writing, and spelling, and counting, and singing / writing spelling counting singing)","answer":"writing, spelling, counting and singing","id":4,"type":"comma"},
-        {"prompt":"Rewrite with commas: In the garden we planted reading writing spelling counting.","answer":"in the garden we planted reading, writing, spelling, counting","id":5,"type":"comma"}
-        ]);
-    });
+describe('comma — generator invariants', () => {
+    // Invariants run over the full 100-page request for every offered grade.
+    for (const grade of [g3, g6]) {
+        const ask = commaSpec.perPage * 100;
+        const problems = commaSpec.generate(createRng(seedFrom([grade.id, commaSpec.id, 0])), grade.caps, ask);
+
+        it(`year ${grade.id}: fills ${ask} unique prompts (capacity floor)`, () => {
+            expect(problems.length).toBe(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        });
+
+        it(`year ${grade.id}: every MC answer is one of its printed options`, () => {
+            for (const p of problems) {
+                const options = optionsOf(p.prompt);
+                if (options) expect(options).toContain(p.answer);
+            }
+        });
+
+        it(`year ${grade.id}: compose answers are never printed in their prompt`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:') || optionsOf(p.prompt) || isIdentifyOrCheck(p.prompt)) continue;
+                expect(leaks(p.prompt, p.answer)).toBe(false);
+            }
+        });
+
+        it(`year ${grade.id}: open-ended answers are explicitly marked`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:')) expect(p.answer).toContain('(any');
+            }
+        });
+    }
 });

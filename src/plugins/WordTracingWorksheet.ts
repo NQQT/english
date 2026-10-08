@@ -15,14 +15,26 @@
 // removes the Word Tracing worksheet without affecting the framework or any
 // other plugin.
 //
-// DETERMINISM: the generator deliberately draws NO random numbers — the sheet
-// content is the fixed ordered A–Z word set, which is exactly what word-shape
-// practice needs. "Randomize" is a no-op for this type by design; multi-page
-// documents repeat the same ordered set (repeated practice runs).
+// PRACTICE DESIGN (quality over quantity): the old sheet printed all 26
+// A–Z words in a frozen order on one page. A traced WORD needs far more room
+// than a single letter, so the sheet now prints SIX words per page in a
+// SINGLE column of long full-width writing lines (like number tracing), and
+// the six come from a seeded DECK over the word set (createDeck,
+// framework/sampling.ts): each word is dealt exactly once per cycle, the
+// deck reshuffles between cycles, and no word repeats back-to-back across a
+// cycle boundary. Every page is therefore a different group in a different
+// order; the 26-word set is finite, so long documents repeat words by
+// nature — spread evenly by the deck, never a frozen re-print.
+//
+// DETERMINISM (unchanged contract): the deck draws from the document's ONE
+// seeded Rng stream (seed = seedFrom([grade, id, refresh]), seed packing
+// untouched), so the same seed always yields the same document and preview
+// and print can never disagree. "Randomize" now genuinely re-rolls the
+// word grouping.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { hasVisual } from '../framework';
+import { createDeck, hasVisual } from '../framework';
 
 // One word per letter: the trace target for that letter's word-tracing row.
 // Every word begins with its letter, is a real word (kept in the shared
@@ -30,6 +42,8 @@ import { hasVisual } from '../framework';
 // vocabulary where one exists (apple/bird/fish/water are tier 2; the rest
 // are short single sounds). G/Q/V/X/Y/Z have no short bank word, so they take
 // the standard A–Z chart words (go, queen, van, xylophone, yellow, zoo).
+// This is the DECK POOL — the pairs are dealt in seeded shuffled order, not
+// printed as a frozen A–Z sheet.
 const TRACE_WORDS: [string, string][] = [
     ['A', 'apple'],
     ['B', 'bird'],
@@ -59,17 +73,21 @@ const TRACE_WORDS: [string, string][] = [
     ['Z', 'zoo']
 ];
 
-// Word tracing: each row shows [picture?] the letter as the model and the
+// Word tracing: each row shows [picture cue] the letter as the model and the
 // real word that begins with it as the single faded trace target ("A" +
 // "apple"). LEARNING VISUAL: the picture of the word itself (when registered)
 // tells the Prep child WHICH word they are tracing — the trace target is the
 // word, so the picture is a scaffold, never an extra answer; words without a
-// registered pictogram print plain. Deterministic: no rng draws, so the fixed
-// ordered sheet (and its pictures) is identical on every run.
-function generateWordTrace(_rng: Rng, _caps: Caps, count: number): RawProblem[] {
+// registered pictogram print plain. The cue prints at the enlarged tracing
+// size (PrintableSheet passes PictogramRow `size` for trace rows) so the
+// picture matches the writable scale of the big trace target.
+function generateWordTrace(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+    // Seeded deck over the [letter, word] pairs: every page is a fresh
+    // group, and one full cycle (26 rows) covers every word exactly once.
+    const deck = createDeck(rng, TRACE_WORDS);
     const out: RawProblem[] = [];
     for (let i = 0; i < count; i++) {
-        const [letter, word] = TRACE_WORDS[i % TRACE_WORDS.length];
+        const [letter, word] = deck.take();
         out.push({
             prompt: `Trace the word "${word}" (begins with "${letter}")`,
             answer: word,
@@ -86,7 +104,12 @@ export const wordTraceSpec: WorksheetSpec = {
     id: 'wordTrace',
     label: 'Word Tracing',
     icon: 'a',
-    perPage: 26,
+    // 6 rows on long full-width writing lines: a traced word needs the whole
+    // page width at the enlarged tracing scale, not a cramped half-column.
+    perPage: 6,
+    // Single column (like number tracing) — every row gets a full-width
+    // dashed writing rule instead of a half-page one.
+    singleColumn: true,
     offered: (grade: GradeConfig) => grade.available.includes('wordTrace'),
     scope: () => 'A–Z beginning words',
     generate: generateWordTrace

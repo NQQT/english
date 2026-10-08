@@ -1,14 +1,14 @@
 // Unit tests for the CONJUNCTIONS worksheet plugin.
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm or clause banks change,
-// these exact assertions fail — which is what we want, so a silent change to
-// the worksheet can't slip through.
+// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE page-1 sheet
+// (all prompts + answers) is pinned to exact expected values produced from the
+// real generator with the same seed the framework uses
+// (seedFrom([grade.id, spec.id, 0])). Pins cover page 1 only; generator
+// invariants (MC answer in options, no answer printed in compose prompts,
+// open-ended answers marked, 100-page capacity) cover the whole stream.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, generateSheet, generateDocument, createRng, type GradeConfig } from '../framework';
 import { conjunctionSpec } from './ConjunctionWorksheet';
 
 const g3 = getGradeConfig(3);
@@ -19,13 +19,37 @@ function sheet(grade: GradeConfig) {
     return generateSheet(conjunctionSpec, grade, seedFrom([grade.id, conjunctionSpec.id, 0]));
 }
 
+// Extract the trailing "(a, b, c)" option list from an MC prompt; null when
+// the prompt is not multiple-choice.
+function optionsOf(prompt: string): string[] | null {
+    const m = prompt.match(/\(([^)]+)\)\s*$/);
+    if (!m) return null;
+    if (m[1].includes(' / ')) return m[1].split(' / ');
+    if (m[1].includes(', ')) return m[1].split(', ');
+    return null;
+}
+
+// Identify/check prompts legitimately print the answer; compose/join prompts
+// must NOT print the fully joined sentence.
+function isIdentifyOrCheck(prompt: string): boolean {
+    return /^(True or false|Is the|Is this|Does this|Find the|Who is speaking)/.test(prompt);
+}
+
+// A compose prompt must not print the answer. Single-word answers use
+// word-boundary matching; sentence answers use plain includes.
+function leaks(prompt: string, answer: string): boolean {
+    if (answer.includes(' ')) return prompt.includes(answer);
+    const escaped = answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(prompt);
+}
+
 describe('conjunction plugin — declarative spec', () => {
     it('declares its sidebar label, glyph, page size and single-column layout', () => {
         expect(conjunctionSpec.id).toBe('conjunction');
         expect(conjunctionSpec.label).toBe('Conjunctions');
         expect(conjunctionSpec.icon).toBe('+');
-        expect(conjunctionSpec.perPage).toBe(16);
-        // Gap sentences are prose — single-column.
+        // T4C: 6 roomy rows per page (was 16); prose lines run single-column.
+        expect(conjunctionSpec.perPage).toBe(6);
         expect(conjunctionSpec.singleColumn).toBe(true);
     });
 
@@ -47,32 +71,46 @@ describe('conjunction plugin — declarative spec', () => {
 });
 
 describe('conjunction — Year 3', () => {
+    // T5E pool expansion re-pin: the banks grew to 24 pairs per family and
+    // 28 when/if lines, so the dealt stream changed. Every row below was
+    // eyeballed: the conjunction's logic holds for its clause pair.
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g3)).toEqual([
-        {"prompt":"__ you finish your homework, you can watch TV. (or, but, if)","answer":"if","id":1,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: The bell rang __ we were hungry","answer":"because","id":2,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: Mia finished her book __ the gate was locked (so, and, but)","answer":"but","id":3,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: Sam ate all his lunch __ I was tired (but, so, because)","answer":"because","id":4,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: The dog barked loudly __ I asked for a spare","answer":"so","id":5,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: Mia finished her book __ we were hungry","answer":"because","id":6,"type":"conjunction"},
-        {"prompt":"Take a jacket __ it gets cold. (or, but, if)","answer":"if","id":7,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: The dog barked loudly __ we were hungry (but, and, because)","answer":"because","id":8,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: Dad lit the barbecue __ we stayed inside (because, and, so)","answer":"so","id":9,"type":"conjunction"},
-        {"prompt":"Wash your hands __ you eat dinner. (or, before, but)","answer":"before","id":10,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: The bell rang __ I went to bed early","answer":"so","id":11,"type":"conjunction"},
-        {"prompt":"Brush your teeth __ you go to bed. (before, but, or)","answer":"before","id":12,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: The bell rang __ mum made dinner (so, and, but)","answer":"and","id":13,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: We packed our bags __ mum made dinner","answer":"and","id":14,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: Our team scored a goal __ they sang a song (but, because, and)","answer":"and","id":15,"type":"conjunction"},
-        {"prompt":"Join with the best conjunction: I wanted to play outside __ nobody was home","answer":"but","id":16,"type":"conjunction"}
+            {"prompt":"We stay inside __ it rains. (but, or, when)","answer":"when","id":1,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: He wore his coat __ it was cold outside","answer":"because","id":2,"type":"conjunction"},
+            {"prompt":"Write a sentence that uses the joining word \"but\".","answer":"Example: Grandma baked a pumpkin pie but it vanished in minutes. (any sensible sentence using \"but\" is correct)","id":3,"type":"conjunction"},
+            {"prompt":"We go to the pool __ it is hot. (but, when, or)","answer":"when","id":4,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: She could not read the board __ she moved to the front","answer":"so","id":5,"type":"conjunction"},
+            {"prompt":"Write a sentence that uses the joining word \"when\".","answer":"Example: We stay inside when it rains. (any sensible sentence using \"when\" is correct)","id":6,"type":"conjunction"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(conjunctionSpec, g3, seedFrom([3, 'conjunction', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Join with the best conjunction: Sam ate all his lunch __ he felt sick","answer":"because","id":17,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: Our team scored a goal __ we waited for the next one (but, so, and)","answer":"so","id":18,"type":"conjunction"},
-        {"prompt":"We always visit Nanna __ Sunday. (when, but, or)","answer":"when","id":19,"type":"conjunction"}
+            {"prompt":"Which conjunction fits best: We waited in the sun __ the bus was late (and, because, but)","answer":"because","id":7,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: I practised the song daily __ my friends practised theirs (but, so, and)","answer":"and","id":8,"type":"conjunction"},
+            {"prompt":"__ the dog sees a cat, it runs. (when, but, or)","answer":"when","id":9,"type":"conjunction"}
+        ]);
+    });
+});
+
+describe('conjunction — Year 6', () => {
+    it('matches the exact page-1 sheet', () => {
+        expect(sheet(g6)).toEqual([
+            {"prompt":"Join the two sentences with \"and\": \"The bell rang.\" \"The students sang a song.\"","answer":"The bell rang and the students sang a song.","id":1,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: Sam told a funny joke __ the whole table laughed (so, and, but)","answer":"so","id":2,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: The garden needs water __ it has not rained for weeks","answer":"because","id":3,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: The storm was coming __ the kids ran inside (because, so, but)","answer":"so","id":4,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: She drank a big glass of water __ she was very thirsty (but, and, because)","answer":"because","id":5,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: I stayed up late __ I still finished my project (so, but, and)","answer":"but","id":6,"type":"conjunction"}
+        ]);
+    });
+
+    it('page 2 continues the exact stream', () => {
+        expect(generateDocument(conjunctionSpec, g6, seedFrom([6, 'conjunction', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Write a sentence that uses the joining word \"but\".","answer":"Example: We packed our bags but we missed the bus. (any sensible sentence using \"but\" is correct)","id":7,"type":"conjunction"},
+            {"prompt":"Join the two sentences with \"and\": \"Mia finished her book.\" \"Jack finished his.\"","answer":"Mia finished her book and Jack finished his.","id":8,"type":"conjunction"},
+            {"prompt":"We always visit Nanna __ Sunday. (when, or, but)","answer":"when","id":9,"type":"conjunction"}
         ]);
     });
 
@@ -81,13 +119,35 @@ describe('conjunction — Year 3', () => {
     });
 });
 
-describe('conjunction — Year 6 (same catalogue, independent stream)', () => {
-    it('matches the exact page-1 head (grade 6 rolls its own stream)', () => {
-        expect(sheet(g6).slice(0, 4)).toEqual([
-        {"prompt":"__ it snows, school closes early. (but, if, or)","answer":"if","id":1,"type":"conjunction"},
-        {"prompt":"Which conjunction fits best: I wanted to play outside __ we ate together (so, because, but)","answer":"so","id":2,"type":"conjunction"},
-        {"prompt":"We always visit Nanna __ Sunday. (or, but, when)","answer":"when","id":3,"type":"conjunction"},
-        {"prompt":"__ you finish your homework, you can watch TV. (or, but, if)","answer":"if","id":4,"type":"conjunction"}
-        ]);
-    });
+describe('conjunction — generator invariants', () => {
+    // Invariants run over the full 100-page request for every offered grade.
+    for (const grade of [g3, g6]) {
+        const ask = conjunctionSpec.perPage * 100;
+        const problems = conjunctionSpec.generate(createRng(seedFrom([grade.id, conjunctionSpec.id, 0])), grade.caps, ask);
+
+        it(`year ${grade.id}: fills ${ask} unique prompts (capacity floor)`, () => {
+            expect(problems.length).toBe(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        });
+
+        it(`year ${grade.id}: every MC answer is one of its printed options`, () => {
+            for (const p of problems) {
+                const options = optionsOf(p.prompt);
+                if (options) expect(options).toContain(p.answer);
+            }
+        });
+
+        it(`year ${grade.id}: compose answers are never printed in their prompt`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:') || optionsOf(p.prompt) || isIdentifyOrCheck(p.prompt)) continue;
+                expect(leaks(p.prompt, p.answer)).toBe(false);
+            }
+        });
+
+        it(`year ${grade.id}: open-ended answers are explicitly marked`, () => {
+            for (const p of problems) {
+                if (p.answer.startsWith('Example:')) expect(p.answer).toContain('(any');
+            }
+        });
+    }
 });

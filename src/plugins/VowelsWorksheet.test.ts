@@ -1,31 +1,108 @@
-// Unit tests for the VOWELS worksheet plugin.
+// Unit tests for the VOWELS worksheet plugin (T4A rewrite).
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm, word banks, or caps
-// change, these exact assertions fail — which is what we want, so a silent
-// change to the worksheet can't slip through.
+// Strategy: exact pins lock the deterministic stream; the worksheet's REAL
+// guarantees are DERIVED invariants over whole documents:
+//   - CORRECTNESS (E4): every row's answer is the unique solution of the
+//     printed question; multiple-choice rows always print THREE options
+//     (the old tier-1 sheet degenerated to two because the starter bank has
+//     one 2-vowel word); uncued write-the-vowel rows match exactly one
+//     KNOWN_WORD_SET word.
+//   - LOCAL BANK: every VOWEL_POOL_EXTRA word is already a KNOWN_WORD_SET
+//     member — the extension curates the shared dictionary, it does not add
+//     vocabulary (words.ts stays read-only and the non-word contract holds).
+//   - DIVERSITY (E3): 100 pages fully unique at every grade, even at the OLD
+//     24-per-page ask of 2400 questions.
+//   - DENSITY (E2): perPage 8 (was 24); every page mixes >= 3 task kinds.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, hasVisual, type GradeConfig } from '../framework';
 import { vowelSpec } from './VowelsWorksheet';
+import { KNOWN_WORD_SET } from './words';
 
 const g0 = getGradeConfig(0);
 const g1 = getGradeConfig(1);
 const g2 = getGradeConfig(2);
 
-// Helper: regenerate a sheet using the same seed the framework computes.
 function sheet(grade: GradeConfig) {
     return generateSheet(vowelSpec, grade, seedFrom([grade.id, vowelSpec.id, 0]));
 }
 
+// Independent vowel model (mirrors the plugin — the test checks the
+// CONTRACT, not the generator's code).
+function vowelCount(word: string): number {
+    let n = 0;
+    for (const ch of word.toLowerCase()) if ('aeiou'.includes(ch)) n += 1;
+    return n;
+}
+function knownMatches(shown: string, blanks: number[]): string[] {
+    return [...KNOWN_WORD_SET].filter((w) => {
+        if (w.length !== shown.length) return false;
+        for (let i = 0; i < shown.length; i++) {
+            if (!blanks.includes(i) && w[i] !== shown[i]) return false;
+        }
+        return true;
+    });
+}
+
+function checkVowelTruths(grade: GradeConfig) {
+    for (const p of sheet(grade)) {
+        const count = p.prompt.match(/^How many vowels are in "([a-z]+)"\?$/);
+        const letter = p.prompt.match(/^Which letter in "([a-z]+)" is the vowel\?$/);
+        const mcCount = p.prompt.match(/^Which word has (\d) vowels?\? \(([^)]+)\)$/);
+        const mcLetter = p.prompt.match(/^Which word has the vowel "([a-z])"\? \(([^)]+)\)$/);
+        const writeVowel = p.prompt.match(/^Write the missing vowel: ((?:__|[a-z])(?: (?:__|[a-z]))*)$/);
+        const isVowel = p.prompt.match(/^Which letter is a vowel\? \(([a-z, ]+)\)$/);
+        const notVowel = p.prompt.match(/^Which letter is NOT a vowel\? \(([a-z, ]+)\)$/);
+        const yesno = p.prompt.match(/^Does "([a-z]+)" start with a vowel\? \(yes \/ no\)$/);
+        if (count) {
+            expect(p.answer).toBe(String(vowelCount(count[1])));
+        } else if (letter) {
+            expect(vowelCount(letter[1])).toBe(1);
+            expect(p.answer).toBe(letter[1].split('').find((c) => 'aeiou'.includes(c)));
+        } else if (mcCount) {
+            const n = Number(mcCount[1]);
+            const options = mcCount[2].split(', ');
+            // E3 fix: never a degenerate 2-option row.
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => vowelCount(o) === n)).toEqual([p.answer]);
+        } else if (mcLetter) {
+            const options = mcLetter[2].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => o.includes(mcLetter[1]))).toEqual([p.answer]);
+        } else if (writeVowel) {
+            const parts = writeVowel[1].split(' ');
+            const blankIdx = parts.map((t, i) => (t === '__' ? i : -1)).filter((i) => i >= 0);
+            expect(blankIdx).toHaveLength(1);
+            // The answer is the vowel letter hidden at the single blank.
+            expect('aeiou'.includes(p.answer)).toBe(true);
+            const word = parts.map((t, i) => (t === '__' ? p.answer : t)).join('');
+            expect(vowelCount(word)).toBeGreaterThanOrEqual(1);
+            // E4: an UNCUEd pattern must have exactly one known solution.
+            if (p.visual === undefined) {
+                expect(knownMatches(word, blankIdx)).toEqual([word]);
+            }
+        } else if (isVowel) {
+            const options = isVowel[1].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => 'aeiou'.includes(o))).toEqual([p.answer]);
+        } else if (notVowel) {
+            const options = notVowel[1].split(', ');
+            expect(options).toHaveLength(3);
+            expect(options.filter((o) => !'aeiou'.includes(o))).toEqual([p.answer]);
+        } else if (yesno) {
+            expect(p.answer).toBe('aeiou'.includes(yesno[1][0]) ? 'yes' : 'no');
+        } else {
+            throw new Error(`unrecognised vowel prompt: ${p.prompt}`);
+        }
+    }
+}
+
 describe('vowel plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph and REDUCED page size (E2)', () => {
         expect(vowelSpec.id).toBe('vowel');
         expect(vowelSpec.label).toBe('Vowels');
         expect(vowelSpec.icon).toBe('e');
-        expect(vowelSpec.perPage).toBe(24);
+        expect(vowelSpec.perPage).toBe(8);
     });
 
     it('describes its word-set scope from the grade caps', () => {
@@ -44,163 +121,106 @@ describe('vowel plugin — declarative spec', () => {
     });
 });
 
-// Semantic invariants: every generator kind is answerable from the prompt
-// alone (see VowelsWorksheet.ts):
-//   count  — the answer IS the true vowel count of the printed word
-//   letter — the word has exactly one vowel; the answer names it
-//   MC n   — exactly one option has n vowels, and it is the answer
-//   MC 'a' — exactly one option contains the vowel letter, and it is the
-//            answer
-function vowelCount(word: string): number {
-    let n = 0;
-    for (const ch of word.toLowerCase()) if ('aeiou'.includes(ch)) n += 1;
-    return n;
-}
-function checkVowelTruths(grade: GradeConfig) {
-    for (const p of sheet(grade)) {
-        const count = p.prompt.match(/^How many vowels are in "([a-z]+)"\?$/);
-        const letter = p.prompt.match(/^Which letter in "([a-z]+)" is the vowel\?$/);
-        const mcCount = p.prompt.match(/^Which word has (\d) vowels?\? \(([^)]+)\)$/);
-        const mcLetter = p.prompt.match(/^Which word has the vowel "([a-z])"\? \(([^)]+)\)$/);
-        if (count) {
-            expect(p.answer).toBe(String(vowelCount(count[1])));
-        } else if (letter) {
-            expect(vowelCount(letter[1])).toBe(1);
-            expect(p.answer).toBe(letter[1].split('').find((c) => 'aeiou'.includes(c)));
-        } else if (mcCount) {
-            const n = Number(mcCount[1]);
-            const options = mcCount[2].split(', ');
-            expect(options.filter((o) => vowelCount(o) === n)).toEqual([p.answer]);
-        } else if (mcLetter) {
-            const options = mcLetter[2].split(', ');
-            expect(options.filter((o) => o.includes(mcLetter[1]))).toEqual([p.answer]);
-        } else {
-            // Every prompt must fall into exactly one of the four kinds.
-            throw new Error(`unrecognised vowel prompt: ${p.prompt}`);
-        }
+describe('vowel — exact pinned rows (determinism lock)', () => {
+    it('pins the first rows of the pinned-seed page 1 per grade', () => {
+        expect(sheet(g0).slice(0, 2)).toEqual([
+            { prompt: 'Which word has the vowel "e"? (top, team, moon)', answer: 'team', id: 1, type: 'vowel' },
+            { prompt: 'How many vowels are in "hat"?', answer: '1', id: 2, type: 'vowel' }
+        ]);
+        expect(sheet(g1).slice(0, 2)).toEqual([
+            { prompt: 'Which letter is a vowel? (a, s, w)', answer: 'a', id: 1, type: 'vowel' },
+            { prompt: 'How many vowels are in "apple"?', answer: '2', visual: 'apple', id: 2, type: 'vowel' }
+        ]);
+        expect(sheet(g2).slice(0, 2)).toEqual([
+            { prompt: 'Which letter is NOT a vowel? (a, u, m)', answer: 'm', id: 1, type: 'vowel' },
+            { prompt: 'How many vowels are in "apple"?', answer: '2', visual: 'apple', id: 2, type: 'vowel' }
+        ]);
+    });
+});
+
+describe('vowel — semantic truth (every grade)', () => {
+    for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+        it(`grade ${gradeId}: every row's answer is the unique solution`, () => {
+            checkVowelTruths(getGradeConfig(gradeId));
+        });
     }
-}
+});
 
-describe('vowel — Prep (tier-1 starter word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g0)).toEqual([
-        {"prompt":"How many vowels are in \"dog\"?","answer":"1","id":1,"type":"vowel"},
-        {"prompt":"Which letter in \"leg\" is the vowel?","answer":"e","id":2,"type":"vowel"},
-        {"prompt":"How many vowels are in \"sip\"?","answer":"1","id":3,"type":"vowel"},
-        {"prompt":"Which letter in \"cat\" is the vowel?","answer":"a","id":4,"type":"vowel"},
-        {"prompt":"How many vowels are in \"pot\"?","answer":"1","id":5,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, wig)","answer":"wig","id":6,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, rat)","answer":"rat","id":7,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"u\"? (sun, fan, bed)","answer":"sun","id":8,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, map)","answer":"map","id":9,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bus\"?","answer":"1","id":10,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, log)","answer":"log","id":11,"type":"vowel"},
-        {"prompt":"Which letter in \"red\" is the vowel?","answer":"e","id":12,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"a\"? (map, wig, leg)","answer":"map","id":13,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, sun)","answer":"sun","id":14,"type":"vowel"},
-        {"prompt":"How many vowels are in \"pin\"?","answer":"1","id":15,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, hat)","answer":"hat","id":16,"type":"vowel"},
-        {"prompt":"How many vowels are in \"log\"?","answer":"1","id":17,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"o\"? (box, hat, rat)","answer":"box","id":18,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bed\"?","answer":"1","id":19,"type":"vowel"},
-        {"prompt":"Which letter in \"dog\" is the vowel?","answer":"o","id":20,"type":"vowel"},
-        {"prompt":"How many vowels are in \"net\"?","answer":"1","id":21,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, bus)","answer":"bus","id":22,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, net)","answer":"net","id":23,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, top)","answer":"top","id":24,"type":"vowel"}
-        ]);
-        checkVowelTruths(g0);
+describe('vowel — cue + tile band contract', () => {
+    it('Prep and Year 4+ rows carry NO cue/tile metadata (legacy markup)', () => {
+        for (const gradeId of [0, 4, 5, 6]) {
+            for (const p of sheet(getGradeConfig(gradeId))) {
+                expect(p.visual).toBeUndefined();
+                expect(p.tileBlanks).toBeUndefined();
+            }
+        }
     });
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(vowelSpec, g0, seedFrom([0, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which letter in \"hat\" is the vowel?","answer":"a","id":25,"type":"vowel"},
-        {"prompt":"Which letter in \"fan\" is the vowel?","answer":"a","id":26,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"i\"? (jam, bag, pig)","answer":"pig","id":27,"type":"vowel"}
-        ]);
+    it('inside the band, cues are registered and never reveal the answer', () => {
+        for (const gradeId of [1, 2, 3]) {
+            for (const p of sheet(getGradeConfig(gradeId))) {
+                if (p.visual !== undefined) {
+                    expect(hasVisual(p.visual)).toBe(true);
+                    // The cue pictures the WORD, the answer is a number or a
+                    // single letter — never equal to the cue key.
+                    expect(p.visual).not.toBe(p.answer);
+                }
+                if (/^Write the missing vowel/.test(p.prompt)) {
+                    expect(p.tileBlanks).toBe('letter');
+                } else {
+                    expect(p.tileBlanks).toBeUndefined();
+                }
+            }
+        }
     });
 });
 
-describe('vowel — Year 1 (tier-2 common word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g1)).toEqual([
-        {"prompt":"Which word has the vowel \"u\"? (jam, bag, sun)","answer":"sun","id":1,"type":"vowel"},
-        {"prompt":"How many vowels are in \"pot\"?","answer":"1","visual":"pot","id":2,"type":"vowel"},
-        {"prompt":"How many vowels are in \"table\"?","answer":"2","id":3,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"e\"? (fish, shirt, tree)","answer":"tree","id":4,"type":"vowel"},
-        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","visual":"rabbit","id":5,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"i\"? (map, purple, tiger)","answer":"tiger","id":6,"type":"vowel"},
-        {"prompt":"Which letter in \"light\" is the vowel?","answer":"i","visual":"light","id":7,"type":"vowel"},
-        {"prompt":"How many vowels are in \"fan\"?","answer":"1","visual":"fan","id":8,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"o\"? (purple, rabbit, top)","answer":"top","id":9,"type":"vowel"},
-        {"prompt":"How many vowels are in \"net\"?","answer":"1","visual":"net","id":10,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"a\"? (train, net, bus)","answer":"train","id":11,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"o\"? (rabbit, pot, table)","answer":"pot","id":12,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"e\"? (table, rat, bus)","answer":"table","id":13,"type":"vowel"},
-        {"prompt":"Which letter in \"bag\" is the vowel?","answer":"a","visual":"bag","id":14,"type":"vowel"},
-        {"prompt":"How many vowels are in \"top\"?","answer":"1","visual":"top","id":15,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (tree, apple, dog)","answer":"dog","id":16,"type":"vowel"},
-        {"prompt":"How many vowels are in \"moon\"?","answer":"2","visual":"moon","id":17,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bread\"?","answer":"2","visual":"bread","id":18,"type":"vowel"},
-        {"prompt":"Which letter in \"night\" is the vowel?","answer":"i","visual":"night","id":19,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"u\"? (house, pot, tree)","answer":"house","id":20,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (pig, purple, train)","answer":"pig","id":21,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (plane, house, jam)","answer":"jam","id":22,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"a\"? (tiger, chair, moon)","answer":"chair","id":23,"type":"vowel"},
-        {"prompt":"How many vowels are in \"fish\"?","answer":"1","visual":"fish","id":24,"type":"vowel"}
-        ]);
-        checkVowelTruths(g1);
-    });
-
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(vowelSpec, g1, seedFrom([1, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word has the vowel \"i\"? (red, log, pin)","answer":"pin","id":25,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (chair, bird, water)","answer":"bird","id":26,"type":"vowel"},
-        {"prompt":"Which word has 2 vowels? (sip, bus, lemon)","answer":"lemon","id":27,"type":"vowel"}
-        ]);
+describe('vowel — density + kind mix (E2/E1)', () => {
+    it('pages hold exactly perPage rows and mix at least 3 task kinds', () => {
+        for (const gradeId of [0, 1, 2, 6]) {
+            const rows = sheet(getGradeConfig(gradeId));
+            expect(rows).toHaveLength(8);
+            const kinds = new Set(
+                rows.map((r) => (r.prompt.match(/^(How many vowels|Which letter in|Which word has \d|Which word has the vowel|Write the missing vowel|Which letter is a vowel|Which letter is NOT a vowel|Does ")/) ?? ['?'])[1])
+            );
+            expect(kinds.size).toBeGreaterThanOrEqual(3);
+        }
     });
 });
 
-describe('vowel — Year 2 (tier-3 extended set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g2)).toEqual([
-        {"prompt":"Which word has the vowel \"u\"? (house, moon, red)","answer":"house","id":1,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"a\"? (table, wig, window)","answer":"table","id":2,"type":"vowel"},
-        {"prompt":"How many vowels are in \"apple\"?","answer":"2","visual":"apple","id":3,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"i\"? (cup, wig, bus)","answer":"wig","id":4,"type":"vowel"},
-        {"prompt":"How many vowels are in \"button\"?","answer":"2","id":5,"type":"vowel"},
-        {"prompt":"How many vowels are in \"moon\"?","answer":"2","visual":"moon","id":6,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"e\"? (map, pot, elephant)","answer":"elephant","id":7,"type":"vowel"},
-        {"prompt":"How many vowels are in \"window\"?","answer":"2","visual":"window","id":8,"type":"vowel"},
-        {"prompt":"Which letter in \"pot\" is the vowel?","answer":"o","visual":"pot","id":9,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"o\"? (pin, bag, window)","answer":"window","id":10,"type":"vowel"},
-        {"prompt":"How many vowels are in \"chocolate\"?","answer":"4","id":11,"type":"vowel"},
-        {"prompt":"Which word has 2 vowels? (sip, water, beautiful)","answer":"water","id":12,"type":"vowel"},
-        {"prompt":"How many vowels are in \"garden\"?","answer":"2","id":13,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"e\"? (chocolate, dolphin, family)","answer":"chocolate","id":14,"type":"vowel"},
-        {"prompt":"How many vowels are in \"pumpkin\"?","answer":"2","id":15,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"a\"? (computer, top, grass)","answer":"grass","id":16,"type":"vowel"},
-        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","visual":"rabbit","id":17,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (house, chicken, fish)","answer":"fish","id":18,"type":"vowel"},
-        {"prompt":"How many vowels are in \"leg\"?","answer":"1","id":19,"type":"vowel"},
-        {"prompt":"How many vowels are in \"lemon\"?","answer":"2","visual":"lemon","id":20,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (bread, net, school)","answer":"net","id":21,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"i\"? (banana, dinosaur, pot)","answer":"dinosaur","id":22,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"u\"? (pig, box, bus)","answer":"bus","id":23,"type":"vowel"},
-        {"prompt":"How many vowels are in \"plane\"?","answer":"2","visual":"plane","id":24,"type":"vowel"}
-        ]);
-        checkVowelTruths(g2);
+describe('vowel — non-repeating capacity (E3)', () => {
+    it('the new 100-page ask (800 questions) is fully unique at every grade', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = vowelSpec.perPage * 100;
+            const problems = vowelSpec.generate(createRng(seedFrom([grade.id, 'vowel', 0])), grade.caps, ask);
+            expect(problems).toHaveLength(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
     });
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(vowelSpec, g2, seedFrom([2, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"How many vowels are in \"dinosaur\"?","answer":"4","id":25,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bag\"?","answer":"1","visual":"bag","id":26,"type":"vowel"},
-        {"prompt":"How many vowels are in \"purple\"?","answer":"2","visual":"purple","id":27,"type":"vowel"}
-        ]);
+    it('even the OLD 24-per-page ask (2400 questions) stays fully unique', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = 2400;
+            const problems = vowelSpec.generate(createRng(seedFrom([grade.id, 'vowel', 0])), grade.caps, ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
+    });
+});
+
+describe('vowel — document assembly', () => {
+    it('page 2 continues the exact stream (ids continuous)', () => {
+        const d = generateDocument(vowelSpec, g1, seedFrom([1, 'vowel', 0]), 2);
+        expect(d.pages[1][0].id).toBe(9);
+        expect(d.total).toBe(16);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(vowelSpec, getGradeConfig(7), seedFrom([7, 'vowel', 0]))).toEqual([]);
+    });
+
+    it('a double generation is byte-identical (determinism)', () => {
+        expect(JSON.stringify(sheet(g2))).toBe(JSON.stringify(sheet(g2)));
     });
 });

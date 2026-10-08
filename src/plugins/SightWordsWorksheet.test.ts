@@ -1,15 +1,22 @@
-// Unit tests for the SIGHT & REAL WORDS worksheet plugin.
+// Unit tests for the SIGHT & REAL WORDS worksheet plugin (T4A rewrite).
 //
-// Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
-// prompts + answers) is pinned to exact expected values produced from the real
-// generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm, word banks, or caps
-// change, these exact assertions fail — which is what we want, so a silent
-// change to the worksheet can't slip through.
+// Strategy: the generator is DETERMINISTIC, so a small exact pin locks the
+// stream, while the REAL guarantees of this worksheet are asserted as
+// DERIVED invariants over whole multi-page documents:
+//   - CORRECTNESS (E4): every "real word" row prints exactly one
+//     KNOWN_WORD_SET member (the answer); every "NOT real" row prints
+//     exactly one non-word (the answer); "exactly X" rows contain X once;
+//     gap-fill rows are curated (frame, answer) pairs from CLOZE_FRAMES.
+//   - DIVERSITY (E3): 100 pages of questions contain ZERO repeated prompts,
+//     at every offered grade, even at the OLD (pre-T4A) 18-per-page ask of
+//     1800 questions — the question space never shrank.
+//   - DENSITY (E2): perPage is 6 (was 18).
+//   - KIND MIX (E1): every page carries at least 3 of the 4 task kinds.
+//   - CUE-FREE: sight rows never carry picture cues (the answers ARE words).
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
-import { sightSpec } from './SightWordsWorksheet';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { sightSpec, CLOZE_FRAMES } from './SightWordsWorksheet';
 import { KNOWN_WORD_SET } from './words';
 
 const g0 = getGradeConfig(0);
@@ -21,12 +28,23 @@ function sheet(grade: GradeConfig) {
     return generateSheet(sightSpec, grade, seedFrom([grade.id, sightSpec.id, 0]));
 }
 
+// The four task kinds a printed line can be (mirrors the generator).
+function kindOf(prompt: string): 'real' | 'notreal' | 'exact' | 'cloze' | null {
+    if (/^Which is a real word\? \(/.test(prompt)) return 'real';
+    if (/^Which is NOT a real word\? \(/.test(prompt)) return 'notreal';
+    if (/^Which one is exactly the word "/.test(prompt)) return 'exact';
+    if (/^Fill the gap: /.test(prompt)) return 'cloze';
+    return null;
+}
+const optionsOf = (prompt: string) => (prompt.match(/\(([^)]+)\)\s*$/)?.[1] ?? '').split(', ');
+
 describe('sight plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph and REDUCED page size (E2)', () => {
         expect(sightSpec.id).toBe('sight');
         expect(sightSpec.label).toBe('Sight & Real Words');
         expect(sightSpec.icon).toBe('A');
-        expect(sightSpec.perPage).toBe(18);
+        // T4A density: 18 -> 6 four-option rows per A4 page.
+        expect(sightSpec.perPage).toBe(6);
     });
 
     it('describes its word-set scope from the grade caps', () => {
@@ -45,132 +63,120 @@ describe('sight plugin — declarative spec', () => {
     });
 });
 
-// Semantic invariant on top of the exact pins: every sight line prints
-// exactly ONE real word (a KNOWN_WORD_SET member) — and it is the answer.
-function checkRealWordContract(grade: GradeConfig) {
+// Exact stream pin (locks determinism; the derived checks below carry the
+// semantic guarantees).
+describe('sight — exact pinned rows (determinism lock)', () => {
+    it('pins the first rows of the pinned-seed page 1 per grade', () => {
+        expect(sheet(g0).slice(0, 2)).toEqual([
+            { prompt: 'Which is NOT a real word? (pig, top, wam, box)', answer: 'wam', id: 1, type: 'sight' },
+            { prompt: 'Which one is exactly the word "pen"? (pep, pen, pea, hen)', answer: 'pen', id: 2, type: 'sight' }
+        ]);
+        expect(sheet(g1).slice(0, 2)).toEqual([
+            { prompt: 'Fill the gap: You sleep in a __. (hat, bed, cup)', answer: 'bed', id: 1, type: 'sight' },
+            { prompt: 'Which one is exactly the word "table"? (toble, tjble, teble, table)', answer: 'table', id: 2, type: 'sight' }
+        ]);
+        expect(sheet(g2).slice(0, 2)).toEqual([
+            { prompt: 'Which is NOT a real word? (green, butterfly, bird, eouse)', answer: 'eouse', id: 1, type: 'sight' },
+            { prompt: 'Which is a real word? (family, chhicken, dag, rebbit)', answer: 'family', id: 2, type: 'sight' }
+        ]);
+    });
+});
+
+// Semantic invariant (E4): every line is answerable and its answer is the
+// UNIQUE word satisfying the printed predicate.
+function checkSightTruths(grade: GradeConfig) {
     for (const p of sheet(grade)) {
-        const m = p.prompt.match(/\(([^)]+)\)\s*$/);
-        expect(m).not.toBeNull();
-        const opts = m![1].split(', ').map((s) => s.trim());
-        const real = opts.filter((o) => KNOWN_WORD_SET.has(o));
-        expect(real).toEqual([p.answer]);
+        const kind = kindOf(p.prompt);
+        expect(kind, `unrecognised sight prompt: ${p.prompt}`).not.toBeNull();
+        const options = optionsOf(p.prompt);
+        if (kind === 'real') {
+            // Exactly one option is a known real word — and it is the answer.
+            expect(options).toHaveLength(4);
+            expect(options.filter((o) => KNOWN_WORD_SET.has(o))).toEqual([p.answer]);
+        } else if (kind === 'notreal') {
+            // Exactly one option is a NON-word — and it is the answer.
+            expect(options).toHaveLength(4);
+            expect(options.filter((o) => !KNOWN_WORD_SET.has(o))).toEqual([p.answer]);
+        } else if (kind === 'exact') {
+            const target = p.prompt.match(/exactly the word "([a-z]+)"/)![1];
+            expect(options).toHaveLength(4);
+            expect(p.answer).toBe(target);
+            expect(options.filter((o) => o === target)).toEqual([target]);
+        } else if (kind === 'cloze') {
+            // Gap-fill rows come from the curated frame bank with its answer.
+            const text = p.prompt.match(/^Fill the gap: (.+) \(/)![1];
+            const frame = CLOZE_FRAMES.find((f) => f.text === text);
+            expect(frame, `uncurated cloze frame: ${text}`).toBeDefined();
+            expect(frame!.answer).toBe(p.answer);
+            // Every cloze option is a REAL known word (meaning task, not form).
+            for (const o of options) expect(KNOWN_WORD_SET.has(o)).toBe(true);
+        }
     }
 }
 
-describe('sight — Prep (tier-1 starter word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g0)).toEqual([
-        {"prompt":"Which is a real word? (doa, pig, mooa, jaa)","answer":"pig","id":1,"type":"sight"},
-        {"prompt":"Which is a real word? (nea, raa, lea, top)","answer":"top","id":2,"type":"sight"},
-        {"prompt":"Which is a real word? (cua, haa, bea, box)","answer":"box","id":3,"type":"sight"},
-        {"prompt":"Which is a real word? (maa, caa, baa, pen)","answer":"pen","id":4,"type":"sight"},
-        {"prompt":"Which is a real word? (rea, bua, sua, cup)","answer":"cup","id":5,"type":"sight"},
-        {"prompt":"Which is a real word? (loa, faa, peb, bag)","answer":"bag","id":6,"type":"sight"},
-        {"prompt":"Which is a real word? (cat, boa, wia, sia)","answer":"cat","id":7,"type":"sight"},
-        {"prompt":"Which is a real word? (toa, sun, pia, poa)","answer":"sun","id":8,"type":"sight"},
-        {"prompt":"Which is a real word? (sua, boa, red, mooa)","answer":"red","id":9,"type":"sight"},
-        {"prompt":"Which is a real word? (fan, poa, raa, lea)","answer":"fan","id":10,"type":"sight"},
-        {"prompt":"Which is a real word? (moon, sia, bua, haa)","answer":"moon","id":11,"type":"sight"},
-        {"prompt":"Which is a real word? (pia, loa, nea, dog)","answer":"dog","id":12,"type":"sight"},
-        {"prompt":"Which is a real word? (baa, rat, cua, faa)","answer":"rat","id":13,"type":"sight"},
-        {"prompt":"Which is a real word? (bus, caa, jaa, peb)","answer":"bus","id":14,"type":"sight"},
-        {"prompt":"Which is a real word? (rea, wia, pia, pin)","answer":"pin","id":15,"type":"sight"},
-        {"prompt":"Which is a real word? (maa, pot, bea, doa)","answer":"pot","id":16,"type":"sight"},
-        {"prompt":"Which is a real word? (toa, baa, bua, leg)","answer":"leg","id":17,"type":"sight"},
-        {"prompt":"Which is a real word? (jam, jaa, faa, boa)","answer":"jam","id":18,"type":"sight"},
-        ]);
-        // Every distractor is a genuinely fake word.
-        checkRealWordContract(g0);
-    });
+describe('sight — semantic truth (every grade)', () => {
+    for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+        it(`grade ${gradeId}: one-real-word / one-fake / exact / curated-frame contracts hold`, () => {
+            checkSightTruths(getGradeConfig(gradeId));
+        });
+    }
+});
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(sightSpec, g0, seedFrom([0, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which is a real word? (map, maa, raa, peb)","answer":"map","id":19,"type":"sight"},
-        {"prompt":"Which is a real word? (pia, lea, nea, wig)","answer":"wig","id":20,"type":"sight"},
-        {"prompt":"Which is a real word? (net, loa, wia, sua)","answer":"net","id":21,"type":"sight"},
-        ]);
+describe('sight — cue-free contract', () => {
+    it('no row carries a picture cue at any grade (the answers ARE words)', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            for (const p of sheet(getGradeConfig(gradeId))) {
+                expect(p.visual).toBeUndefined();
+            }
+        }
     });
 });
 
-describe('sight — Year 1 (tier-2 common word set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g1)).toEqual([
-        {"prompt":"Which is a real word? (jaa, table, boa, mooa)","answer":"table","id":1,"type":"sight"},
-        {"prompt":"Which is a real word? (pia, housa, rat, shira)","answer":"rat","id":2,"type":"sight"},
-        {"prompt":"Which is a real word? (pot, sua, plana, nea)","answer":"pot","id":3,"type":"sight"},
-        {"prompt":"Which is a real word? (faa, rabbia, lemon, lemoa)","answer":"lemon","id":4,"type":"sight"},
-        {"prompt":"Which is a real word? (sia, tiger, cua, bua)","answer":"tiger","id":5,"type":"sight"},
-        {"prompt":"Which is a real word? (raa, leg, appla, traia)","answer":"leg","id":6,"type":"sight"},
-        {"prompt":"Which is a real word? (caa, net, tabla, peb)","answer":"net","id":7,"type":"sight"},
-        {"prompt":"Which is a real word? (hat, pia, loa, toa)","answer":"hat","id":8,"type":"sight"},
-        {"prompt":"Which is a real word? (sip, ligha, bira, chaia)","answer":"sip","id":9,"type":"sight"},
-        {"prompt":"Which is a real word? (cup, trea, breaa, watea)","answer":"cup","id":10,"type":"sight"},
-        {"prompt":"Which is a real word? (log, bea, baa, rea)","answer":"log","id":11,"type":"sight"},
-        {"prompt":"Which is a real word? (water, tigea, doa, lea)","answer":"water","id":12,"type":"sight"},
-        {"prompt":"Which is a real word? (pen, grasa, maa, poa)","answer":"pen","id":13,"type":"sight"},
-        {"prompt":"Which is a real word? (purpla, box, greea, nigha)","answer":"box","id":14,"type":"sight"},
-        {"prompt":"Which is a real word? (wia, haa, bird, fisa)","answer":"bird","id":15,"type":"sight"},
-        {"prompt":"Which is a real word? (sua, rea, boa, pig)","answer":"pig","id":16,"type":"sight"},
-        {"prompt":"Which is a real word? (plane, appla, breaa, toa)","answer":"plane","id":17,"type":"sight"},
-        {"prompt":"Which is a real word? (greea, grasa, plana, wig)","answer":"wig","id":18,"type":"sight"},
-        ]);
-        checkRealWordContract(g1);
+describe('sight — density + kind mix (E2/E1)', () => {
+    it('pages hold exactly perPage rows and mix at least 3 of the 4 kinds', () => {
+        for (const gradeId of [0, 1, 2, 3, 6]) {
+            const rows = sheet(getGradeConfig(gradeId));
+            expect(rows).toHaveLength(6);
+            const kinds = new Set(rows.map((r) => kindOf(r.prompt)));
+            expect(kinds.size).toBeGreaterThanOrEqual(3);
+        }
+    });
+});
+
+describe('sight — non-repeating capacity (E3)', () => {
+    it('the new 100-page ask (600 questions) is fully unique at every grade', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = sightSpec.perPage * 100;
+            const problems = sightSpec.generate(createRng(seedFrom([grade.id, 'sight', 0])), grade.caps, ask);
+            expect(problems).toHaveLength(ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
     });
 
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(sightSpec, g1, seedFrom([1, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which is a real word? (bira, caa, cua, purple)","answer":"purple","id":19,"type":"sight"},
-        {"prompt":"Which is a real word? (sun, sia, raa, jaa)","answer":"sun","id":20,"type":"sight"},
-        {"prompt":"Which is a real word? (fan, nea, mooa, fisa)","answer":"fan","id":21,"type":"sight"},
-        ]);
+    it('even the OLD 18-per-page ask (1800 questions) stays fully unique', () => {
+        for (const gradeId of [0, 1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const ask = 1800;
+            const problems = sightSpec.generate(createRng(seedFrom([grade.id, 'sight', 0])), grade.caps, ask);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(ask);
+        }
     });
+});
 
-    it('3-page documents number ids continuously (page 3 starts at id 37)', () => {
+describe('sight — document assembly', () => {
+    it('3-page documents number ids continuously', () => {
         const d = generateDocument(sightSpec, g1, seedFrom([1, 'sight', 0]), 3);
         expect(d.pages).toHaveLength(3);
-        expect(d.total).toBe(54);
-        expect(d.pages.flat().map((p) => p.id)).toEqual(Array.from({ length: 54 }, (_, i) => i + 1));
-        expect(d.pages[2].slice(0, 2)).toEqual([
-        {"id":37,"type":"sight","prompt":"Which is a real word? (doa, trea, top, plana)","answer":"top"},
-        {"id":38,"type":"sight","prompt":"Which is a real word? (tigea, apple, lemoa, greea)","answer":"apple"}
-]);
-    });
-});
-
-describe('sight — Year 2 (tier-3 extended set)', () => {
-    it('matches the exact page-1 sheet', () => {
-        expect(sheet(g2)).toEqual([
-        {"prompt":"Which is a real word? (chickea, doa, butterfly, housa)","answer":"butterfly","id":1,"type":"sight"},
-        {"prompt":"Which is a real word? (rabbia, shira, bird, appla)","answer":"bird","id":2,"type":"sight"},
-        {"prompt":"Which is a real word? (elephana, jaa, peb, green)","answer":"green","id":3,"type":"sight"},
-        {"prompt":"Which is a real word? (sia, trea, family, wia)","answer":"family","id":4,"type":"sight"},
-        {"prompt":"Which is a real word? (bea, rat, grasa, chocolata)","answer":"rat","id":5,"type":"sight"},
-        {"prompt":"Which is a real word? (haa, raa, dinosaur, pumpkia)","answer":"dinosaur","id":6,"type":"sight"},
-        {"prompt":"Which is a real word? (maa, dolphia, boa, purple)","answer":"purple","id":7,"type":"sight"},
-        {"prompt":"Which is a real word? (beautiful, beautifua, tigea, watea)","answer":"beautiful","id":8,"type":"sight"},
-        {"prompt":"Which is a real word? (pia, sun, caa, nea)","answer":"sun","id":9,"type":"sight"},
-        {"prompt":"Which is a real word? (chaia, plana, faa, fan)","answer":"fan","id":10,"type":"sight"},
-        {"prompt":"Which is a real word? (poa, lemoa, lemon, tabla)","answer":"lemon","id":11,"type":"sight"},
-        {"prompt":"Which is a real word? (pin, pia, dinosaua, teachea)","answer":"pin","id":12,"type":"sight"},
-        {"prompt":"Which is a real word? (bananb, map, fisa, famila)","answer":"map","id":13,"type":"sight"},
-        {"prompt":"Which is a real word? (lea, windoa, banana, schooa)","answer":"banana","id":14,"type":"sight"},
-        {"prompt":"Which is a real word? (greea, rea, table, loa)","answer":"table","id":15,"type":"sight"},
-        {"prompt":"Which is a real word? (baa, window, bira, ligha)","answer":"window","id":16,"type":"sight"},
-        {"prompt":"Which is a real word? (traia, garden, butterfla, mooa)","answer":"garden","id":17,"type":"sight"},
-        {"prompt":"Which is a real word? (toa, chair, nigha, sua)","answer":"chair","id":18,"type":"sight"},
-        ]);
-        checkRealWordContract(g2);
-    });
-
-    it('page 2 continues the exact stream', () => {
-        expect(generateDocument(sightSpec, g2, seedFrom([2, 'sight', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which is a real word? (breaa, gardea, computea, moon)","answer":"moon","id":19,"type":"sight"},
-        {"prompt":"Which is a real word? (cua, bua, buttoa, bread)","answer":"bread","id":20,"type":"sight"},
-        {"prompt":"Which is a real word? (purpla, dolphia, traia, chocolate)","answer":"chocolate","id":21,"type":"sight"},
-        ]);
+        expect(d.total).toBe(18);
+        expect(d.pages.flat().map((p) => p.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(sightSpec, getGradeConfig(7), seedFrom([7, 'sight', 0]))).toEqual([]);
+    });
+
+    it('a double generation is byte-identical (determinism)', () => {
+        expect(JSON.stringify(sheet(g2))).toBe(JSON.stringify(sheet(g2)));
     });
 });

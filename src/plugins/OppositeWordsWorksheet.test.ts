@@ -1,4 +1,4 @@
-// Unit tests for the OPPOSITE WORDS worksheet plugin.
+// Unit tests for the OPPOSITE WORDS worksheet plugin (T4B rework).
 //
 // Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
 // prompts + answers) is pinned to exact expected values produced from the real
@@ -6,9 +6,12 @@
 // (seedFrom([grade.id, spec.id, 0])). If the algorithm, pair bank, or caps
 // change, these exact assertions fail — which is what we want, so a silent
 // change to the worksheet can't slip through.
+//
+// T4B additions: exact per-format counts (the four genuine task formats all
+// fire) and the exact unique-question capacity at the 100-page ask.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, type GradeConfig } from '../framework';
 import { oppositeSpec } from './OppositeWordsWorksheet';
 
 const g0 = getGradeConfig(0);
@@ -21,17 +24,20 @@ function sheet(grade: GradeConfig) {
 }
 
 describe('opposite plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph and page size', () => {
+    it('declares its sidebar label, glyph and T4B page size', () => {
         expect(oppositeSpec.id).toBe('opposite');
         expect(oppositeSpec.label).toBe('Opposite Words');
         expect(oppositeSpec.icon).toBe('⇄');
-        expect(oppositeSpec.perPage).toBe(24);
+        // T4B density: 8 roomy rows (was 24).
+        expect(oppositeSpec.perPage).toBe(8);
     });
 
-    it('describes its pair scope from the grade caps (starter vs common)', () => {
+    it('describes its pair scope from the grade caps (starter vs common vs antonyms)', () => {
         expect(oppositeSpec.scope(g0)).toBe('starter opposites');
         expect(oppositeSpec.scope(g1)).toBe('common opposites');
         expect(oppositeSpec.scope(g2)).toBe('common opposites');
+        // Year 3+ (wordTier 4) unlocks the upper-primary antonym set.
+        expect(oppositeSpec.scope(getGradeConfig(3))).toBe('antonyms');
     });
 
     it('is gated by the grade catalogue (Year 1..6 offer it, Year 7 does not)', () => {
@@ -49,81 +55,82 @@ describe('opposite plugin — declarative spec', () => {
 describe('opposite — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"prompt":"What is the opposite of \"dry\"?","answer":"wet","visual":"sun","id":1,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"down\"? (lose, up, sour)","answer":"up","visual":"arrowDown","id":2,"type":"opposite"},
-        {"prompt":"What is the opposite of \"big\"?","answer":"small","visual":"elephant","id":3,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"take\"? (give, happy, strong)","answer":"give","id":4,"type":"opposite"},
-        {"prompt":"What is the opposite of \"clean\"?","answer":"dirty","visual":"sparkle","id":5,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"laugh\"? (cry, empty, out)","answer":"cry","id":6,"type":"opposite"},
-        {"prompt":"What is the opposite of \"long\"?","answer":"short","visual":"barLong","id":7,"type":"opposite"},
-        {"prompt":"What is the opposite of \"pull\"?","answer":"push","id":8,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"far\"? (last, long, near)","answer":"near","id":9,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"go\"? (weak, come, shut)","answer":"come","id":10,"type":"opposite"},
-        {"prompt":"What is the opposite of \"heavy\"?","answer":"light","visual":"weight","id":11,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"quiet\"? (happy, pull, loud)","answer":"loud","visual":"zzz","id":12,"type":"opposite"},
-        {"prompt":"What is the opposite of \"night\"?","answer":"day","visual":"night","id":13,"type":"opposite"},
-        {"prompt":"What is the opposite of \"fast\"?","answer":"slow","visual":"bolt","id":14,"type":"opposite"},
-        {"prompt":"What is the opposite of \"lose\"?","answer":"win","visual":"xmark","id":15,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"happy\"? (first, sad, lose)","answer":"sad","visual":"smile","id":16,"type":"opposite"},
-        {"prompt":"What is the opposite of \"empty\"?","answer":"full","visual":"cupEmpty","id":17,"type":"opposite"},
-        {"prompt":"What is the opposite of \"sour\"?","answer":"sweet","visual":"lemon","id":18,"type":"opposite"},
-        {"prompt":"What is the opposite of \"below\"?","answer":"above","visual":"arrowDown","id":19,"type":"opposite"},
-        {"prompt":"What is the opposite of \"new\"?","answer":"old","id":20,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"weak\"? (strong, old, day)","answer":"strong","visual":"feather","id":21,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"front\"? (strong, big, back)","answer":"back","id":22,"type":"opposite"},
-        {"prompt":"What is the opposite of \"open\"?","answer":"shut","id":23,"type":"opposite"},
-        {"prompt":"What is the opposite of \"late\"?","answer":"early","visual":"clock","id":24,"type":"opposite"}
+        {"prompt":"Complete the sentence: The sun shines by day; the moon shines by __ .","answer":"night","id":1,"type":"opposite"},
+        {"prompt":"What is the opposite of \"fast\"?","answer":"slow","visual":"bolt","id":2,"type":"opposite"},
+        {"prompt":"Complete the sentence: The kettle is hot; the ice cream is __ .","answer":"cold","id":3,"type":"opposite"},
+        {"prompt":"Which two words are opposites? (over, under, early)","answer":"under, over","id":4,"type":"opposite"},
+        {"prompt":"What is the opposite of \"always\"?","answer":"never","id":5,"type":"opposite"},
+        {"prompt":"Which two words are opposites? (bottom, laugh, top)","answer":"top, bottom","id":6,"type":"opposite"},
+        {"prompt":"Complete the sentence: The gate is near; the hill is __ .","answer":"far","id":7,"type":"opposite"},
+        {"prompt":"What is the opposite of \"dangerous\"?","answer":"safe","id":8,"type":"opposite"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(oppositeSpec, g1, seedFrom([1, 'opposite', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word means the opposite of \"hard\"? (sweet, easy, go)","answer":"easy","id":25,"type":"opposite"},
-        {"prompt":"What is the opposite of \"hot\"?","answer":"cold","visual":"fire","id":26,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"over\"? (short, give, under)","answer":"under","id":27,"type":"opposite"}
+        {"prompt":"Complete the sentence: A cheetah runs fast; a snail moves __ .","answer":"slow","id":9,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"laugh\"? (cry, sell, over)","answer":"cry","id":10,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"push\"? (inside, sweet, pull)","answer":"pull","id":11,"type":"opposite"}
         ]);
     });
 });
 
-describe('opposite — Year 2 (tricky set unused: same pair bank)', () => {
+describe('opposite — Year 2 (same pair bank, different seed)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"prompt":"What is the opposite of \"come\"?","answer":"go","id":1,"type":"opposite"},
-        {"prompt":"What is the opposite of \"push\"?","answer":"pull","id":2,"type":"opposite"},
-        {"prompt":"What is the opposite of \"strong\"?","answer":"weak","visual":"weight","id":3,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"slow\"? (fast, sweet, back)","answer":"fast","visual":"snail","id":4,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"dirty\"? (back, last, clean)","answer":"clean","visual":"xmark","id":5,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"over\"? (quiet, under, last)","answer":"under","id":6,"type":"opposite"},
-        {"prompt":"What is the opposite of \"below\"?","answer":"above","visual":"arrowDown","id":7,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"empty\"? (under, back, full)","answer":"full","visual":"cupEmpty","id":8,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"wet\"? (quiet, dry, give)","answer":"dry","visual":"drop","id":9,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"front\"? (old, empty, back)","answer":"back","id":10,"type":"opposite"},
-        {"prompt":"What is the opposite of \"sad\"?","answer":"happy","visual":"cry","id":11,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"far\"? (near, under, go)","answer":"near","id":12,"type":"opposite"},
-        {"prompt":"What is the opposite of \"heavy\"?","answer":"light","visual":"weight","id":13,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"old\"? (cold, new, lose)","answer":"new","id":14,"type":"opposite"},
-        {"prompt":"What is the opposite of \"open\"?","answer":"shut","id":15,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"cold\"? (big, dry, hot)","answer":"hot","visual":"ice","id":16,"type":"opposite"},
-        {"prompt":"What is the opposite of \"short\"?","answer":"long","visual":"barShort","id":17,"type":"opposite"},
-        {"prompt":"What is the opposite of \"cry\"?","answer":"laugh","id":18,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"up\"? (loud, above, down)","answer":"down","visual":"arrowUp","id":19,"type":"opposite"},
-        {"prompt":"What is the opposite of \"day\"?","answer":"night","visual":"sun","id":20,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"lose\"? (win, above, big)","answer":"win","visual":"xmark","id":21,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"in\"? (out, over, easy)","answer":"out","id":22,"type":"opposite"},
-        {"prompt":"What is the opposite of \"first\"?","answer":"last","visual":"trophy","id":23,"type":"opposite"},
-        {"prompt":"Which word means the opposite of \"early\"? (slow, late, out)","answer":"late","visual":"clock","id":24,"type":"opposite"}
+        {"prompt":"What is the opposite of \"quiet\"?","answer":"loud","visual":"zzz","id":1,"type":"opposite"},
+        {"prompt":"What is the opposite of \"give\"?","answer":"take","id":2,"type":"opposite"},
+        {"prompt":"Complete the sentence: The gate is near; the hill is __ .","answer":"far","id":3,"type":"opposite"},
+        {"prompt":"Complete the sentence: Tom finished first; Ben finished __ .","answer":"last","id":4,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"before\"? (hard, after, back)","answer":"after","id":5,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"laugh\"? (cry, inside, sell)","answer":"cry","id":6,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"buy\"? (sell, go, short)","answer":"sell","id":7,"type":"opposite"},
+        {"prompt":"Complete the sentence: The sun shines by day; the moon shines by __ .","answer":"night","id":8,"type":"opposite"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(oppositeSpec, g2, seedFrom([2, 'opposite', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"Which word means the opposite of \"take\"? (long, far, give)","answer":"give","id":25,"type":"opposite"},
-        {"prompt":"What is the opposite of \"sweet\"?","answer":"sour","visual":"honey","id":26,"type":"opposite"},
-        {"prompt":"What is the opposite of \"quiet\"?","answer":"loud","visual":"zzz","id":27,"type":"opposite"}
+        {"prompt":"Which word means the opposite of \"back\"? (front, heavy, out)","answer":"front","id":9,"type":"opposite"},
+        {"prompt":"Which word means the opposite of \"begin\"? (end, push, out)","answer":"end","id":10,"type":"opposite"},
+        {"prompt":"What is the opposite of \"out\"?","answer":"in","id":11,"type":"opposite"}
         ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(oppositeSpec, getGradeConfig(7), seedFrom([7, 'opposite', 0]))).toEqual([]);
+    });
+});
+
+describe('opposite — T4B format mix & capacity', () => {
+    // Exact per-format counts over a deterministic 200-question Year-1 sheet
+    // (measured from the real generator): written antonym, MCQ, context
+    // cloze, pair-find — every format fires, none dominates.
+    it('Year 1: exact format counts over 200 questions', () => {
+        const problems = oppositeSpec.generate(createRng(seedFrom([1, 'opposite', 0])), g1.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        expect(count('What is the opposite of')).toBe(62);
+        expect(count('Which word means the opposite of')).toBe(78);
+        expect(count('Complete the sentence:')).toBe(20);
+        expect(count('Which two words are opposites?')).toBe(40);
+    });
+
+    // Year 3+ (wordTier 4) adds the upper antonym bank; exact counts show the
+    // same four formats still fire on the wider pool.
+    it('Year 3: exact format counts over 200 questions', () => {
+        const g3 = getGradeConfig(3);
+        const problems = oppositeSpec.generate(createRng(seedFrom([3, 'opposite', 0])), g3.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        expect(count('What is the opposite of')).toBe(65);
+        expect(count('Which word means the opposite of')).toBe(72);
+        expect(count('Complete the sentence:')).toBe(28);
+        expect(count('Which two words are opposites?')).toBe(35);
+    });
+
+    // CAPACITY: the 100-page ask (8 x 100 = 800 questions) is fully unique —
+    // the sheet clears the 100-page bar at Year 1.
+    it('Year 1: 800-question (100-page) ask yields 800 unique questions', () => {
+        const problems = oppositeSpec.generate(createRng(seedFrom([1, 'opposite', 0])), g1.caps, 800);
+        expect(new Set(problems.map((p) => p.prompt)).size).toBe(800);
     });
 });

@@ -1,16 +1,23 @@
-// Unit tests for the TWIN WORDS (HOMOPHONES) worksheet plugin.
+// Unit tests for the TWIN WORDS (homophones) worksheet plugin (T4B rework).
 //
 // Strategy: the plugin's generator is DETERMINISTIC, so the ENTIRE sheet (all
 // prompts + answers) is pinned to exact expected values produced from the real
 // generator with the same seed the framework uses
-// (seedFrom([grade.id, spec.id, 0])). If the algorithm, pair bank, or caps
+// (seedFrom([grade.id, spec.id, 0])). If the algorithm, sentence bank, or caps
 // change, these exact assertions fail — which is what we want, so a silent
 // change to the worksheet can't slip through.
+//
+// T4B context: this was the WORST capacity case before the rework (40/52/74
+// unique questions at grades 1/2/3 — long documents repeated sentences within
+// pages). The curated banks roughly tripled and three new task formats joined,
+// so the sheet now clears the 100-page bar (600 unique questions) at EVERY
+// grade. These tests pin the new capacity and the exact format mix.
 
 import { describe, it, expect } from 'vitest';
-import { seedFrom, getGradeConfig, generateSheet, generateDocument, type GradeConfig } from '../framework';
+import { seedFrom, getGradeConfig, createRng, generateSheet, generateDocument, type GradeConfig } from '../framework';
 import { homophoneSpec } from './TwinWordsWorksheet';
 
+const g0 = getGradeConfig(0);
 const g1 = getGradeConfig(1);
 const g2 = getGradeConfig(2);
 
@@ -20,105 +27,124 @@ function sheet(grade: GradeConfig) {
 }
 
 describe('homophone plugin — declarative spec', () => {
-    it('declares its sidebar label, glyph, page size and single-column layout', () => {
+    it('declares its sidebar label, glyph, T4B page size and single-column layout', () => {
         expect(homophoneSpec.id).toBe('homophone');
         expect(homophoneSpec.label).toBe('Twin Words');
         expect(homophoneSpec.icon).toBe('2');
-        expect(homophoneSpec.perPage).toBe(16);
-        // Twin-word sentences are prose — single-column.
+        // T4B density: 6 roomy prose rows (was 16).
+        expect(homophoneSpec.perPage).toBe(6);
         expect(homophoneSpec.singleColumn).toBe(true);
     });
 
-    it('describes its pair scope from the grade caps (basic vs tricky)', () => {
+    it('describes its pair scope from the grade caps', () => {
         expect(homophoneSpec.scope(g1)).toBe('basic pairs');
         expect(homophoneSpec.scope(g2)).toBe('basic & tricky pairs');
+        expect(homophoneSpec.scope(getGradeConfig(3))).toBe('basic, tricky & senior pairs');
     });
 
     it('is gated by the grade catalogue (Year 1..6 offer it, Year 7 does not)', () => {
-        expect(homophoneSpec.offered(getGradeConfig(0))).toBe(false);
+        expect(homophoneSpec.offered(g0)).toBe(false);
         expect(homophoneSpec.offered(g1)).toBe(true);
         expect(homophoneSpec.offered(g2)).toBe(true);
         expect(homophoneSpec.offered(getGradeConfig(3))).toBe(true);
         expect(homophoneSpec.offered(getGradeConfig(6))).toBe(true);
         expect(homophoneSpec.offered(getGradeConfig(7))).toBe(false);
+        // Unoffered type => empty sheet even with a dashboard-shaped seed.
+        expect(generateSheet(homophoneSpec, g0, seedFrom([0, 'homophone', 0]))).toEqual([]);
     });
 });
 
-// Semantic invariant: the answer is one of the two printed "(a or b)"
-// options.
-function checkOptionsContainAnswer(grade: GradeConfig) {
-    for (const p of sheet(grade)) {
-        const m = p.prompt.match(/\(([^)]+)\)\s*$/);
-        expect(m).not.toBeNull();
-        const options = m![1].split(' or ').map((s) => s.trim());
-        expect(options).toContain(p.answer);
-    }
-}
-
-describe('homophone — Year 1 (basic pairs only)', () => {
+describe('homophone — Year 1 (basic pairs)', () => {
+    // T5E review fix re-pin: the recognition pair pool is now gated to TRUE
+    // homophones (case-folded dedupe + sound-cluster distractor exclusion),
+    // so the dealt stream changed. Every pinned recognition row below is a
+    // verified true-homophone pair with a non-colliding distractor.
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"prompt":"I am __ years old. (eight or ate)","answer":"eight","id":1,"type":"homophone"},
-        {"prompt":"Put the pencil __ . (their or there)","answer":"there","id":2,"type":"homophone"},
-        {"prompt":"I want __ go to the park. (too or to)","answer":"to","id":3,"type":"homophone"},
-        {"prompt":"We will __ at the park gate. (meet or meat)","answer":"meet","id":4,"type":"homophone"},
-        {"prompt":"The sky is __ . (blew or blue)","answer":"blue","id":5,"type":"homophone"},
-        {"prompt":"The dog wagged its __ . (tail or tale)","answer":"tail","id":6,"type":"homophone"},
-        {"prompt":"I go to school every __ . (week or weak)","answer":"week","id":7,"type":"homophone"},
-        {"prompt":"The __ makes honey. (be or bee)","answer":"bee","id":8,"type":"homophone"},
-        {"prompt":"I have __ apples. (to or two)","answer":"two","id":9,"type":"homophone"},
-        {"prompt":"There are __ cookies left. (no or know)","answer":"no","id":10,"type":"homophone"},
-        {"prompt":"The dog is over __ . (their or there)","answer":"there","id":11,"type":"homophone"},
-        {"prompt":"__ late! I am sorry. (To or Too)","answer":"Too","id":12,"type":"homophone"},
-        {"prompt":"Turn __ at the shop. (write or right)","answer":"right","id":13,"type":"homophone"},
-        {"prompt":"I __ all the answers. (knew or new)","answer":"knew","id":14,"type":"homophone"},
-        {"prompt":"I have a __ pencil case. (new or knew)","answer":"new","id":15,"type":"homophone"},
-        {"prompt":"The boat sails on the __ . (see or sea)","answer":"sea","id":16,"type":"homophone"},
+        {"prompt":"I like __ rice with my dinner. (plain or plane)","answer":"plain","id":1,"type":"homophone"},
+        {"prompt":"Find the mistake and write the correct word: \"The boat sails on the see.\"","answer":"sea","id":2,"type":"homophone"},
+        {"prompt":"Put the pencil __ . (their or there)","answer":"there","id":3,"type":"homophone"},
+        {"prompt":"Which two words sound the same? (to, no, know)","answer":"no, know","id":4,"type":"homophone"},
+        {"prompt":"I want __ go to the park. (too or to)","answer":"to","id":5,"type":"homophone"},
+        {"prompt":"Which two words sound the same? (bee, four, be)","answer":"bee, be","id":6,"type":"homophone"}
         ]);
-        checkOptionsContainAnswer(g1);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(homophoneSpec, g1, seedFrom([1, 'homophone', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"I will __ my name. (right or write)","answer":"write","id":17,"type":"homophone"},
-        {"prompt":"The __ is very bright. (sun or son)","answer":"sun","id":18,"type":"homophone"},
-        {"prompt":"The wind __ the door open. (blue or blew)","answer":"blew","id":19,"type":"homophone"},
+        {"prompt":"Find the mistake and write the correct word: \"This bag is to heavy.\"","answer":"too","id":7,"type":"homophone"},
+        {"prompt":"Write both words in the blanks: We __ at noon and ate __ for lunch. (meat, meet)","answer":"meet, meat","id":8,"type":"homophone"},
+        {"prompt":"I __ books every day. (red or read)","answer":"read","id":9,"type":"homophone"}
         ]);
     });
 });
 
-describe('homophone — Year 2 (adds the tricky pairs)', () => {
+describe('homophone — Year 2 (tricky pairs join)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"prompt":"My mum is very __ to me. (dear or deer)","answer":"dear","id":1,"type":"homophone"},
-        {"prompt":"I have a __ pencil case. (new or knew)","answer":"new","id":2,"type":"homophone"},
-        {"prompt":"Is that __ book? (you're or your)","answer":"your","id":3,"type":"homophone"},
-        {"prompt":"Did you __ that noise? (here or hear)","answer":"hear","id":4,"type":"homophone"},
-        {"prompt":"Her __ loves trucks. (son or sun)","answer":"son","id":5,"type":"homophone"},
-        {"prompt":"I have __ crayons. (four or for)","answer":"four","id":6,"type":"homophone"},
-        {"prompt":"Please sit __ me. (buy or by)","answer":"by","id":7,"type":"homophone"},
-        {"prompt":"The wind __ the door open. (blue or blew)","answer":"blew","id":8,"type":"homophone"},
-        {"prompt":"I want __ go to the park. (too or to)","answer":"to","id":9,"type":"homophone"},
-        {"prompt":"The cat licked __ paw. (it's or its)","answer":"its","id":10,"type":"homophone"},
-        {"prompt":"I saw a __ in the woods. (deer or dear)","answer":"deer","id":11,"type":"homophone"},
-        {"prompt":"This gift is __ you. (for or four)","answer":"for","id":12,"type":"homophone"},
-        {"prompt":"I will __ my warm coat. (wear or where)","answer":"wear","id":13,"type":"homophone"},
-        {"prompt":"The __ flew over the hills. (plane or plain)","answer":"plane","id":14,"type":"homophone"},
-        {"prompt":"Turn __ at the shop. (write or right)","answer":"right","id":15,"type":"homophone"},
-        {"prompt":"There are __ cookies left. (no or know)","answer":"no","id":16,"type":"homophone"},
+        {"prompt":"Where __ you going? (our or are)","answer":"are","id":1,"type":"homophone"},
+        {"prompt":"__ went to the shop yesterday. (Their or They)","answer":"They","id":2,"type":"homophone"},
+        {"prompt":"The dog is over __ . (their or there)","answer":"there","id":3,"type":"homophone"},
+        {"prompt":"Which two words sound the same? (two, for, to)","answer":"two, to","id":4,"type":"homophone"},
+        {"prompt":"This gift is __ you. (for or four)","answer":"for","id":5,"type":"homophone"},
+        {"prompt":"Write both words in the blanks: She __ __ cookies: more than seven! (eight, ate)","answer":"ate, eight","id":6,"type":"homophone"}
         ]);
-        checkOptionsContainAnswer(g2);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(homophoneSpec, g2, seedFrom([2, 'homophone', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"I have __ apples. (to or two)","answer":"two","id":17,"type":"homophone"},
-        {"prompt":"Can I __ a treat? (buy or by)","answer":"buy","id":18,"type":"homophone"},
-        {"prompt":"The __ is very bright. (sun or son)","answer":"sun","id":19,"type":"homophone"},
+        {"prompt":"Close your __ . (I or eye)","answer":"eye","id":7,"type":"homophone"},
+        {"prompt":"Find the mistake and write the correct word: \"Its going to rain today.\"","answer":"It's","id":8,"type":"homophone"},
+        {"prompt":"I do not eat __ . (meat or meet)","answer":"meat","id":9,"type":"homophone"}
         ]);
     });
 
     it('returns an empty sheet for an unimplemented grade', () => {
         expect(generateSheet(homophoneSpec, getGradeConfig(7), seedFrom([7, 'homophone', 0]))).toEqual([]);
+    });
+});
+
+describe('homophone — T4B format mix & capacity', () => {
+    // Exact per-format counts over a deterministic 200-question Year-1 sheet
+    // (measured from the real generator): blank+options, error spot, double
+    // blank, twin recognition. The blank format has no fixed stem, so its
+    // count is the exact remainder of the 200.
+    it('Year 1: exact format counts over 200 questions', () => {
+        const problems = homophoneSpec.generate(createRng(seedFrom([1, 'homophone', 0])), g1.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        const error = count('Find the mistake and write the correct word:');
+        const double = count('Write both words in the blanks:');
+        const recogn = count('Which two words sound the same?');
+        expect(error).toBe(39);
+        expect(double).toBe(12);
+        expect(recogn).toBe(97);
+        // Format 1 (blank + two options) is the exact remainder.
+        expect(200 - error - double - recogn).toBe(52);
+    });
+
+    it('Year 3: exact format counts over 200 questions', () => {
+        const g3 = getGradeConfig(3);
+        const problems = homophoneSpec.generate(createRng(seedFrom([3, 'homophone', 0])), g3.caps, 200);
+        const count = (stem: string) => problems.filter((p) => p.prompt.includes(stem)).length;
+        const error = count('Find the mistake and write the correct word:');
+        const double = count('Write both words in the blanks:');
+        const recogn = count('Which two words sound the same?');
+        // T5E re-pin: the recognition pool gate (true homophones only)
+        // re-drew the Year-3 stream; counts moved accordingly.
+        expect(error).toBe(32);
+        expect(double).toBe(12);
+        expect(recogn).toBe(43);
+        expect(200 - error - double - recogn).toBe(113);
+    });
+
+    // CAPACITY (the core T4B fix): the 100-page ask (6 x 100 = 600 questions)
+    // is fully unique at EVERY offering grade — the old banks yielded only
+    // 40/52/74 unique questions at grades 1/2/3.
+    it('grades 1-6: 600-question (100-page) ask yields 600 unique questions', () => {
+        for (const gradeId of [1, 2, 3, 4, 5, 6]) {
+            const grade = getGradeConfig(gradeId);
+            const problems = homophoneSpec.generate(createRng(seedFrom([grade.id, 'homophone', 0])), grade.caps, 600);
+            expect(new Set(problems.map((p) => p.prompt)).size).toBe(600);
+        }
     });
 });

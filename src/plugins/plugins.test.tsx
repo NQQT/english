@@ -342,9 +342,9 @@ describe('the real worksheet plugins — register through the same pipeline', ()
 
         // Default selection: the first plugin (Sight & Real Words) — its page
         // renders the Year 1 sight preview (pinned first row, see
-        // SightWordsWorksheet.test.ts).
+        // SightWordsWorksheet.test.ts; T5E row 1 is an APPLY gap-fill row).
         expect(screen.getByTestId('sheet-preview-page1').textContent).toContain(
-            '1.Which is a real word? (jaa, table, boa, mooa)'
+            '1.Fill the gap: You sleep in a . (hat, bed, cup)'
         );
     });
 

@@ -11,20 +11,32 @@
 //     standard worksheet recipe (dashboard.createWorksheet).
 //
 // Fully self-contained: deleting this file and its line in plugins/index.ts
-// removes the Capital Letters worksheet without affecting the framework or any
-// other plugin.
+// removes the Capital Letters worksheet without affecting the framework or
+// any other plugin.
+//
+// T4B REWORK (quality over quantity):
+//   - DENSITY: perPage 24 → 8 (roomier rows with writing lines).
+//   - AMBIGUITY FIX: the old "which word needs a capital letter?" rows
+//     printed the WHOLE line lower-case — so BOTH the sentence start and the
+//     name needed a capital and the single-word answer was ambiguous. Rows
+//     now print the sentence start correctly capitalised, leaving exactly
+//     ONE word (the name) needing a capital.
+//   - TASK MIX (five genuine formats):
+//       1. write a dealt word with a capital letter (the base);
+//       2. which word needs a capital? (unambiguous, see fix above);
+//       3. which sentence is written correctly? (right vs one error);
+//       4. proper-noun MCQ: "Which is written correctly? (friday / Friday /
+//          FRIDAY)" — days, months, Australian cities and states, names;
+//       5. REWRITE the whole sentence with correct capitals — the deepest
+//          format: the child reproduces every capital (start + name + city
+//          + month), answer is the full corrected sentence.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { createDeck, sampleUnique } from '../framework';
 import { wordSet, COMMON_WORDS, shuffleWords } from './words';
 
-// Capital letters — THREE procedural kinds:
-//   0. "Write it with a capital letter: <word>"     (the word-start base)
-//   1. "Which word needs a capital letter? (<line>)" (assembled sentence, the
-//      lowercase NAME is the answer)
-//   2. "Which sentence is written correctly? (<wrong> / <right>)" (sentence
-//      capital + name capital)
+// Capital letters — five formats over word + sentence banks.
 //
 // The old word-only generator cycled after the ~1 000-word pool; the sentence
 // kinds (slots cross-product) push the space well past 100 pages.
@@ -32,18 +44,46 @@ import { wordSet, COMMON_WORDS, shuffleWords } from './words';
 // NON-REPEATING SAMPLING: words/slots are dealt from decks and every question
 // passes through sampleUnique keyed on the printed prompt.
 //
-// Sentence slots for kinds 1-2: subject x name x predicate, all printed
-// lower-case in kind 1; kind 2 prints the correct capitalisation against a
-// deliberately wrong variant.
+// Sentence slots for the name kinds: subject x name x predicate. The name is
+// printed lower-case (it is the answer); the sentence start is printed with
+// its capital so exactly ONE word needs a capital (see the ambiguity fix).
 const CAPITAL_SUBJECTS = [
-    'the cat', 'the dog', 'my dad', 'my mom', 'the girl', 'the boy', 'my friend', 'the baby'
+    'the cat', 'the dog', 'my dad', 'my mom', 'the girl', 'the boy', 'my friend', 'the baby',
+    'the teacher', 'my sister', 'the frog', 'the horse'
 ] as const;
-const CAPITAL_NAMES = ['sam', 'ben', 'sue', 'mia', 'leo', 'zoe', 'max', 'ava', 'eli', 'ivy'] as const;
+const CAPITAL_NAMES = ['sam', 'ben', 'sue', 'mia', 'leo', 'zoe', 'max', 'ava', 'eli', 'ivy', 'ruby', 'jack'] as const;
 // Compound-subject predicates: past-tense lines that read with ANY subject.
 const CAPITAL_PREDICATES = [
     'ran fast', 'played outside', 'sang a song', 'found a coin',
-    'ate lunch', 'went home', 'read a book', 'made a mess'
+    'ate lunch', 'went home', 'read a book', 'made a mess',
+    'won the race', 'drew a picture', 'rode a bike', 'helped mum'
 ] as const;
+
+// Proper nouns for the "which is written correctly?" MCQ (kind 3): days,
+// months, Australian places and children's names — always capitalised in
+// correct writing, so the three options (lower / Capital / ALL CAPS) have
+// exactly one right answer.
+const CAPITAL_PROPER = [
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+    'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+    'perth', 'sydney', 'melbourne', 'brisbane', 'adelaide', 'canberra', 'hobart', 'darwin',
+    'australia', 'queensland', 'victoria', 'olivia', 'charlie', 'jessica', 'william'
+] as const;
+
+// Rewrite slots (kind 4): a fully lower-case sentence with THREE capitals to
+// restore (start, city, month). The answer is the complete corrected
+// sentence — deterministic because every slot's capitalisation is fixed.
+// Every start needs ONLY its first letter capitalised (no internal proper
+// noun like "mr brown" -> "Mr brown", which would make the answer wrong).
+const REWRITE_STARTS = ['i', 'we', 'my dad', 'my class', 'gran', 'nana'] as const;
+const REWRITE_VERBS = ['visit', 'travelled to', 'flew to', 'went to', 'live in'] as const;
+const REWRITE_CITIES = ['perth', 'sydney', 'melbourne', 'brisbane', 'adelaide', 'canberra', 'hobart', 'darwin'] as const;
+const REWRITE_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'] as const;
+
+// Capitalise the first letter of a word (used by kinds 0/2/4).
+function cap(word: string): string {
+    return `${word[0].toUpperCase()}${word.slice(1)}`;
+}
 
 function generateCapital(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const pool = [...new Set([...wordSet(caps.wordTier), ...COMMON_WORDS])];
@@ -51,34 +91,57 @@ function generateCapital(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const subjectDeck = createDeck(rng, CAPITAL_SUBJECTS);
     const nameDeck = createDeck(rng, CAPITAL_NAMES);
     const predicateDeck = createDeck(rng, CAPITAL_PREDICATES);
+    const properDeck = createDeck(rng, CAPITAL_PROPER);
+    const startDeck = createDeck(rng, REWRITE_STARTS);
+    const verbDeck = createDeck(rng, REWRITE_VERBS);
+    const cityDeck = createDeck(rng, REWRITE_CITIES);
+    const monthDeck = createDeck(rng, REWRITE_MONTHS);
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 3);
+            const kind = rng.int(0, 4);
             if (kind === 0) {
-                // Base kind: capitalise a dealt word.
+                // Format 1 — capitalise a dealt word.
                 const word = wordDeck.take();
-                return { prompt: `Write it with a capital letter: ${word}`, answer: `${word[0].toUpperCase()}${word.slice(1)}` };
+                return { prompt: `Write it with a capital letter: ${word}`, answer: cap(word) };
             }
-            // Assemble a compound-subject line: "the cat and sam ran fast."
+            // Assemble a compound-subject line: "The cat and sam ran fast."
             const subject = subjectDeck.take();
             const name = nameDeck.take();
             const predicate = predicateDeck.take();
             if (kind === 1) {
-                // All lower-case: the name is the word that needs a capital.
-                const line = `${subject} and ${name} ${predicate}.`;
+                // Format 2 — the sentence START is already correct, so the
+                // name is the ONLY word needing a capital (ambiguity fix).
+                const line = `${cap(subject)} and ${name} ${predicate}.`;
                 return { prompt: `Which word needs a capital letter? ${line}`, answer: name };
             }
-            // Which sentence is written correctly: the right line (sentence
-            // start + name capitalised) beside a deliberately wrong variant.
-            const right = `${subject[0].toUpperCase()}${subject.slice(1)} and ${name[0].toUpperCase()}${name.slice(1)} ${predicate}.`;
-            // Wrong mode a: sentence start lower-case; mode b: name lower-case.
-            const wrong =
-                rng.next() < 0.5
-                    ? `${subject} and ${name[0].toUpperCase()}${name.slice(1)} ${predicate}.`
-                    : `${subject[0].toUpperCase()}${subject.slice(1)} and ${name} ${predicate}.`;
-            const shown = shuffleWords(rng, [wrong, right]);
-            return { prompt: `Which sentence is written correctly? (${shown[0]} / ${shown[1]})`, answer: right };
+            if (kind === 2) {
+                // Format 3 — proper-noun MCQ: lower / Capital / ALL CAPS.
+                const word = properDeck.take();
+                const options = shuffleWords(rng, [word, cap(word), word.toUpperCase()]);
+                return { prompt: `Which is written correctly? (${options.join(', ')})`, answer: cap(word) };
+            }
+            if (kind === 3) {
+                // Format 4 — which sentence is written correctly: the right
+                // line (sentence start + name capitalised) beside a
+                // deliberately wrong variant.
+                const right = `${cap(subject)} and ${cap(name)} ${predicate}.`;
+                // Wrong mode a: sentence start lower-case; mode b: name lower-case.
+                const wrong =
+                    rng.next() < 0.5
+                        ? `${subject} and ${cap(name)} ${predicate}.`
+                        : `${cap(subject)} and ${name} ${predicate}.`;
+                const shown = shuffleWords(rng, [wrong, right]);
+                return { prompt: `Which sentence is written correctly? (${shown[0]} / ${shown[1]})`, answer: right };
+            }
+            // Format 5 — rewrite the whole sentence with correct capitals.
+            const start = startDeck.take();
+            const verb = verbDeck.take();
+            const city = cityDeck.take();
+            const month = monthDeck.take();
+            const lower = `${start} ${verb} ${city} in ${month}.`;
+            const answer = `${cap(start)} ${verb} ${cap(city)} in ${cap(month)}.`;
+            return { prompt: `Rewrite with the correct capital letters: ${lower}`, answer };
         },
         (p) => p.prompt
     );
@@ -89,7 +152,8 @@ export const capitalSpec: WorksheetSpec = {
     id: 'capital',
     label: 'Capital Letters',
     icon: 'A!',
-    perPage: 24,
+    // T4B density: 8 rows per page (was 24).
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('capital'),
     scope: () => 'word starts',
     generate: generateCapital

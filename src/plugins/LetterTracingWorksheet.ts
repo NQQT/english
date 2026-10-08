@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // LETTER TRACING WORKSHEET — a self-contained dashboard plugin (Prep
-// handwriting: trace each letter A–Z).
+// handwriting: tracing letter shapes).
 //
 // The dashboard loads this plugin by calling
 // `LetterTracingWorksheet(dashboard)` with its configurations + layouts
@@ -15,25 +15,41 @@
 // removes the Letter Tracing worksheet without affecting the framework or any
 // other plugin.
 //
-// DETERMINISM: the generator deliberately draws NO random numbers — the sheet
-// content is the fixed ordered set A–Z, which is exactly what letter-shape
-// practice needs. "Randomize" is a no-op for this type by design; multi-page
-// documents repeat the same ordered set (repeated practice runs).
+// PRACTICE DESIGN (quality over quantity): the old sheet flooded all 26
+// letters onto one page in a frozen A–Z order and every extra page repeated
+// that same sheet. Handwriting practice wants the opposite: a SMALL group of
+// letters per page (8 = 4 rows × 2 columns) written at the enlarged
+// writable scale of PrintableSheet's tracing layout, and a DIFFERENT group /
+// order on every page. The letters now come from a seeded DECK over the
+// alphabet (createDeck, framework/sampling.ts): each letter is dealt exactly
+// once per cycle, the deck reshuffles between cycles, and the cycle-boundary
+// guard stops the same letter being dealt twice back-to-back. The alphabet
+// is finite, so long documents repeat letters by nature — the deck spreads
+// those repeats evenly instead of re-printing a frozen A–Z sheet.
+//
+// DETERMINISM (unchanged contract): the deck draws from the document's ONE
+// seeded Rng stream (seed = seedFrom([grade, id, refresh]), seed packing
+// untouched), so the same seed always yields the same document and preview
+// and print can never disagree. "Randomize" now genuinely re-rolls the
+// practice grouping — which is the point of the button.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { createDeck } from '../framework';
 
-// Uppercase alphabet in order (the shapes traced on letter pages).
+// Uppercase alphabet — the deck pool for letter-shape practice.
 const TRACE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 // Letter tracing: "look at the model, then trace the letter three times",
-// one ordered row per letter A–Z (26 rows = exactly one page; extra pages
-// repeat A–Z from the top). The model exemplar + dashed trace target switch
+// one row per dealt letter. The model exemplar + dashed trace target switch
 // the row to the tracing layout in the framework's PrintableSheet.
-function generateLetterTrace(_rng: Rng, _caps: Caps, count: number): RawProblem[] {
+function generateLetterTrace(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+    // Seeded deck: every page is a fresh group, and one full cycle (26
+    // rows) covers every letter exactly once — no fabricated capacity.
+    const deck = createDeck(rng, TRACE_ALPHABET);
     const out: RawProblem[] = [];
     for (let i = 0; i < count; i++) {
-        const letter = TRACE_ALPHABET[i % TRACE_ALPHABET.length];
+        const letter = deck.take();
         out.push({
             prompt: `Trace the letter "${letter}"`,
             answer: letter,
@@ -49,7 +65,9 @@ export const letterTraceSpec: WorksheetSpec = {
     id: 'letterTrace',
     label: 'Letter Tracing',
     icon: '⌗',
-    perPage: 26,
+    // 8 rows (4 per column) at the enlarged tracing scale: generous
+    // writing space per letter instead of a 26-row wall.
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('letterTrace'),
     scope: () => 'A–Z letter shapes',
     generate: generateLetterTrace

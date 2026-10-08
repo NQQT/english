@@ -13,6 +13,18 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Sentence Building worksheet without affecting the framework or
 // any other plugin.
+//
+// T4B REWORK (quality over quantity):
+//   - DENSITY: perPage 12 → 4 (four roomy tile rows with write-boxes).
+//   - SLOTS: actors 6→10 names + 16 two-word actors, actions 8→12,
+//     transitive verbs 10→14, plus a new PLACE slot ("at the park") and a
+//     two-word tail ("every day").
+//   - SHAPES: lines now span the WHOLE grade ladder 2..10 words (the old
+//     generator stopped at 5, so Y3–Y6 sheets kept re-asking Y2-length
+//     lines despite their 7–10 word caps).
+//   - TASK MIX: the classic scramble-and-build PLUS a reorder-MCQ
+//     ("Which sentence is in the correct order?" — recognise the right
+//     order among scrambles, the inverse skill).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
@@ -20,24 +32,25 @@ import { isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // ── Combinatorial sentence generator ─────────────────────────────────────────
-// The old bank held 17 fixed lines; the sheet repeated them within two pages.
-// Now sentences are ASSEMBLED from grammar slots, so the question space is the
-// cross-product of the banks (400 distinct Year 1 lines, 2 400 Year 2)
-// instead of a hand-written list.
+// Sentences are ASSEMBLED from grammar slots, so the question space is the
+// cross-product of the banks rather than a hand-written list. Every slot
+// entry carries a FIXED word count (see the shape tallies below) so each
+// line shape has a guaranteed, exact number of tiles.
 //
-// Slot banks (who/what does/what to/extra):
-const SENT_NAMES: readonly string[] = ['Sam', 'Ben', 'Sue', 'Mia', 'Leo', 'Zoe'];
-const SENT_ACTIONS: readonly string[] = ['runs', 'jumps', 'skips', 'sings', 'hops', 'claps', 'swims', 'naps'];
+// Slot banks (who/what does/what to/where/when):
+const SENT_NAMES: readonly string[] = ['Sam', 'Ben', 'Sue', 'Mia', 'Leo', 'Zoe', 'Max', 'Ava', 'Eli', 'Ivy'];
+const SENT_ACTIONS: readonly string[] = ['runs', 'jumps', 'skips', 'sings', 'hops', 'claps', 'swims', 'naps', 'dances', 'shouts', 'smiles', 'waits'];
 // One-word and two-word actors, kept apart so every line SHAPE below has a
 // guaranteed, exact word count (the grade cap filters by shape, not by line).
 const SENT_ONE_WORD_ACTORS: readonly string[] = SENT_NAMES;
 const SENT_TWO_WORD_ACTORS: readonly string[] = [
     'The dog', 'The cat', 'The bird', 'The frog', 'The girl', 'The boy',
     'My dad', 'My mom', 'My brother', 'My sister', 'The teacher', 'My friend',
-    'The baby', 'My cousin'
+    'The baby', 'My cousin', 'The horse', 'The rabbit'
 ];
-// Each transitive verb carries its own compatible objects, so a line always
-// reads sensibly ("washes a story" can never happen).
+// Each transitive verb carries its own compatible objects (each object is
+// exactly TWO words), so a line always reads sensibly ("washes a story" can
+// never happen) and the tile count stays exact.
 const SENT_TRANSITIVE: readonly [string, readonly string[]][] = [
     ['kicks', ['the ball', 'a stone', 'the can', 'a pebble']],
     ['reads', ['a book', 'a story', 'the sign', 'a card']],
@@ -48,33 +61,42 @@ const SENT_TRANSITIVE: readonly [string, readonly string[]][] = [
     ['finds', ['a coin', 'the key', 'a shell', 'a feather']],
     ['helps', ['my friend', 'the boy', 'a puppy', 'a kitten']],
     ['washes', ['the shirt', 'the cup', 'the car', 'the dish']],
-    ['carries', ['the box', 'a bag', 'the chair', 'a basket']]
+    ['carries', ['the box', 'a bag', 'the chair', 'a basket']],
+    ['chases', ['the cat', 'a butterfly', 'the dog', 'a ball']],
+    ['feeds', ['the fish', 'the hen', 'my dog', 'the birds']],
+    ['throws', ['the ball', 'a stick', 'the dice', 'a stone']],
+    ['rides', ['a bike', 'the pony', 'a scooter', 'my bike']]
 ];
-// Optional end-tails turn a 4-word Year 1 line into a 5-word Year 2 line.
-const SENT_TAILS: readonly string[] = ['today', 'outside', 'again', 'loudly', 'quickly', 'every day'];
+// PLACE slots are exactly THREE words each — they extend Y3+ lines without
+// breaking the shape tallies.
+const SENT_PLACES: readonly string[] = [
+    'at the park', 'in the garden', 'on the farm', 'by the sea',
+    'in the kitchen', 'at the beach', 'under the tree', 'in the yard'
+];
+// TAILS: one-word and two-word endings (kept apart for exact tallies).
+const SENT_TAILS1: readonly string[] = ['today', 'outside', 'again', 'loudly', 'quickly', 'slowly'];
+const SENT_TAILS2: readonly string[] = ['every day', 'at noon'];
 
 // Line shapes with their EXACT word counts; the grade's sentenceLen cap
-// filters which shapes a generator may use (Prep 2, Year 1 4, Year 2 5).
-// Line spaces: 2w = 6x8 = 48 · 3w = 14x8 = 112 · 4w = 6x40 = 240 ·
-// 5w = 14x40 + 6x40x6 = 2 000. Year 1 (cap 4) draws from 400 distinct lines,
-// and because each line is printed SCRAMBLED (and the uniqueness key is the
-// printed prompt), its question space is thousands deep.
+// filters which shapes a generator may use (Prep 2, Y1 4, Y2 5, Y3 7, Y4 8,
+// Y5 9, Y6 10 — the shapes now cover the whole ladder). Each shape lists its
+// word-count tally so the tile count is provably exact.
 type SentenceShape = {
     len: number;
     build: (rng: Rng) => string[];
 };
 const SENTENCE_SHAPES: readonly SentenceShape[] = [
-    // "Sam runs" — Prep's whole space.
+    // "Sam runs" — Prep's whole space (1+1).
     {
         len: 2,
         build: (rng) => [rng.pick(SENT_ONE_WORD_ACTORS), rng.pick(SENT_ACTIONS)]
     },
-    // "The dog sings" — Year 1+.
+    // "The dog sings" — Year 1+ (2+1).
     {
         len: 3,
         build: (rng) => [rng.pick(SENT_TWO_WORD_ACTORS), rng.pick(SENT_ACTIONS)]
     },
-    // "Sam kicks the ball" — Year 1+.
+    // "Sam kicks the ball" — Year 1+ (1+1+2).
     {
         len: 4,
         build: (rng) => {
@@ -82,7 +104,7 @@ const SENTENCE_SHAPES: readonly SentenceShape[] = [
             return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects)];
         }
     },
-    // "My mom washes the cup" — Year 2 (5-word actors).
+    // "My mom washes the cup" — Year 2 (2+1+2).
     {
         len: 5,
         build: (rng) => {
@@ -90,12 +112,76 @@ const SENTENCE_SHAPES: readonly SentenceShape[] = [
             return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects)];
         }
     },
-    // "Sam kicks the ball outside" — Year 2 (tallied from names).
+    // "Sam kicks the ball outside" — Year 2 (1+1+2+1).
     {
         len: 5,
         build: (rng) => {
             const [verb, objects] = rng.pick(SENT_TRANSITIVE);
-            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS)];
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS1)];
+        }
+    },
+    // "The dog sees the moon today" — Year 3 (2+1+2+1).
+    {
+        len: 6,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS1)];
+        }
+    },
+    // "Sam reads a book every day" — Year 3 (1+1+2+2).
+    {
+        len: 6,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS2)];
+        }
+    },
+    // "Sam kicks the ball at the park" — Year 3 (1+1+2+3).
+    {
+        len: 7,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_PLACES)];
+        }
+    },
+    // "My sister reads a book every day" — Year 3 (2+1+2+2).
+    {
+        len: 7,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS2)];
+        }
+    },
+    // "The teacher draws a house under the tree" — Year 4 (2+1+2+3).
+    {
+        len: 8,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_PLACES)];
+        }
+    },
+    // "Sam sees a rainbow outside at the beach" — Year 5 (1+1+2+1+3).
+    {
+        len: 8,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_ONE_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS1), rng.pick(SENT_PLACES)];
+        }
+    },
+    // "The dog chases a butterfly again in the yard" — Year 5 (2+1+2+1+3).
+    {
+        len: 9,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS1), rng.pick(SENT_PLACES)];
+        }
+    },
+    // "My brother feeds the fish every day at the farm" — Year 6 (2+1+2+2+3).
+    {
+        len: 10,
+        build: (rng) => {
+            const [verb, objects] = rng.pick(SENT_TRANSITIVE);
+            return [rng.pick(SENT_TWO_WORD_ACTORS), verb, rng.pick(objects), rng.pick(SENT_TAILS2), rng.pick(SENT_PLACES)];
         }
     }
 ];
@@ -114,6 +200,12 @@ const SENTENCE_SHAPES: readonly SentenceShape[] = [
 // (scrambled) order: the correct order is never printed. Prep and Years 4+
 // keep the legacy parenthesised prompt and no tile metadata.
 //
+// REORDER-MCQ (second format): the child reads three candidate orders and
+// picks the one that forms the correct sentence — recognising order rather
+// than producing it. The answer is the correctly ordered sentence; the two
+// distractors are genuine scrambles (never the correct order — guarded
+// below, because a duplicate word could make a "scramble" read identically).
+//
 // NON-REPEATING SAMPLING: sampleUnique keys on the PRINTED QUESTION. Legacy
 // rows print the scrambled bank inside the prompt, so the prompt alone IS
 // the question. Early-band rows (Y1–Y3, see isEarlyCueBand) moved the bank
@@ -125,7 +217,8 @@ const SENTENCE_SHAPES: readonly SentenceShape[] = [
 // pair must never repeat until the whole space is dealt. Keying on the
 // prompt alone here would collapse the space to the handful of blank-count
 // patterns ("__ , __." vs "__ , __ , __.") and push the sheet into the
-// sampleUnique fallback tail almost immediately.
+// sampleUnique fallback tail almost immediately. MCQ rows print all three
+// candidate orders inside the prompt, so the prompt alone is their key.
 function generateSentence(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const lenCap = Math.max(2, caps.sentenceLen);
     let shapes = SENTENCE_SHAPES.filter((s) => s.len <= lenCap);
@@ -134,27 +227,53 @@ function generateSentence(rng: Rng, caps: Caps, count: number): RawProblem[] {
     return sampleUnique(
         count,
         () => {
+            // Build a line from a shape eligible for this grade's length cap.
             const words = rng.pick(shapes).build(rng);
+            const correct = words.join(' ');
+
+            if (rng.next() < 0.35 && words.length >= 3) {
+                // Format 2 — reorder MCQ (3+ words: 2-word lines have only
+                // one wrong order, which makes the choice trivial).
+                let wrongA = shuffleWords(rng, words).join(' ');
+                let wrongB = shuffleWords(rng, words).join(' ');
+                // A scramble of a line with repeated words ("the ... the")
+                // can read IDENTICAL to the correct order — redraw until the
+                // three candidates are genuinely different sentences.
+                let guard = 0;
+                while ((wrongA === correct || wrongB === correct || wrongA === wrongB) && guard < 20) {
+                    wrongA = shuffleWords(rng, words).join(' ');
+                    wrongB = shuffleWords(rng, words).join(' ');
+                    guard += 1;
+                }
+                const options = shuffleWords(rng, [correct, wrongA, wrongB]);
+                return {
+                    prompt: `Which sentence is in the correct order? (${options.join(' / ')})`,
+                    answer: correct
+                };
+            }
+
+            // Format 1 — build it yourself (scrambled bank + blank pattern).
             const shown = shuffleWords(rng, words); // never the correct order
             const blanks = words.map(() => '__').join(', ');
             if (early) {
                 // Word tiles (scrambled, shown order) + word write-boxes.
                 return {
                     prompt: `Put the words in the correct order: ${blanks}.`,
-                    answer: words.join(' '),
+                    answer: correct,
                     tileBlanks: 'word',
                     tileWords: shown
                 };
             }
             // Legacy: the scrambled list stays in the prompt text.
-            return { prompt: `Put the words in the correct order: ${blanks}.  (${shown.join(', ')})`, answer: words.join(' ') };
+            return { prompt: `Put the words in the correct order: ${blanks}.  (${shown.join(', ')})`, answer: correct };
         },
         // PRINTED-QUESTION KEY (see the NON-REPEATING SAMPLING note): legacy
-        // rows — the prompt text (the bank is inside it); early-band rows —
-        // prompt + the DISPLAYED tile order (the bank is the tiles; same
-        // line, different tile order = a different printed puzzle, exactly
-        // as different scramble text was in the legacy prompt). The '|'
-        // separator cannot occur in a word, so the key is unambiguous.
+        // and MCQ rows — the prompt text (the bank/options are inside it);
+        // early-band rows — prompt + the DISPLAYED tile order (the bank is
+        // the tiles; same line, different tile order = a different printed
+        // puzzle, exactly as different scramble text was in the legacy
+        // prompt). The '|' separator cannot occur in a word, so the key is
+        // unambiguous.
         (p) => (p.tileWords ? `${p.prompt} | ${p.tileWords.join('|')}` : p.prompt)
     );
 }
@@ -165,7 +284,8 @@ export const sentenceSpec: WorksheetSpec = {
     id: 'sentence',
     label: 'Sentence Building',
     icon: '¶',
-    perPage: 12,
+    // T4B density: 4 roomy tile rows per page (was 12).
+    perPage: 4,
     singleColumn: true,
     offered: (grade: GradeConfig) => grade.available.includes('sentence'),
     scope: (grade: GradeConfig) => `up to ${Math.max(2, grade.caps.sentenceLen)} words`,

@@ -16,89 +16,162 @@
 // Fully self-contained: deleting this file and its line in plugins/index.ts
 // removes the Verb Agreement worksheet without affecting the framework or any
 // other plugin.
+//
+// DENSITY (distribution quality pass): perPage dropped 18 → 8 — the written
+// families (fix the verb, write your own sentence) get real writing room.
+//
+// ANSWER VALIDITY (two old flaws fixed):
+//   1. The old "which subject fits" family dealt a VERB SET but destructured
+//      it wrongly, printing nonsense like "__ a happy" / "__ r happy". Fixed:
+//      the verb now comes from the dealt pair's own verb forms and the tail
+//      is the pair's curated tail (no more one-size "happy").
+//   2. The old MC verb family drew its third option from ANY other verb set,
+//      which could sneak in a second correct form ("The dog __ barking" with
+//      both "is" and "was" offered). Fixed: every pair carries a CURATED
+//      extra verb that never fits its tail, so each MCQ has exactly one
+//      defensible answer.
+// The bank grew 16 → 24 subject pairs (regular -s, -es, and irregular
+// plurals: mice, geese, leaves, teeth …), and tails are sense-neutral so
+// they read correctly with both numbers.
+//
+// TASK VARIETY: SIX connected families — apply (choose the verb), interpret
+// (which verb agrees / which subject fits), compare (which subject agrees
+// with this verb — MC), edit (fix the mismatched verb), apply (write your
+// own sentence, "Example:" model answer). Families dealt from a KIND DECK.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
 import { sampleUnique } from '../framework';
 
-// Singular subjects x predicates (is/was/has forms) and the plural pairs
-// (are/were/have): [singular subject, plural subject, verb pair, tail].
-// The tail completes the sentence with the singular subject; for plurals the
-// tail is adjusted where needed (kept sense-neutral: "happy", "quiet"...).
-const AGREEMENT_PAIRS: [string, string, [string, string, string]][] = [
-    ['The dog', 'The dogs', ['is', 'are', 'barking']],
-    ['My brother', 'My brothers', ['is', 'are', 'watching TV']],
-    ['The teacher', 'The teachers', ['has', 'have', 'a new planner']],
-    ['The player', 'The players', ['was', 'were', 'tired after training']],
-    ['The baby', 'The babies', ['is', 'are', 'sleeping']],
-    ['My friend', 'My friends', ['is', 'are', 'coming over']],
-    ['The kitten', 'The kittens', ['was', 'were', 'hiding']],
-    ['The student', 'The students', ['has', 'have', 'finished the test']],
-    ['The bird', 'The birds', ['is', 'are', 'singing']],
-    ['The child', 'The children', ['is', 'are', 'reading quietly']],
-    ['The farmer', 'The farmers', ['was', 'were', 'harvesting wheat']],
-    ['My cousin', 'My cousins', ['has', 'have', 'arrived']],
-    ['The woman', 'The women', ['is', 'are', 'swimming laps']],
-    ['The man', 'The men', ['was', 'were', 'mending the fence']],
-    ['The mouse', 'The mice', ['is', 'are', 'sneaking about']],
-    ['The goose', 'The geese', ['was', 'were', 'waddling to the pond']]
+// Subject pairs: [singular subject, plural subject, singular verb, plural
+// verb, tail, curated wrong verb]. The tail completes the sentence after the
+// verb and reads correctly with BOTH numbers. The extra verb is a form from
+// another family that NEVER fits this tail (curated), so the MC verb family
+// always has a single defensible answer.
+// (Exported for the plugin's own tests — the answer-correctness invariants
+// re-derive expected answers straight from this bank.)
+export const AGREEMENT_PAIRS: [string, string, string, string, string, string][] = [
+    ['The dog', 'The dogs', 'is', 'are', 'barking at the mailman', 'has'],
+    ['My brother', 'My brothers', 'is', 'are', 'watching TV', 'does'],
+    ['The teacher', 'The teachers', 'has', 'have', 'a new planner', 'does'],
+    ['The player', 'The players', 'was', 'were', 'tired after training', 'has'],
+    ['The baby', 'The babies', 'is', 'are', 'sleeping soundly', 'has'],
+    ['My friend', 'My friends', 'is', 'are', 'coming over', 'has'],
+    ['The kitten', 'The kittens', 'was', 'were', 'hiding behind the sofa', 'has'],
+    ['The student', 'The students', 'has', 'have', 'finished the test', 'is'],
+    ['The bird', 'The birds', 'is', 'are', 'singing at dawn', 'has'],
+    ['The child', 'The children', 'is', 'are', 'reading quietly', 'has'],
+    ['The farmer', 'The farmers', 'was', 'were', 'harvesting wheat', 'has'],
+    ['My cousin', 'My cousins', 'has', 'have', 'arrived early', 'is'],
+    ['The woman', 'The women', 'is', 'are', 'swimming laps', 'has'],
+    ['The man', 'The men', 'was', 'were', 'mending the fence', 'has'],
+    ['The mouse', 'The mice', 'is', 'are', 'sneaking about', 'has'],
+    ['The goose', 'The geese', 'was', 'were', 'waddling to the pond', 'has'],
+    ['The leaf', 'The leaves', 'is', 'are', 'turning gold', 'has'],
+    ['The box', 'The boxes', 'was', 'were', 'stacked in the shed', 'has'],
+    ['The tomato', 'The tomatoes', 'is', 'are', 'ripening on the vine', 'has'],
+    ['The bus', 'The buses', 'was', 'were', 'late this morning', 'has'],
+    ['The hero', 'The heroes', 'has', 'have', 'saved the day', 'is'],
+    ['The ladybird', 'The ladybirds', 'is', 'are', 'crawling up the stem', 'has'],
+    ['The tooth', 'The teeth', 'is', 'are', 'aching after sweets', 'has'],
+    ['The city', 'The cities', 'was', 'were', 'decorated for the festival', 'has']
 ];
 
-// Verb pairs for the is/are-family multiple choice; was/were and has/have
-// each carry the same singular/plural split. One extra set (does/do) supplies
-// MC distractors without touching the answer forms.
-const VERB_SETS: readonly [string, string][] = [
-    ['is', 'are'],
-    ['was', 'were'],
-    ['has', 'have'],
-    ['does', 'do']
-] as const;
-
-// Subject–verb agreement — THREE procedural kinds (upper primary):
-//   0. written: fill the correct verb for the printed subject
-//   1. MC: which verb agrees with the printed subject (right verb beside the
-//      partner form and one from another pair)
-//   2. written: spot the matching subject — given the verb, name the SUBJECT
-//      (from the dealt pair's singular) that fits
+// Subject–verb agreement — SIX connected families (upper primary):
+//   0. written verb (apply): choose the verb for the printed subject
+//   1. MC verb (interpret): which verb agrees (right + partner + curated
+//      never-fits form)
+//   2. written subject (interpret): given the verb, name the fitting subject
+//   3. MC subject (compare): which subject agrees with the printed verb
+//      (right + opposite number + a foreign subject whose number also
+//      mismatches — always exactly one fits)
+//   4. written edit (edit): fix the deliberately mismatched verb
+//   5. written apply (apply): write your own sentence with a given subject
+//      and verb (open-ended → "Example:" model)
 //
-// NON-REPEATING SAMPLING: pairs AND verb sets are dealt from decks; every
+// NON-REPEATING SAMPLING: pairs AND families are dealt from decks; every
 // question passes through sampleUnique keyed on the printed prompt.
 function generateAgreement(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     const pairDeck = localDeck(rng, AGREEMENT_PAIRS);
-    const verbDeck = localDeck(rng, VERB_SETS);
+    const kindDeck = localDeck(rng, [0, 1, 2, 3, 4, 5] as const);
     return sampleUnique(
         count,
         () => {
-            const [sing, plur, verbs] = pairDeck.take();
-            const kind = rng.int(0, 2);
+            const [sing, plur, vSing, vPlur, tail, extra] = pairDeck.take();
+            const kind = kindDeck.take();
             if (kind === 0) {
                 // Written: singular or plural subject -> the agreeing verb.
                 const useSing = rng.next() < 0.5;
                 const subject = useSing ? sing : plur;
-                const answer = useSing ? verbs[0] : verbs[1];
-                return { prompt: `Choose the correct verb: ${subject} __ ${verbs[2]}.`, answer };
+                const answer = useSing ? vSing : vPlur;
+                return { prompt: `Choose the correct verb: ${subject} __ ${tail}.`, answer };
             }
             if (kind === 1) {
-                // MC: the agreeing verb beside its partner + a third form from
-                // another verb set (never equal to the answer).
+                // MC: the agreeing verb beside its partner and the pair's
+                // CURATED never-fitting extra form.
                 const useSing = rng.next() < 0.5;
                 const subject = useSing ? sing : plur;
-                const answer = useSing ? verbs[0] : verbs[1];
-                const other = useSing ? verbs[1] : verbs[0];
-                const otherSet = rng.pick(VERB_SETS.filter(([, a]) => a !== verbs[0] && a !== verbs[1] && a !== answer));
-                const extra = rng.pick(otherSet);
+                const answer = useSing ? vSing : vPlur;
+                const other = useSing ? vPlur : vSing;
                 const shown = shuffleLocal(rng, [answer, other, extra]);
-                return { prompt: `Which verb agrees: ${subject} __ ${verbs[2]}? (${shown.join(', ')})`, answer };
+                return { prompt: `Which verb agrees: ${subject} __ ${tail}? (${shown.join(', ')})`, answer };
             }
-            // Written: given the verb form, name the fitting subject.
-            const [, verbSet] = verbDeck.take();
+            if (kind === 2) {
+                // Written: given the verb form, name the fitting subject.
+                // (The old generator dealt a verb PAIR but indexed its
+                // LETTERS — "__ a happy" — fixed here: the verb is the dealt
+                // pair's own form and the tail is the pair's own tail.)
+                const useSing = rng.next() < 0.5;
+                const verb = useSing ? vSing : vPlur;
+                const answer = useSing ? sing : plur;
+                return { prompt: `Which subject fits: __ ${verb} ${tail}? (${sing} or ${plur})`, answer };
+            }
+            if (kind === 3) {
+                // MC: which subject agrees with the printed verb. The third
+                // option is another pair's subject with the WRONG number for
+                // this verb, so exactly one option can fit.
+                const useSing = rng.next() < 0.5;
+                const verb = useSing ? vSing : vPlur;
+                const answer = useSing ? sing : plur;
+                const ownOther = useSing ? plur : sing;
+                const foreign = pickForeignSubject(rng, sing, plur, useSing);
+                const shown = shuffleLocal(rng, [answer, ownOther, foreign]);
+                return { prompt: `Which subject agrees with "${verb} ${tail}"? (${shown.join(', ')})`, answer };
+            }
+            if (kind === 4) {
+                // Written edit: a deliberately mismatched verb — the child
+                // supplies the correct one.
+                const useSing = rng.next() < 0.5;
+                const wrongSubject = useSing ? plur : sing;
+                const wrongVerb = useSing ? vSing : vPlur;
+                const answer = useSing ? vPlur : vSing;
+                return { prompt: `Fix the verb: "${wrongSubject} ${wrongVerb} ${tail}."`, answer };
+            }
+            // Written apply: open-ended composition; the answer field is a
+            // LABELED example built from the pair itself.
             const useSing = rng.next() < 0.5;
-            const verb = useSing ? verbSet[0] : verbSet[1];
-            const answer = useSing ? sing : plur;
-            return { prompt: `Which subject fits: __ ${verb} happy. (${sing} or ${plur})`, answer };
+            const subject = useSing ? sing : plur;
+            const verb = useSing ? vSing : vPlur;
+            return {
+                prompt: `Write a sentence using "${subject}" and "${verb}".`,
+                answer: `Example: ${subject} ${verb} ${tail}.`
+            };
         },
         (p) => p.prompt
     );
+}
+
+// Pick a subject from ANOTHER pair whose number mismatches the printed verb
+// (singular verb -> take a plural subject, and vice versa), so it can never
+// agree. Guarded loop: the bank has many pairs, so it always resolves.
+function pickForeignSubject(rng: Rng, sing: string, plur: string, verbIsSing: boolean): string {
+    for (let guard = 0; guard < 24; guard++) {
+        const [s, p] = rng.pick(AGREEMENT_PAIRS);
+        if (s !== sing && p !== plur) return verbIsSing ? p : s;
+    }
+    // Fallback: scan for any pair that is not the dealt one.
+    const other = AGREEMENT_PAIRS.find(([s, p]) => s !== sing && p !== plur);
+    return other ? (verbIsSing ? other[1] : other[0]) : plur;
 }
 
 // Local Fisher–Yates shuffle (plugin isolation: no cross-plugin imports).
@@ -123,12 +196,13 @@ function localDeck<T>(rng: Rng, pool: readonly T[]): { take: () => T } {
     };
 }
 
-// The plugin's declarative spec (exported for its own tests).
+// The plugin's declarative spec (exported for its own tests). perPage 8:
+// low density so the written/edit families have real writing room.
 export const agreementSpec: WorksheetSpec = {
     id: 'agreement',
     label: 'Verb Agreement',
     icon: '=',
-    perPage: 18,
+    perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('agreement'),
     scope: () => 'subjects & verbs that match',
     generate: generateAgreement
