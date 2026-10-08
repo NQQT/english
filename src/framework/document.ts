@@ -20,9 +20,9 @@ import type { GradeConfig } from './grades';
 import type { RawProblem, WorksheetSpec } from './types';
 
 // A problem as printed: the plugin's prompt/answer (plus its optional
-// tracing model/trace) with the framework-assigned document position
-// (1-based, continuous across pages) and the owning worksheet's id as the
-// type tag.
+// learning-visual pictogram key/count and tracing model/trace) with the
+// framework-assigned document position (1-based, continuous across pages) and
+// the owning worksheet's id as the type tag.
 export type Problem = {
     // 1-based position on the sheet (assigned by buildDocument).
     id: number;
@@ -30,6 +30,15 @@ export type Problem = {
     type: string;
     prompt: string;
     answer: string;
+    // Learning-visual pictogram key (see RawProblem) + its print count. The
+    // chunker spreads the raw problem, so both pass straight through.
+    visual?: string;
+    visualCount?: number;
+    // Tile-scaffolding metadata (see RawProblem) — the chunker spreads these
+    // straight through too: blank-box style + the displayed (scrambled)
+    // word tiles for Sentence Building.
+    tileBlanks?: 'letter' | 'word';
+    tileWords?: string[];
     // Tracing rows only (see RawProblem): solid model exemplar + faded dashed
     // target. Passed straight through the chunker.
     model?: string;

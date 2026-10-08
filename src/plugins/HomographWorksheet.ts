@@ -58,18 +58,19 @@ const HOMOGRAPH_ITEMS: [string, string, string][] = [
 // every question passes through sampleUnique keyed on the printed prompt.
 function generateHomograph(rng: Rng, _caps: Caps, count: number): RawProblem[] {
     const itemDeck = localDeck(rng, HOMOGRAPH_ITEMS);
+    // The bank's word list (distractor pool for the MC kinds).
     const bankWords = HOMOGRAPH_ITEMS.map(([w]) => w);
     return sampleUnique(
         count,
         () => {
+            // The dealt item ALREADY carries both senses — kind 0 uses them
+            // directly (no re-lookup by word).
             const [word, senseA, senseB] = itemDeck.take();
             const kind = rng.int(0, 2);
             if (kind === 0) {
-                // MC: pick the sentence where the word fits (both do! — so we
-                // ask for the OTHER bank word instead; simpler: ask which
-                // bank word fits a given sentence).
-                const [, sA, sB] = HOMOGRAPH_ITEMS.find(([w]) => w === word)!;
-                const target = rng.next() < 0.5 ? [word, sA] : [word, sB];
+                // MC: ask which bank word fits ONE of the dealt word's two
+                // sense sentences; the two distractor bank words fit it not.
+                const target = rng.next() < 0.5 ? [word, senseA] : [word, senseB];
                 const others = shuffleLocal(rng, bankWords.filter((w) => w !== word)).slice(0, 2);
                 const shown = shuffleLocal(rng, [target[0], ...others]);
                 return { prompt: `Which word fits the gap: ${target[1]} (${shown.join(', ')})`, answer: target[0] };

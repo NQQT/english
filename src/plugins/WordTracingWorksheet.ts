@@ -22,6 +22,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
+import { hasVisual } from '../framework';
 
 // One word per letter: the trace target for that letter's word-tracing row.
 // Every word begins with its letter, is a real word (kept in the shared
@@ -58,8 +59,13 @@ const TRACE_WORDS: [string, string][] = [
     ['Z', 'zoo']
 ];
 
-// Word tracing: each row shows the letter as the model and the real word
-// that begins with it as the single faded trace target ("A" + "apple").
+// Word tracing: each row shows [picture?] the letter as the model and the
+// real word that begins with it as the single faded trace target ("A" +
+// "apple"). LEARNING VISUAL: the picture of the word itself (when registered)
+// tells the Prep child WHICH word they are tracing — the trace target is the
+// word, so the picture is a scaffold, never an extra answer; words without a
+// registered pictogram print plain. Deterministic: no rng draws, so the fixed
+// ordered sheet (and its pictures) is identical on every run.
 function generateWordTrace(_rng: Rng, _caps: Caps, count: number): RawProblem[] {
     const out: RawProblem[] = [];
     for (let i = 0; i < count; i++) {
@@ -68,7 +74,8 @@ function generateWordTrace(_rng: Rng, _caps: Caps, count: number): RawProblem[] 
             prompt: `Trace the word "${word}" (begins with "${letter}")`,
             answer: word,
             model: letter,
-            trace: word
+            trace: word,
+            visual: hasVisual(word) ? word : undefined
         });
     }
     return out;

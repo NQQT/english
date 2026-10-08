@@ -15,8 +15,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): the single-word kinds ("how many vowels are in apple?") carry
+// a picture of that word — the apple cues the word whose vowels are being
+// counted; the answer (a NUMBER or a letter) is never revealed by the
+// picture. The multiple-choice kinds have no single depicted concept and stay
+// text-only; Prep (tier 1) and Years 4+ (tiers 5-6) print legacy markup.
+function picture(caps: Caps, word: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
+}
 
 // How many vowels a word has (the a-e-i-o-u letter rule, as worksheets teach
 // it). `vowelLetter` returns the single vowel letter for words with exactly
@@ -68,7 +78,11 @@ function generateVowel(rng: Rng, caps: Caps, count: number): RawProblem[] {
             if (kind === 0) {
                 // Written count.
                 const word = wordDeck.take();
-                return { prompt: `How many vowels are in "${word}"?`, answer: `${vowelCount(word)}` };
+                return {
+                    prompt: `How many vowels are in "${word}"?`,
+                    answer: `${vowelCount(word)}`,
+                    visual: picture(caps, word)
+                };
             }
             if (kind === 1) {
                 // Single-vowel word: name its vowel letter.
@@ -76,9 +90,17 @@ function generateVowel(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 if (vowelCount(word) !== 1) {
                     // Dealt a multi-vowel word — the count question is the
                     // only well-posed form for it.
-                    return { prompt: `How many vowels are in "${word}"?`, answer: `${vowelCount(word)}` };
+                    return {
+                        prompt: `How many vowels are in "${word}"?`,
+                        answer: `${vowelCount(word)}`,
+                        visual: picture(caps, word)
+                    };
                 }
-                return { prompt: `Which letter in "${word}" is the vowel?`, answer: vowelLetter(word)! };
+                return {
+                    prompt: `Which letter in "${word}" is the vowel?`,
+                    answer: vowelLetter(word)!,
+                    visual: picture(caps, word)
+                };
             }
             if (kind === 2) {
                 // MC: one option has exactly N vowels, two do not.

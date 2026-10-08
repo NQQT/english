@@ -219,16 +219,27 @@ describe('EnglishDashboard — english type selection (left)', () => {
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Blending');
     });
 
-    it('Sentence Building switches the sheet to scrambled prose lines', async () => {
+    it('Sentence Building switches the sheet to word-tile sentence lines', async () => {
         // Awaited — plugins load one by one after the dashboard renders.
         fireEvent.click(
             await screen.findByRole('button', { name: 'Sentence Building' }, { timeout: LOAD_TIMEOUT })
         );
         const pageText = text(screen.getByTestId('sheet-preview-page1'));
-        // Year 1 sentence, row 1 (pins: shown scramble "(skips, Sue)", the
-        // blanks print as empty fill-in lines).
+        // T4 early-band (Y1–Y3) contract (see SentenceBuildingWorksheet.ts):
+        // the prompt prints the BLANKS only — the scrambled word bank no
+        // longer appears as a parenthesised text list, so nowhere in the
+        // preview page may a '(' exist (the words print exactly once, as
+        // tiles below the prompt line).
         expect(pageText).toContain('1.Put the words in the correct order');
-        expect(pageText).toContain('(skips, Sue)');
+        expect(pageText).not.toContain('(');
+        // Row 1's word bank reads from the accessible tile list (sentence g1
+        // pin row 1: answer "Sue skips", shown/scrambled tiles
+        // ["skips", "Sue"] — the answer order is never printed).
+        const firstTiles = screen.getAllByTestId('word-tiles')[0];
+        expect([...firstTiles.querySelectorAll('[role="listitem"]')].map((el) => el.textContent)).toEqual([
+            'skips',
+            'Sue'
+        ]);
         expect(screen.getByTestId('toolbar-title').textContent).toBe('Year 1 — Sentence Building');
     });
 

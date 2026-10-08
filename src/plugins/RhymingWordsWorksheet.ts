@@ -15,8 +15,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): the base word ("Which word rhymes with 'cat'?") carries its
+// picture cue. The base is never the answer (the child must pick the RHYME),
+// so the picture is a safe scaffold; Prep (tier 1) and Years 4+ print plain
+// (legacy markup).
+function picture(caps: Caps, word: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
+}
 
 // Rhyme families: base word -> words that rhyme with it. Tiers 2/3 add the
 // "-ight" and long-vowel families.
@@ -77,6 +86,9 @@ function generateRhyme(rng: Rng, caps: Caps, count: number): RawProblem[] {
         count,
         () => {
             const base = baseDeck.take();
+            // Picture cue for the base word (the answer is the rhyme it picks,
+            // so the base's picture is a scaffold, not a give-away).
+            const pic = picture(caps, base);
             const rhyme = rng.pick(RHIME_BANK[base]);
             // Two distinct non-rhyme distractors (the pool never rhymes with any
             // base — see RHYME_DISTRACT).
@@ -84,7 +96,11 @@ function generateRhyme(rng: Rng, caps: Caps, count: number): RawProblem[] {
             let d2 = rng.pick(RHYME_DISTRACT);
             if (d2 === d1) d2 = rng.pick(RHYME_DISTRACT.filter((w) => w !== d1));
             const options = shuffleWords(rng, [rhyme, d1, d2]);
-            return { prompt: `Which word rhymes with "${base}"? (${options.join(', ')})`, answer: rhyme };
+            return {
+                prompt: `Which word rhymes with "${base}"? (${options.join(', ')})`,
+                answer: rhyme,
+                visual: pic
+            };
         },
         (p) => p.prompt
     );

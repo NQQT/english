@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { sampleUnique } from '../framework';
+import { isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
 
 // ── Combinatorial sentence generator ─────────────────────────────────────────
@@ -105,22 +105,57 @@ const SENTENCE_SHAPES: readonly SentenceShape[] = [
 // sentenceLen cap are never chosen; a tier with no eligible shape falls back
 // to the shortest shapes so the generator can never run dry.
 //
-// NON-REPEATING SAMPLING: sampleUnique keys on the printed prompt, so a line
-// scrambled in a different order is a distinct question — the shape banks plus
-// scramble permutations keep a thousand-question document repeat-free.
+// WORD-TILE SCAFFOLD (Y1–3, early cue band — see isEarlyCueBand): the
+// displayed words print as a run of bordered word tiles (WordTileRun,
+// framework/tiles.tsx) and the answer gaps as word-sized write-boxes, so the
+// line reads like a classic cut-out word-card activity. For those rows the
+// prompt drops the parenthesised text list (the tiles ARE the word bank —
+// printing both would duplicate it), and `tileWords` carries the SHOWN
+// (scrambled) order: the correct order is never printed. Prep and Years 4+
+// keep the legacy parenthesised prompt and no tile metadata.
+//
+// NON-REPEATING SAMPLING: sampleUnique keys on the PRINTED QUESTION. Legacy
+// rows print the scrambled bank inside the prompt, so the prompt alone IS
+// the question. Early-band rows (Y1–Y3, see isEarlyCueBand) moved the bank
+// into the `tileWords` metadata (the prompt is now just the blank pattern),
+// so the printed question is PROMPT + TILE ORDER: two rows with the same
+// line but different tile orders are different visual puzzles — exactly as
+// two rows with the same line but different scramble text were different
+// questions in the legacy prompt — and a byte-identical (line, tile order)
+// pair must never repeat until the whole space is dealt. Keying on the
+// prompt alone here would collapse the space to the handful of blank-count
+// patterns ("__ , __." vs "__ , __ , __.") and push the sheet into the
+// sampleUnique fallback tail almost immediately.
 function generateSentence(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const lenCap = Math.max(2, caps.sentenceLen);
     let shapes = SENTENCE_SHAPES.filter((s) => s.len <= lenCap);
     if (shapes.length === 0) shapes = [SENTENCE_SHAPES[0]];
+    const early = isEarlyCueBand(caps);
     return sampleUnique(
         count,
         () => {
             const words = rng.pick(shapes).build(rng);
-            const shown = shuffleWords(rng, words);
+            const shown = shuffleWords(rng, words); // never the correct order
             const blanks = words.map(() => '__').join(', ');
+            if (early) {
+                // Word tiles (scrambled, shown order) + word write-boxes.
+                return {
+                    prompt: `Put the words in the correct order: ${blanks}.`,
+                    answer: words.join(' '),
+                    tileBlanks: 'word',
+                    tileWords: shown
+                };
+            }
+            // Legacy: the scrambled list stays in the prompt text.
             return { prompt: `Put the words in the correct order: ${blanks}.  (${shown.join(', ')})`, answer: words.join(' ') };
         },
-        (p) => p.prompt
+        // PRINTED-QUESTION KEY (see the NON-REPEATING SAMPLING note): legacy
+        // rows — the prompt text (the bank is inside it); early-band rows —
+        // prompt + the DISPLAYED tile order (the bank is the tiles; same
+        // line, different tile order = a different printed puzzle, exactly
+        // as different scramble text was in the legacy prompt). The '|'
+        // separator cannot occur in a word, so the key is unambiguous.
+        (p) => (p.tileWords ? `${p.prompt} | ${p.tileWords.join('|')}` : p.prompt)
     );
 }
 

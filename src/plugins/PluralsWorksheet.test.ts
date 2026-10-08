@@ -45,38 +45,38 @@ describe('plural plugin — declarative spec', () => {
 describe('plural — Year 1 (regular -s/-es endings only)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
-        {"prompt":"What is the singular of \"birds\"? (bird, kids, buses)","answer":"bird","id":1,"type":"plural"},
-        {"prompt":"What is the plural of \"leg\"? (nets, legs, watches)","answer":"legs","id":2,"type":"plural"},
-        {"prompt":"What is the singular of \"cats\"?","answer":"cat","id":3,"type":"plural"},
-        {"prompt":"What is the plural of \"door\"?","answer":"doors","id":4,"type":"plural"},
-        {"prompt":"What is the singular of \"frogs\"?","answer":"frog","id":5,"type":"plural"},
-        {"prompt":"What is the plural of \"moon\"?","answer":"moons","id":6,"type":"plural"},
-        {"prompt":"What is the singular of \"trees\"? (tree, balls, boats)","answer":"tree","id":7,"type":"plural"},
-        {"prompt":"What is the plural of \"cup\"?","answer":"cups","id":8,"type":"plural"},
-        {"prompt":"What is the singular of \"pigs\"? (jams, wigs, pig)","answer":"pig","id":9,"type":"plural"},
-        {"prompt":"What is the plural of \"bus\"? (buses, tree, hats)","answer":"buses","id":10,"type":"plural"},
-        {"prompt":"What is the singular of \"stars\"? (doors, star, pot)","answer":"star","id":11,"type":"plural"},
-        {"prompt":"What is the plural of \"map\"?","answer":"maps","id":12,"type":"plural"},
-        {"prompt":"What is the singular of \"dogs\"? (fans, dog, box)","answer":"dog","id":13,"type":"plural"},
-        {"prompt":"What is the plural of \"boat\"? (boats, moon, tops)","answer":"boats","id":14,"type":"plural"},
-        {"prompt":"What is the singular of \"pens\"?","answer":"pen","id":15,"type":"plural"},
-        {"prompt":"What is the plural of \"jam\"? (jams, buses, wig)","answer":"jams","id":16,"type":"plural"},
-        {"prompt":"What is the singular of \"logs\"? (log, hat, balls)","answer":"log","id":17,"type":"plural"},
-        {"prompt":"What is the plural of \"hat\"?","answer":"hats","id":18,"type":"plural"},
-        {"prompt":"What is the singular of \"balls\"?","answer":"ball","id":19,"type":"plural"},
-        {"prompt":"What is the plural of \"fan\"?","answer":"fans","id":20,"type":"plural"},
-        {"prompt":"What is the singular of \"bags\"?","answer":"bag","id":21,"type":"plural"},
-        {"prompt":"What is the plural of \"net\"?","answer":"nets","id":22,"type":"plural"},
-        {"prompt":"What is the singular of \"tops\"?","answer":"top","id":23,"type":"plural"},
-        {"prompt":"What is the plural of \"book\"? (books, frogs, map)","answer":"books","id":24,"type":"plural"},
+        {"prompt":"What is the singular of \"birds\"? (bird, kids, buses)","answer":"bird","visual":"bird","visualCount":3,"id":1,"type":"plural"},
+        {"prompt":"What is the plural of \"leg\"? (nets, legs, watches)","answer":"legs","visualCount":1,"id":2,"type":"plural"},
+        {"prompt":"What is the singular of \"cats\"?","answer":"cat","visual":"cat","visualCount":3,"id":3,"type":"plural"},
+        {"prompt":"What is the plural of \"door\"?","answer":"doors","visual":"door","visualCount":1,"id":4,"type":"plural"},
+        {"prompt":"What is the singular of \"frogs\"?","answer":"frog","visual":"frog","visualCount":3,"id":5,"type":"plural"},
+        {"prompt":"What is the plural of \"moon\"?","answer":"moons","visual":"moon","visualCount":1,"id":6,"type":"plural"},
+        {"prompt":"What is the singular of \"trees\"? (tree, balls, boats)","answer":"tree","visual":"tree","visualCount":3,"id":7,"type":"plural"},
+        {"prompt":"What is the plural of \"cup\"?","answer":"cups","visual":"cup","visualCount":1,"id":8,"type":"plural"},
+        {"prompt":"What is the singular of \"pigs\"? (jams, wigs, pig)","answer":"pig","visual":"pig","visualCount":3,"id":9,"type":"plural"},
+        {"prompt":"What is the plural of \"bus\"? (buses, tree, hats)","answer":"buses","visual":"bus","visualCount":1,"id":10,"type":"plural"},
+        {"prompt":"What is the singular of \"stars\"? (doors, star, pot)","answer":"star","visual":"star","visualCount":3,"id":11,"type":"plural"},
+        {"prompt":"What is the plural of \"map\"?","answer":"maps","visual":"map","visualCount":1,"id":12,"type":"plural"},
+        {"prompt":"What is the singular of \"dogs\"? (fans, dog, box)","answer":"dog","visual":"dog","visualCount":3,"id":13,"type":"plural"},
+        {"prompt":"What is the plural of \"boat\"? (boats, moon, tops)","answer":"boats","visual":"boat","visualCount":1,"id":14,"type":"plural"},
+        {"prompt":"What is the singular of \"pens\"?","answer":"pen","visual":"pen","visualCount":3,"id":15,"type":"plural"},
+        {"prompt":"What is the plural of \"jam\"? (jams, buses, wig)","answer":"jams","visualCount":1,"id":16,"type":"plural"},
+        {"prompt":"What is the singular of \"logs\"? (log, hat, balls)","answer":"log","visualCount":3,"id":17,"type":"plural"},
+        {"prompt":"What is the plural of \"hat\"?","answer":"hats","visual":"hat","visualCount":1,"id":18,"type":"plural"},
+        {"prompt":"What is the singular of \"balls\"?","answer":"ball","visual":"ball","visualCount":3,"id":19,"type":"plural"},
+        {"prompt":"What is the plural of \"fan\"?","answer":"fans","visual":"fan","visualCount":1,"id":20,"type":"plural"},
+        {"prompt":"What is the singular of \"bags\"?","answer":"bag","visual":"bag","visualCount":3,"id":21,"type":"plural"},
+        {"prompt":"What is the plural of \"net\"?","answer":"nets","visual":"net","visualCount":1,"id":22,"type":"plural"},
+        {"prompt":"What is the singular of \"tops\"?","answer":"top","visual":"top","visualCount":3,"id":23,"type":"plural"},
+        {"prompt":"What is the plural of \"book\"? (books, frogs, map)","answer":"books","visualCount":1,"id":24,"type":"plural"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(pluralSpec, g1, seedFrom([1, 'plural', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"What is the singular of \"boxes\"?","answer":"box","id":25,"type":"plural"},
-        {"prompt":"What is the plural of \"kid\"? (net, nets, kids)","answer":"kids","id":26,"type":"plural"},
-        {"prompt":"What is the singular of \"watches\"? (dog, log, watch)","answer":"watch","id":27,"type":"plural"},
+        {"prompt":"What is the singular of \"boxes\"?","answer":"box","visual":"box","visualCount":3,"id":25,"type":"plural"},
+        {"prompt":"What is the plural of \"kid\"? (net, nets, kids)","answer":"kids","visualCount":1,"id":26,"type":"plural"},
+        {"prompt":"What is the singular of \"watches\"? (dog, log, watch)","answer":"watch","visual":"watch","visualCount":3,"id":27,"type":"plural"}
         ]);
     });
 });
@@ -84,38 +84,38 @@ describe('plural — Year 1 (regular -s/-es endings only)', () => {
 describe('plural — Year 2 (adds the irregular set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g2)).toEqual([
-        {"prompt":"What is the plural of \"bus\"?","answer":"buses","id":1,"type":"plural"},
-        {"prompt":"What is the singular of \"doors\"? (foot, door, balls)","answer":"door","id":2,"type":"plural"},
-        {"prompt":"What is the plural of \"cup\"? (cups, ball, balls)","answer":"cups","id":3,"type":"plural"},
-        {"prompt":"What is the singular of \"geese\"?","answer":"goose","id":4,"type":"plural"},
-        {"prompt":"What is the plural of \"log\"?","answer":"logs","id":5,"type":"plural"},
-        {"prompt":"What is the singular of \"pigs\"? (star, pig, pots)","answer":"pig","id":6,"type":"plural"},
-        {"prompt":"What is the plural of \"map\"? (child, maps, hat)","answer":"maps","id":7,"type":"plural"},
-        {"prompt":"What is the singular of \"people\"? (person, net, men)","answer":"person","id":8,"type":"plural"},
-        {"prompt":"What is the plural of \"boat\"? (tooth, boats, mouse)","answer":"boats","id":9,"type":"plural"},
-        {"prompt":"What is the singular of \"nets\"?","answer":"net","id":10,"type":"plural"},
-        {"prompt":"What is the plural of \"tooth\"?","answer":"teeth","id":11,"type":"plural"},
-        {"prompt":"What is the singular of \"tops\"? (top, wig, log)","answer":"top","id":12,"type":"plural"},
-        {"prompt":"What is the plural of \"leg\"? (boats, star, legs)","answer":"legs","id":13,"type":"plural"},
-        {"prompt":"What is the singular of \"jams\"?","answer":"jam","id":14,"type":"plural"},
-        {"prompt":"What is the plural of \"box\"? (boxes, wig, boat)","answer":"boxes","id":15,"type":"plural"},
-        {"prompt":"What is the singular of \"hats\"?","answer":"hat","id":16,"type":"plural"},
-        {"prompt":"What is the plural of \"cat\"? (bird, cats, birds)","answer":"cats","id":17,"type":"plural"},
-        {"prompt":"What is the singular of \"dogs\"?","answer":"dog","id":18,"type":"plural"},
-        {"prompt":"What is the plural of \"ball\"?","answer":"balls","id":19,"type":"plural"},
-        {"prompt":"What is the singular of \"watches\"?","answer":"watch","id":20,"type":"plural"},
-        {"prompt":"What is the plural of \"frog\"? (child, stars, frogs)","answer":"frogs","id":21,"type":"plural"},
-        {"prompt":"What is the singular of \"oxen\"?","answer":"ox","id":22,"type":"plural"},
-        {"prompt":"What is the plural of \"bird\"? (birds, pot, woman)","answer":"birds","id":23,"type":"plural"},
-        {"prompt":"What is the singular of \"women\"?","answer":"woman","id":24,"type":"plural"},
+        {"prompt":"What is the plural of \"bus\"?","answer":"buses","visual":"bus","visualCount":1,"id":1,"type":"plural"},
+        {"prompt":"What is the singular of \"doors\"? (foot, door, balls)","answer":"door","visual":"door","visualCount":3,"id":2,"type":"plural"},
+        {"prompt":"What is the plural of \"cup\"? (cups, ball, balls)","answer":"cups","visual":"cup","visualCount":1,"id":3,"type":"plural"},
+        {"prompt":"What is the singular of \"geese\"?","answer":"goose","visualCount":3,"id":4,"type":"plural"},
+        {"prompt":"What is the plural of \"log\"?","answer":"logs","visualCount":1,"id":5,"type":"plural"},
+        {"prompt":"What is the singular of \"pigs\"? (star, pig, pots)","answer":"pig","visual":"pig","visualCount":3,"id":6,"type":"plural"},
+        {"prompt":"What is the plural of \"map\"? (child, maps, hat)","answer":"maps","visual":"map","visualCount":1,"id":7,"type":"plural"},
+        {"prompt":"What is the singular of \"people\"? (person, net, men)","answer":"person","visualCount":3,"id":8,"type":"plural"},
+        {"prompt":"What is the plural of \"boat\"? (tooth, boats, mouse)","answer":"boats","visual":"boat","visualCount":1,"id":9,"type":"plural"},
+        {"prompt":"What is the singular of \"nets\"?","answer":"net","visual":"net","visualCount":3,"id":10,"type":"plural"},
+        {"prompt":"What is the plural of \"tooth\"?","answer":"teeth","visualCount":1,"id":11,"type":"plural"},
+        {"prompt":"What is the singular of \"tops\"? (top, wig, log)","answer":"top","visual":"top","visualCount":3,"id":12,"type":"plural"},
+        {"prompt":"What is the plural of \"leg\"? (boats, star, legs)","answer":"legs","visualCount":1,"id":13,"type":"plural"},
+        {"prompt":"What is the singular of \"jams\"?","answer":"jam","visualCount":3,"id":14,"type":"plural"},
+        {"prompt":"What is the plural of \"box\"? (boxes, wig, boat)","answer":"boxes","visual":"box","visualCount":1,"id":15,"type":"plural"},
+        {"prompt":"What is the singular of \"hats\"?","answer":"hat","visual":"hat","visualCount":3,"id":16,"type":"plural"},
+        {"prompt":"What is the plural of \"cat\"? (bird, cats, birds)","answer":"cats","visual":"cat","visualCount":1,"id":17,"type":"plural"},
+        {"prompt":"What is the singular of \"dogs\"?","answer":"dog","visual":"dog","visualCount":3,"id":18,"type":"plural"},
+        {"prompt":"What is the plural of \"ball\"?","answer":"balls","visual":"ball","visualCount":1,"id":19,"type":"plural"},
+        {"prompt":"What is the singular of \"watches\"?","answer":"watch","visual":"watch","visualCount":3,"id":20,"type":"plural"},
+        {"prompt":"What is the plural of \"frog\"? (child, stars, frogs)","answer":"frogs","visual":"frog","visualCount":1,"id":21,"type":"plural"},
+        {"prompt":"What is the singular of \"oxen\"?","answer":"ox","visualCount":3,"id":22,"type":"plural"},
+        {"prompt":"What is the plural of \"bird\"? (birds, pot, woman)","answer":"birds","visual":"bird","visualCount":1,"id":23,"type":"plural"},
+        {"prompt":"What is the singular of \"women\"?","answer":"woman","visualCount":3,"id":24,"type":"plural"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(pluralSpec, g2, seedFrom([2, 'plural', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"prompt":"What is the plural of \"tree\"? (boat, box, trees)","answer":"trees","id":25,"type":"plural"},
-        {"prompt":"What is the singular of \"pots\"? (bags, pot, fan)","answer":"pot","id":26,"type":"plural"},
-        {"prompt":"What is the plural of \"kid\"? (kid, pen, kids)","answer":"kids","id":27,"type":"plural"},
+        {"prompt":"What is the plural of \"tree\"? (boat, box, trees)","answer":"trees","visual":"tree","visualCount":1,"id":25,"type":"plural"},
+        {"prompt":"What is the singular of \"pots\"? (bags, pot, fan)","answer":"pot","visual":"pot","visualCount":3,"id":26,"type":"plural"},
+        {"prompt":"What is the plural of \"kid\"? (kid, pen, kids)","answer":"kids","visualCount":1,"id":27,"type":"plural"}
         ]);
     });
 

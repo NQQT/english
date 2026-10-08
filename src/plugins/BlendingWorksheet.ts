@@ -15,8 +15,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): every blending row carries a picture of the TARGET word
+// ("What word is: s u n?" shows the sun). The picture cues word
+// RECOGNITION; the task — spelling the word from its letters/blanks/scramble
+// — is still the child's work, and the picture never prints the spelling.
+// (Review note, T4: keeping the picture on the blank/scramble/backwards
+// forms is deliberate — for the 5-7s this distribution targets, the
+// word-identification cue is the scaffold that makes those letter tasks
+// doable; the letters in the prompt always remain the task.) Bank words
+// without a registered pictogram (and Prep / Year 4+ tiers) print plain, so
+// legacy markup is preserved outside the band.
+function picture(caps: Caps, word: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
+}
 
 // Blending: see the letters, write the word. FIVE procedural forms per word:
 //   - all letters shown       ("what word is s u n?")
@@ -56,32 +71,48 @@ function generateBlend(rng: Rng, caps: Caps, count: number): RawProblem[] {
         () => {
             const word = wordDeck.take();
             const letters = word.split('');
+            // One picture cue for this draw (undefined when the word has no
+            // registered pictogram or the grade is Year 4+ — see picture()).
+            const pic = picture(caps, word);
             const r = rng.next();
             if (r < 0.15) {
                 // All letters shown, space-separated: "What word is: s u n?"
-                return { prompt: `What word is: ${letters.join(' ')}?`, answer: word };
+                return { prompt: `What word is: ${letters.join(' ')}?`, answer: word, visual: pic };
             }
             if (r < 0.45) {
                 // One blank at a random position (edges included):
                 // "Finish the word: s u __".
                 const pos = rng.int(0, letters.length - 1);
-                return { prompt: `Finish the word: ${withBlanks(letters, [pos])}`, answer: word };
+                return {
+                    prompt: `Finish the word: ${withBlanks(letters, [pos])}`,
+                    answer: word,
+                    visual: pic
+                };
             }
             if (r < 0.65) {
                 // Two blanks at once: "Finish the word: __ u __".
-                return { prompt: `Finish the word: ${withBlanks(letters, twoBlanks(letters.length))}`, answer: word };
+                return {
+                    prompt: `Finish the word: ${withBlanks(letters, twoBlanks(letters.length))}`,
+                    answer: word,
+                    visual: pic
+                };
             }
             if (r < 0.8) {
                 // Scrambled letters: "Unscramble the letters: n u s" — a
                 // different scramble of the same word is a different question
                 // (and never printed in the correct order, see shuffleWords).
                 const scrambled = shuffleWords(rng, letters);
-                return { prompt: `Unscramble the letters: ${scrambled.join(' ')}`, answer: word };
+                return {
+                    prompt: `Unscramble the letters: ${scrambled.join(' ')}`,
+                    answer: word,
+                    visual: pic
+                };
             }
             // Backwards reading: "What word is 'sun' spelled backwards?"
             return {
                 prompt: `What word is "${word.split('').reverse().join('')}" spelled backwards?`,
-                answer: word
+                answer: word,
+                visual: pic
             };
         },
         (p) => p.prompt

@@ -17,6 +17,10 @@ export * from './sampling';
 export * from './document';
 export * from './page-scale';
 export * from './theme';
+// The early-years learning-visual pictogram library (inline-SVG cues).
+export * from './visuals';
+// The early-years tile scaffolds (write-box blanks + scrambled word tiles).
+export * from './tiles';
 export * from './PageStack';
 export * from './PrintableSheet';
 export * from './ZoomControl';

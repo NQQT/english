@@ -15,7 +15,7 @@ import {
     pluralSpec, similarSpec, wordgapSpec, spellingSpec, syllableSpec,
     grammarSpec, tenseSpec, conjunctionSpec, apostropheSpec, commaSpec,
     affixSpec, compoundSpec, speechSpec, homographSpec, pronounSpec,
-    figurativeSpec, idiomSpec, advpunctSpec, agreementSpec
+    figurativeSpec, idiomSpec, advpunctSpec, agreementSpec, wordTraceSpec
 } from '../src/plugins/pins';
 
 const SPECS = [
@@ -24,7 +24,7 @@ const SPECS = [
     pluralSpec, similarSpec, wordgapSpec, spellingSpec, syllableSpec,
     grammarSpec, tenseSpec, conjunctionSpec, apostropheSpec, commaSpec,
     affixSpec, compoundSpec, speechSpec, homographSpec, pronounSpec,
-    figurativeSpec, idiomSpec, advpunctSpec, agreementSpec
+    figurativeSpec, idiomSpec, advpunctSpec, agreementSpec, wordTraceSpec
 ];
 
 // Grades that list each spec id (its offered grades).

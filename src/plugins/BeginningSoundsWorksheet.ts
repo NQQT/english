@@ -16,8 +16,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): a picture cue next to the base word's row, so a Year 1 child
+// sees the cat when naming its first letter. Only the KINDS THAT NAME A WORD
+// carry a cue: the letter-kinds ("which word starts with b") have no single
+// concept to depict, and the picture must never reveal an answer. Bank words
+// without a registered pictogram print plain (hasVisual check). The band
+// EXCLUDES Prep (tier 1) and Years 4+ (tiers 5-6), so Prep's non-tracing
+// sheets and every senior sheet keep their legacy markup.
+function picture(caps: Caps, word: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
+}
 
 // Beginning sounds — FOUR procedural question kinds over the grade word set:
 //   0. "Which letter does X start with?"          (the written-answer base)
@@ -66,7 +78,13 @@ function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
             if (kind === 0) {
                 // Base kind: name the first letter of a dealt word.
                 const word = wordDeck.take();
-                return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+                return {
+                    prompt: `Which letter does "${word}" start with?`,
+                    answer: word[0],
+                    // Picture cue of the word itself (the ANSWER is a letter,
+                    // so the picture never reveals the answer).
+                    visual: picture(caps, word)
+                };
             }
             if (kind === 1) {
                 // MC: exactly one option starts with the dealt letter.
@@ -104,11 +122,21 @@ function generateSounds(rng: Rng, caps: Caps, count: number): RawProblem[] {
             const starts = byLetter.get(word[0])!;
             if (starts.length < 2) {
                 // No sibling word with the same first letter — fall back.
-                return { prompt: `Which letter does "${word}" start with?`, answer: word[0] };
+                return {
+                    prompt: `Which letter does "${word}" start with?`,
+                    answer: word[0],
+                    visual: picture(caps, word)
+                };
             }
             const answer = rng.pick(starts.filter((w) => w !== word));
             const shown = choiceSet(answer, (w) => w[0] !== word[0]);
-            return { prompt: `Which word starts with the same sound as "${word}"? (${shown.join(', ')})`, answer };
+            // The picture cues the BASE word (the answer is an OPTION word,
+            // so depicting the base never reveals it).
+            return {
+                prompt: `Which word starts with the same sound as "${word}"? (${shown.join(', ')})`,
+                answer,
+                visual: picture(caps, word)
+            };
         },
         (p) => p.prompt
     );

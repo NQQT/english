@@ -17,8 +17,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 cue band — isEarlyCueBand = word tiers 2..4, and the
+// two early-branch gates below): the WRITTEN-CLASSIFY kind ("Is 'cat' a noun
+// or a verb?") carries a scaffold cue — the noun's own picture, an action
+// glyph for verbs, a sparkle for adjectives, an action glyph for adverbs. The
+// answer is the CLASS NAME ("noun"/"verb"/"adjective"/"adverb"), never the
+// depicted word, so the cue is safe. The MC and sentence-find kinds stay
+// text-only: a pictured option there WOULD reveal the answer. Prep (tier 1)
+// and Y4+ (tiers 5-6) print legacy markup.
+function earlyPicture(caps: Caps, key: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(key) ? key : undefined;
+}
 
 // Noun / verb word lists for the Year 2 parts-of-speech type. Grown from
 // 20+20 to 28+28 words.
@@ -96,7 +108,10 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
                     const word = isAdj ? adjDeck.take() : advDeck.take();
                     return {
                         prompt: `Is the word "${word}" an adjective (describes a thing) or an adverb (tells how)?`,
-                        answer: isAdj ? 'adjective' : 'adverb'
+                        answer: isAdj ? 'adjective' : 'adverb',
+                        // Year 3 scaffold: adjectives get the sparkle glyph,
+                        // adverbs the action glyph (tells-HOW = a how-motion).
+                        visual: earlyPicture(caps, isAdj ? 'sparkle' : 'action')
                     };
                 }
                 // MC: one adjective beside two adverbs (kind 1), or one adverb
@@ -149,7 +164,11 @@ function generateGrammar(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 const [w, isNoun] = pairDeck.take();
                 return {
                     prompt: `Is the word "${w}" a noun (thing) or a verb (action)?`,
-                    answer: isNoun ? 'noun' : 'verb'
+                    answer: isNoun ? 'noun' : 'verb',
+                    // Year 2 scaffold: the noun's own picture (if it has one)
+                    // or the action glyph for verbs. Answer is the class name,
+                    // so the picture never reveals it.
+                    visual: earlyPicture(caps, isNoun ? w : 'action')
                 };
             }
             if (kind === 1 || kind === 2) {

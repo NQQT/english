@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, isEarlyCueBand, sampleUnique } from '../framework';
 import { wordSet, shuffleWords } from './words';
 
 // Alphabet order — FIFTEEN procedural kinds. The old five covered the
@@ -64,8 +64,18 @@ function wordOrder(rng: Rng, wordDeck: { take: () => string }, first: boolean) {
         answer
     };
 }
+// ── Tile scaffold (Y1–3, early cue band) ────────────────────────────────────
+// The SEQUENCE kinds print the missing-letter slot as a bordered WRITE-BOX
+// tile (PrintableSheet renders `__` as a writing box instead of a plain
+// underline when tileBlanks is set) — a real writing scaffold, not decoration:
+// the child sees a letter-sized box to write the missing letter into. The
+// prompts themselves are unchanged, only the printed blank shape, and the
+// metadata is gated on isEarlyCueBand so Prep and Years 4+ keep their legacy
+// underlines.
 function generateLetters(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const wordDeck = createDeck(rng, wordSet(caps.wordTier));
+    // {} outside the cue band → the row object stays byte-identical to legacy.
+    const boxed = isEarlyCueBand(caps) ? { tileBlanks: 'letter' as const } : {};
     return sampleUnique(
         count,
         () => {
@@ -81,39 +91,40 @@ function generateLetters(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 return { prompt: `Which letter comes before "${letter(x)}"?`, answer: letter(x - 1) };
             }
             if (kind === 2) {
-                // Forward run of two shown then the next: "a, b, __".
+                // Forward run of two shown then the next: "a, b, __" (+ write-
+                // box for the missing letter, Y1–3 only — see `boxed`).
                 const x = rng.int(0, 23);
-                return { prompt: `${letter(x)}, ${letter(x + 1)}, __`, answer: letter(x + 2) };
+                return { prompt: `${letter(x)}, ${letter(x + 1)}, __`, answer: letter(x + 2), ...boxed };
             }
             if (kind === 3) {
                 // Backward run of two shown then the next: "b, a, __".
                 const x = rng.int(1, 24);
-                return { prompt: `${letter(x)}, ${letter(x - 1)}, __`, answer: letter(x - 2) };
+                return { prompt: `${letter(x)}, ${letter(x - 1)}, __`, answer: letter(x - 2), ...boxed };
             }
             if (kind === 4) {
                 // Middle gap of a three-letter run: "a, __, c".
                 const x = rng.int(0, 23);
-                return { prompt: `${letter(x)}, __, ${letter(x + 2)}`, answer: letter(x + 1) };
+                return { prompt: `${letter(x)}, __, ${letter(x + 2)}`, answer: letter(x + 1), ...boxed };
             }
             if (kind === 5) {
                 // Forward run of THREE shown then the next: "a, b, c, __".
                 const x = rng.int(0, 22);
-                return { prompt: `${letter(x)}, ${letter(x + 1)}, ${letter(x + 2)}, __`, answer: letter(x + 3) };
+                return { prompt: `${letter(x)}, ${letter(x + 1)}, ${letter(x + 2)}, __`, answer: letter(x + 3), ...boxed };
             }
             if (kind === 6) {
                 // Backward run of three shown then the next: "d, c, b, __".
                 const x = rng.int(3, 25);
-                return { prompt: `${letter(x)}, ${letter(x - 1)}, ${letter(x - 2)}, __`, answer: letter(x - 3) };
+                return { prompt: `${letter(x)}, ${letter(x - 1)}, ${letter(x - 2)}, __`, answer: letter(x - 3), ...boxed };
             }
             if (kind === 7) {
                 // Skip-one forward: "a, c, __" continues to "e".
                 const x = rng.int(0, 21);
-                return { prompt: `${letter(x)}, ${letter(x + 2)}, __`, answer: letter(x + 4) };
+                return { prompt: `${letter(x)}, ${letter(x + 2)}, __`, answer: letter(x + 4), ...boxed };
             }
             if (kind === 8) {
                 // Skip-one backward: "e, c, __" continues to "a".
                 const x = rng.int(4, 25);
-                return { prompt: `${letter(x)}, ${letter(x - 2)}, __`, answer: letter(x - 4) };
+                return { prompt: `${letter(x)}, ${letter(x - 2)}, __`, answer: letter(x - 4), ...boxed };
             }
             if (kind === 9) {
                 // Position from the start: "Which is the 5th letter of the

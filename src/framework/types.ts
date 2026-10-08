@@ -146,6 +146,37 @@ export type RawProblem = {
     prompt: string;
     // The model answer. May be several values separated by commas.
     answer: string;
+    // Optional learning VISUAL: a pictogram-registry KEY (framework/visuals.tsx,
+    // e.g. 'apple', 'fire', 'action') the sheet prints as a small picture next
+    // to the row. It is CUE-ONLY metadata — it never appears in prompt/answer
+    // text, and generators only attach it where the picture cannot reveal the
+    // answer (a "which is a real word?" row never gets the answer's picture).
+    // Early years (word tier ≤ 4, i.e. Prep..Year 3) carry these; higher
+    // grades' sheets are unchanged.
+    visual?: string;
+    // How many copies of the pictogram to print (quantity contrast — e.g.
+    // ONE cat for "plural of cat", THREE cats for "singular of cats").
+    // Defaults to 1.
+    visualCount?: number;
+    // TILE SCAFFOLDING (early cue band only — see isEarlyCueBand in
+    // framework/grades.ts): when set, the printed answer blanks("__") render
+    // as bordered WRITE-BOX tiles instead of plain underlines — a real
+    // writing scaffold for early years, not decoration. The box size matches
+    // what the child writes there:
+    //   'letter' — one box per missing LETTER (Alphabet Order sequences,
+    //              e.g. "a, b, ▢");
+    //   'word'   — one box per missing WORD (Sentence Building word gaps,
+    //              e.g. "Put the words in order: ▢ ▢ ▢ ▢").
+    // Absent/undefined → the legacy underline renders unchanged (Prep and
+    // Year 4+ keep their exact legacy markup).
+    tileBlanks?: 'letter' | 'word';
+    // The SHOWN (already-shuffled by the generator) words printed as a run
+    // of bordered word tiles instead of their parenthesised text list — the
+    // sentence-rebuilding word bank. It carries the DISPLAYED order only
+    // (never the correct answer order — see shuffleWords' no-identity
+    // guard), so a picture/tile never prints the answer arrangement.
+    // Sentence Building, early cue band grades only.
+    tileWords?: string[];
     // Tracing sheets only: the solid grey MODEL exemplar printed before the
     // dashed copies (e.g. "A" before the faded "A A A").
     model?: string;

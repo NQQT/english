@@ -22,14 +22,33 @@
 // static or a function in @presource/react's styledComponent, numbers are
 // converted to rem, which we do not want for print-accurate spacing.
 //
-// PROBLEM LAYOUT: a normal row is `<index> <prompt text with __ > blanks`;
-// a TRACING row (Problem.trace set — letter/word/number sheets) is
-// `<index> [model] [dashed copies on a dashed rule]` instead of prompt text:
-// the model exemplar is solid grey, the three (or one, for words) faded
-// dashed shapes are what the child traces, sharing one writing line.
+// PROBLEM LAYOUT: a normal row is `<index> [picture cue?] <prompt text with
+// write-box/underlined blanks>` + (optional, early-years Sentence Building) a
+// second line of scrambled WORD TILES (the word bank, see tiles.tsx); a
+// TRACING row (Problem.trace set — letter/word/number sheets) is
+// `<index> [picture cue?] [model] [dashed copies on a dashed rule]` instead of
+// prompt text: the model exemplar is solid grey, the three (or one, for words)
+// faded dashed shapes are what the child traces, sharing one writing line.
+//
+// PICTURE CUES (Problem.visual / Problem.visualCount, set by the early-years
+// generators — see framework/visuals.tsx): a small inline-SVG pictogram prints
+// beside the row as a learning cue. The SAME component renders in BOTH the
+// preview canvas (PageStack) and the hidden .print-doc tree (worksheet-kit),
+// so screen and print always agree. Cues are cue-only: they never appear in
+// prompt/answer text, and higher-grade sheets (no visual field) render exactly
+// the same markup as before.
+//
+// TILE SCAFFOLDS (Problem.tileBlanks / Problem.tileWords — see
+// framework/tiles.tsx): early-years (Y1–3) rows print bordered WRITE-BOX
+// blanks instead of plain underlines and (Sentence Building) a run of word
+// tiles for the scrambled word bank. Both are set ONLY inside the early cue
+// band by the generators, so Prep and Year 4+ rows keep their legacy
+// underline markup exactly.
 import React, { Fragment } from 'react';
 import { styledComponent } from '@presource/react';
 import type { Problem } from './document';
+import { PictogramRow } from './visuals';
+import { WriteBox, WordTileRun } from './tiles';
 
 export type PrintableSheetProps = {
     // Large heading, e.g. "Year 1 — Blending".
@@ -137,6 +156,21 @@ const ProblemText = styledComponent('span', {
     whiteSpace: 'pre-wrap'
 });
 
+// The learning-visual cue slot: sits between the row index and the prompt
+// (or before the tracing model). Renders only when the problem carries a
+// `visual` key that exists in the pictogram registry — higher-grade problems
+// (no visual) print the legacy markup unchanged. `alignSelf: flex-start` +
+// one line of vertical centre keeps the picture aligned to the FIRST line of
+// a wrapping prompt (single-line rows stay perfectly centred).
+const ProblemVisual = styledComponent('span', {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    paddingTop: '3px'
+});
+
 // Tracing rows (letterTrace / wordTrace / numberTrace): a solid grey model
 // exemplar plus faded dashed copies the child traces over, all riding on one
 // dashed "stay-on-the-line" rule. `flex: 1` stretches the line to the rest of
@@ -184,6 +218,9 @@ const TraceText = styledComponent('span', {
 });
 
 // A fill-in blank. Big blanks (name/date) are wider; question blanks are short.
+// (Legacy underline — untouched for Prep/Y4+ and for every row without
+// tileBlanks. Early-years rows print the bordered WriteBox instead, see
+// tiles.tsx.)
 const Blank = styledComponent<{ big?: boolean }>('span', {
     display: 'inline-block',
     minWidth: ({ big }) => (big ? '140px' : '38px'),
@@ -191,6 +228,13 @@ const Blank = styledComponent<{ big?: boolean }>('span', {
     height: '0.8em',
     verticalAlign: 'baseline',
     margin: '0 5px'
+});
+// The scrambled word-tile line (Sentence Building, early years): a second,
+// full-width line under the prompt row carrying the WordTileRun bank.
+const TileLine = styledComponent('span', {
+    display: 'block',
+    marginTop: '6px',
+    whiteSpace: 'pre-wrap'
 });
 
 // Footer shown only for multi-page documents: brand line on the left,
@@ -210,15 +254,19 @@ const FooterText = styledComponent('span', {
 });
 
 // Splits a prompt on "__" and renders each blank as a styled fill-in line, so
-// the printed sheet shows real blanks instead of literal underscores.
-function PromptText({ prompt }: { prompt: string }) {
+// the printed sheet shows real blanks instead of literal underscores. Early-
+// years rows (Problem.tileBlanks set) print Bordered WRITE-BOX tiles (the
+// writing scaffold, see tiles.tsx) instead of the plain underline; the legacy
+// underline stays for every other row.
+function PromptText({ prompt, tileBlanks }: { prompt: string; tileBlanks?: 'letter' | 'word' }) {
     const parts = prompt.split('__');
     return (
         <>
             {parts.map((part, i) => (
                 <Fragment key={i}>
                     {part}
-                    {i < parts.length - 1 && <Blank />}
+                    {i < parts.length - 1 &&
+                        (tileBlanks ? <WriteBox kind={tileBlanks} /> : <Blank />)}
                 </Fragment>
             ))}
         </>
@@ -247,11 +295,16 @@ export function PrintableSheet({
                 {problems.map((p) => (
                     <ProblemRow key={p.id}>
                         <ProblemIndex>{p.id}.</ProblemIndex>
+                        {/* Learning-visual cue (early-years sheets only): the
+                            pictogram for p.visual, printed `visualCount` times
+                            (quantity contrast). No visual field => nothing
+                            renders, so legacy rows are unchanged. */}
+                        {p.visual && <ProblemVisual>{<PictogramRow icon={p.visual} count={p.visualCount ?? 1} />}</ProblemVisual>}
                         {p.trace ? (
-                            // Tracing row: solid model + faded dashed target on
-                            // a dashed writing rule (see TraceLine/ModelText/
-                            // TraceText above). The row announces the printed
-                            // prompt to screen readers.
+                            // Tracing row: [cue] solid model + faded dashed
+                            // target on a dashed writing rule (see
+                            // TraceLine/ModelText/TraceText above). The row
+                            // announces the printed prompt to screen readers.
                             <TraceLine aria-label={p.prompt}>
                                 {p.model && (
                                     <ModelText aria-hidden="true">{p.model}</ModelText>
@@ -260,7 +313,22 @@ export function PrintableSheet({
                             </TraceLine>
                         ) : (
                             <ProblemText>
-                                <PromptText prompt={p.prompt} />
+                                <PromptText prompt={p.prompt} tileBlanks={p.tileBlanks} />
+                                {/* Scrambled word tiles (early-years Sentence
+                                    Building only): the word bank prints as a
+                                    row of bordered word tiles on its own line —
+                                    in the SHOWN (scrambled) order from
+                                    problem.tileWords. The early-grade prompts
+                                    for these rows no longer carry the
+                                    parenthesised text list (generator, see
+                                    SentenceBuildingWorksheet.ts), so the words
+                                    print exactly once and the answer order
+                                    never appears. */}
+                                {p.tileWords && (
+                                    <TileLine>
+                                        <WordTileRun words={p.tileWords} />
+                                    </TileLine>
+                                )}
                             </ProblemText>
                         )}
                     </ProblemRow>

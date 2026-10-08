@@ -15,8 +15,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): QUANTITY CONTRAST — "What is the plural of 'cat'?" prints ONE
+// cat, "What is the singular of 'cats'?" prints THREE cats. Counting the
+// pictures IS the lesson. The answer word is never printed, so the contrast
+// is purely visual. Bank words without a registered pictogram (and the Prep /
+// Year 4+ tiers) print plain (legacy markup).
+function picture(caps: Caps, word: string): string | undefined {
+    return isEarlyCueBand(caps) && hasVisual(word) ? word : undefined;
+}
 
 // Plural pairs [singular, plural]. Regular -s/-es endings (always on) — grown
 // from 15 to 29 pairs; the irregular set is Year-2 (tricky) only.
@@ -84,11 +94,15 @@ function generatePlural(rng: Rng, caps: Caps, count: number): RawProblem[] {
         () => {
             const [sing, pl] = pairDeck.take();
             const pluralAsk = askDeck.take();
+            // Quantity-contrast cue of the SINGULAR concept: one picture when
+            // the child must pluralise, three when they must singularise.
+            const pic = picture(caps, sing);
+            const picCount = pluralAsk ? 1 : 3;
             if (rng.next() < 0.6) {
                 // Written answer, random direction.
                 return pluralAsk
-                    ? { prompt: `What is the plural of "${sing}"?`, answer: pl }
-                    : { prompt: `What is the singular of "${pl}"?`, answer: sing };
+                    ? { prompt: `What is the plural of "${sing}"?`, answer: pl, visual: pic, visualCount: picCount }
+                    : { prompt: `What is the singular of "${pl}"?`, answer: sing, visual: pic, visualCount: picCount };
             }
             // Multiple choice: the answer beside two forms from other pairs.
             const answer = pluralAsk ? pl : sing;
@@ -104,7 +118,9 @@ function generatePlural(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 prompt: pluralAsk
                     ? `What is the plural of "${sing}"? (${shown.join(', ')})`
                     : `What is the singular of "${pl}"? (${shown.join(', ')})`,
-                answer
+                answer,
+                visual: pic,
+                visualCount: picCount
             };
         },
         (p) => p.prompt

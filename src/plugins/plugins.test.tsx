@@ -380,17 +380,35 @@ describe('the real worksheet plugins — register through the same pipeline', ()
 
         // Grade 7 is not implemented: every plugin's gate is closed, so the
         // rail renders the "coming soon" notice instead of entries — and no
-        // buttons at all. (Years 3..6 ARE implemented — the upper-primary
-        // catalogue — so Year 3 must show the full 30-entry rail.)
+        // buttons at all. (Years 3..6 ARE implemented — the staged upper-
+        // primary catalogue: 25 types on Y3, 27 on Y4, 30 on Y5/Y6.)
         act(() => {
             probeStore!.session.gradeId = 3;
         });
-        // Year 3 opens the FULL 30-type upper-primary catalogue (every
-        // early-reading + Y2 + senior type; tracing stays Prep-only).
-        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(30);
+        // Year 3 opens the 25-type introductory catalogue (early-reading +
+        // Y2 + the intro Y3 grammar set; advanced Y4/Y5 types are NOT yet
+        // offered; tracing stays Prep-only).
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(25);
         expect(screen.getByRole('button', { name: 'Conjunctions' })).toBeDefined();
-        expect(screen.getByRole('button', { name: 'Idioms' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Pronouns' })).toBeDefined();
+        // The advanced types are staged: not on Y3's rail...
+        expect(screen.queryByRole('button', { name: 'Figurative Language' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Idioms' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Letter Tracing' })).toBeNull();
+        // ...Year 4 adds the first advanced vocabulary types (27)...
+        act(() => {
+            probeStore!.session.gradeId = 4;
+        });
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(27);
+        expect(screen.getByRole('button', { name: 'Figurative Language' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Homographs' })).toBeDefined();
+        // ...and Year 5 completes the 30-type catalogue.
+        act(() => {
+            probeStore!.session.gradeId = 5;
+        });
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(30);
+        expect(screen.getByRole('button', { name: 'Idioms' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Verb Agreement' })).toBeDefined();
         act(() => {
             probeStore!.session.gradeId = 7;
         });

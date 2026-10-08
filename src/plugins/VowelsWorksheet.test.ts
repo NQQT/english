@@ -107,7 +107,7 @@ describe('vowel — Prep (tier-1 starter word set)', () => {
         {"prompt":"How many vowels are in \"net\"?","answer":"1","id":21,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (moon, bus)","answer":"bus","id":22,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (moon, net)","answer":"net","id":23,"type":"vowel"},
-        {"prompt":"Which word has 1 vowel? (moon, top)","answer":"top","id":24,"type":"vowel"},
+        {"prompt":"Which word has 1 vowel? (moon, top)","answer":"top","id":24,"type":"vowel"}
         ]);
         checkVowelTruths(g0);
     });
@@ -116,7 +116,7 @@ describe('vowel — Prep (tier-1 starter word set)', () => {
         expect(generateDocument(vowelSpec, g0, seedFrom([0, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
         {"prompt":"Which letter in \"hat\" is the vowel?","answer":"a","id":25,"type":"vowel"},
         {"prompt":"Which letter in \"fan\" is the vowel?","answer":"a","id":26,"type":"vowel"},
-        {"prompt":"Which word has the vowel \"i\"? (jam, bag, pig)","answer":"pig","id":27,"type":"vowel"},
+        {"prompt":"Which word has the vowel \"i\"? (jam, bag, pig)","answer":"pig","id":27,"type":"vowel"}
         ]);
     });
 });
@@ -125,29 +125,29 @@ describe('vowel — Year 1 (tier-2 common word set)', () => {
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g1)).toEqual([
         {"prompt":"Which word has the vowel \"u\"? (jam, bag, sun)","answer":"sun","id":1,"type":"vowel"},
-        {"prompt":"How many vowels are in \"pot\"?","answer":"1","id":2,"type":"vowel"},
+        {"prompt":"How many vowels are in \"pot\"?","answer":"1","visual":"pot","id":2,"type":"vowel"},
         {"prompt":"How many vowels are in \"table\"?","answer":"2","id":3,"type":"vowel"},
         {"prompt":"Which word has the vowel \"e\"? (fish, shirt, tree)","answer":"tree","id":4,"type":"vowel"},
-        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","id":5,"type":"vowel"},
+        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","visual":"rabbit","id":5,"type":"vowel"},
         {"prompt":"Which word has the vowel \"i\"? (map, purple, tiger)","answer":"tiger","id":6,"type":"vowel"},
-        {"prompt":"Which letter in \"light\" is the vowel?","answer":"i","id":7,"type":"vowel"},
-        {"prompt":"How many vowels are in \"fan\"?","answer":"1","id":8,"type":"vowel"},
+        {"prompt":"Which letter in \"light\" is the vowel?","answer":"i","visual":"light","id":7,"type":"vowel"},
+        {"prompt":"How many vowels are in \"fan\"?","answer":"1","visual":"fan","id":8,"type":"vowel"},
         {"prompt":"Which word has the vowel \"o\"? (purple, rabbit, top)","answer":"top","id":9,"type":"vowel"},
-        {"prompt":"How many vowels are in \"net\"?","answer":"1","id":10,"type":"vowel"},
+        {"prompt":"How many vowels are in \"net\"?","answer":"1","visual":"net","id":10,"type":"vowel"},
         {"prompt":"Which word has the vowel \"a\"? (train, net, bus)","answer":"train","id":11,"type":"vowel"},
         {"prompt":"Which word has the vowel \"o\"? (rabbit, pot, table)","answer":"pot","id":12,"type":"vowel"},
         {"prompt":"Which word has the vowel \"e\"? (table, rat, bus)","answer":"table","id":13,"type":"vowel"},
-        {"prompt":"Which letter in \"bag\" is the vowel?","answer":"a","id":14,"type":"vowel"},
-        {"prompt":"How many vowels are in \"top\"?","answer":"1","id":15,"type":"vowel"},
+        {"prompt":"Which letter in \"bag\" is the vowel?","answer":"a","visual":"bag","id":14,"type":"vowel"},
+        {"prompt":"How many vowels are in \"top\"?","answer":"1","visual":"top","id":15,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (tree, apple, dog)","answer":"dog","id":16,"type":"vowel"},
-        {"prompt":"How many vowels are in \"moon\"?","answer":"2","id":17,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bread\"?","answer":"2","id":18,"type":"vowel"},
-        {"prompt":"Which letter in \"night\" is the vowel?","answer":"i","id":19,"type":"vowel"},
+        {"prompt":"How many vowels are in \"moon\"?","answer":"2","visual":"moon","id":17,"type":"vowel"},
+        {"prompt":"How many vowels are in \"bread\"?","answer":"2","visual":"bread","id":18,"type":"vowel"},
+        {"prompt":"Which letter in \"night\" is the vowel?","answer":"i","visual":"night","id":19,"type":"vowel"},
         {"prompt":"Which word has the vowel \"u\"? (house, pot, tree)","answer":"house","id":20,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (pig, purple, train)","answer":"pig","id":21,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (plane, house, jam)","answer":"jam","id":22,"type":"vowel"},
         {"prompt":"Which word has the vowel \"a\"? (tiger, chair, moon)","answer":"chair","id":23,"type":"vowel"},
-        {"prompt":"How many vowels are in \"fish\"?","answer":"1","id":24,"type":"vowel"},
+        {"prompt":"How many vowels are in \"fish\"?","answer":"1","visual":"fish","id":24,"type":"vowel"}
         ]);
         checkVowelTruths(g1);
     });
@@ -156,7 +156,7 @@ describe('vowel — Year 1 (tier-2 common word set)', () => {
         expect(generateDocument(vowelSpec, g1, seedFrom([1, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
         {"prompt":"Which word has the vowel \"i\"? (red, log, pin)","answer":"pin","id":25,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (chair, bird, water)","answer":"bird","id":26,"type":"vowel"},
-        {"prompt":"Which word has 2 vowels? (sip, bus, lemon)","answer":"lemon","id":27,"type":"vowel"},
+        {"prompt":"Which word has 2 vowels? (sip, bus, lemon)","answer":"lemon","id":27,"type":"vowel"}
         ]);
     });
 });
@@ -166,13 +166,13 @@ describe('vowel — Year 2 (tier-3 extended set)', () => {
         expect(sheet(g2)).toEqual([
         {"prompt":"Which word has the vowel \"u\"? (house, moon, red)","answer":"house","id":1,"type":"vowel"},
         {"prompt":"Which word has the vowel \"a\"? (table, wig, window)","answer":"table","id":2,"type":"vowel"},
-        {"prompt":"How many vowels are in \"apple\"?","answer":"2","id":3,"type":"vowel"},
+        {"prompt":"How many vowels are in \"apple\"?","answer":"2","visual":"apple","id":3,"type":"vowel"},
         {"prompt":"Which word has the vowel \"i\"? (cup, wig, bus)","answer":"wig","id":4,"type":"vowel"},
         {"prompt":"How many vowels are in \"button\"?","answer":"2","id":5,"type":"vowel"},
-        {"prompt":"How many vowels are in \"moon\"?","answer":"2","id":6,"type":"vowel"},
+        {"prompt":"How many vowels are in \"moon\"?","answer":"2","visual":"moon","id":6,"type":"vowel"},
         {"prompt":"Which word has the vowel \"e\"? (map, pot, elephant)","answer":"elephant","id":7,"type":"vowel"},
-        {"prompt":"How many vowels are in \"window\"?","answer":"2","id":8,"type":"vowel"},
-        {"prompt":"Which letter in \"pot\" is the vowel?","answer":"o","id":9,"type":"vowel"},
+        {"prompt":"How many vowels are in \"window\"?","answer":"2","visual":"window","id":8,"type":"vowel"},
+        {"prompt":"Which letter in \"pot\" is the vowel?","answer":"o","visual":"pot","id":9,"type":"vowel"},
         {"prompt":"Which word has the vowel \"o\"? (pin, bag, window)","answer":"window","id":10,"type":"vowel"},
         {"prompt":"How many vowels are in \"chocolate\"?","answer":"4","id":11,"type":"vowel"},
         {"prompt":"Which word has 2 vowels? (sip, water, beautiful)","answer":"water","id":12,"type":"vowel"},
@@ -180,14 +180,14 @@ describe('vowel — Year 2 (tier-3 extended set)', () => {
         {"prompt":"Which word has the vowel \"e\"? (chocolate, dolphin, family)","answer":"chocolate","id":14,"type":"vowel"},
         {"prompt":"How many vowels are in \"pumpkin\"?","answer":"2","id":15,"type":"vowel"},
         {"prompt":"Which word has the vowel \"a\"? (computer, top, grass)","answer":"grass","id":16,"type":"vowel"},
-        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","id":17,"type":"vowel"},
+        {"prompt":"How many vowels are in \"rabbit\"?","answer":"2","visual":"rabbit","id":17,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (house, chicken, fish)","answer":"fish","id":18,"type":"vowel"},
         {"prompt":"How many vowels are in \"leg\"?","answer":"1","id":19,"type":"vowel"},
-        {"prompt":"How many vowels are in \"lemon\"?","answer":"2","id":20,"type":"vowel"},
+        {"prompt":"How many vowels are in \"lemon\"?","answer":"2","visual":"lemon","id":20,"type":"vowel"},
         {"prompt":"Which word has 1 vowel? (bread, net, school)","answer":"net","id":21,"type":"vowel"},
         {"prompt":"Which word has the vowel \"i\"? (banana, dinosaur, pot)","answer":"dinosaur","id":22,"type":"vowel"},
         {"prompt":"Which word has the vowel \"u\"? (pig, box, bus)","answer":"bus","id":23,"type":"vowel"},
-        {"prompt":"How many vowels are in \"plane\"?","answer":"2","id":24,"type":"vowel"},
+        {"prompt":"How many vowels are in \"plane\"?","answer":"2","visual":"plane","id":24,"type":"vowel"}
         ]);
         checkVowelTruths(g2);
     });
@@ -195,8 +195,8 @@ describe('vowel — Year 2 (tier-3 extended set)', () => {
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(vowelSpec, g2, seedFrom([2, 'vowel', 0]), 2).pages[1].slice(0, 3)).toEqual([
         {"prompt":"How many vowels are in \"dinosaur\"?","answer":"4","id":25,"type":"vowel"},
-        {"prompt":"How many vowels are in \"bag\"?","answer":"1","id":26,"type":"vowel"},
-        {"prompt":"How many vowels are in \"purple\"?","answer":"2","id":27,"type":"vowel"},
+        {"prompt":"How many vowels are in \"bag\"?","answer":"1","visual":"bag","id":26,"type":"vowel"},
+        {"prompt":"How many vowels are in \"purple\"?","answer":"2","visual":"purple","id":27,"type":"vowel"}
         ]);
     });
 

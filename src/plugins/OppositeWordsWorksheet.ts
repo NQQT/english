@@ -15,8 +15,43 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Caps, DashboardFramework, DashboardPlugin, GradeConfig, RawProblem, Rng, WorksheetSpec } from '../framework';
-import { createDeck, sampleUnique } from '../framework';
+import { createDeck, hasVisual, isEarlyCueBand, sampleUnique } from '../framework';
 import { shuffleWords } from './words';
+
+// LEARNING VISUALS (Y1–3 only — the early cue band, isEarlyCueBand = word
+// tiers 2..4): concrete pair words carry a CONCEPT picture so "hot" prints
+// beside a flame and "big" beside an elephant. The map covers both members of
+// each concrete pair — since the answer is always the OTHER word, the picture
+// never reveals it. Abstract or unmapped words (and the Prep / Year 4+
+// sheets) print plain (legacy markup).
+const OPPOSITE_VISUAL: Record<string, string> = {
+    // concrete property pairs
+    hot: 'fire', cold: 'ice',
+    big: 'elephant', small: 'ant',
+    long: 'barLong', short: 'barShort',
+    heavy: 'weight', light: 'feather',
+    fast: 'bolt', slow: 'snail',
+    wet: 'drop', dry: 'sun',
+    full: 'cupFull', empty: 'cupEmpty',
+    clean: 'sparkle', dirty: 'xmark',
+    sweet: 'honey', sour: 'lemon',
+    loud: 'speaker', quiet: 'zzz',
+    // feelings & times
+    happy: 'smile', sad: 'cry',
+    day: 'sun', night: 'night',
+    early: 'clock', late: 'clock',
+    // space & order
+    up: 'arrowUp', down: 'arrowDown',
+    above: 'arrowUp', below: 'arrowDown',
+    first: 'trophy', last: 'xmark',
+    // strength & outcomes
+    strong: 'weight', weak: 'feather',
+    win: 'trophy', lose: 'xmark'
+};
+function oppPicture(caps: Caps, word: string): string | undefined {
+    const key = OPPOSITE_VISUAL[word];
+    return key && isEarlyCueBand(caps) && hasVisual(key) ? key : undefined;
+}
 
 // Opposite (antonym) pairs: tier1 = the six kindest pairs; tier 2+ = all 30.
 // (No word may anchor TWO pairs — "hard" only pairs with "easy", never also
@@ -110,8 +145,11 @@ function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
             const useAsk = rng.next() < 0.5;
             const word = useAsk ? a : b;
             const answer = useAsk ? b : a;
+            // Concept picture for the PROMPT word only (the answer is the
+            // other word, so the cue is a scaffold, never a give-away).
+            const pic = oppPicture(caps, word);
             if (rng.next() < 0.6) {
-                return { prompt: `What is the opposite of "${word}"?`, answer };
+                return { prompt: `What is the opposite of "${word}"?`, answer, visual: pic };
             }
             // Multiple choice: two distractor words from unrelated pairs.
             const options = [answer];
@@ -122,7 +160,11 @@ function generateOpposite(rng: Rng, caps: Caps, count: number): RawProblem[] {
                 if (!options.includes(pick) && pick !== word) options.push(pick);
             }
             const shown = shuffleWords(rng, options);
-            return { prompt: `Which word means the opposite of "${word}"? (${shown.join(', ')})`, answer };
+            return {
+                prompt: `Which word means the opposite of "${word}"? (${shown.join(', ')})`,
+                answer,
+                visual: pic
+            };
         },
         (p) => p.prompt
     );

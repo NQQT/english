@@ -47,40 +47,40 @@ describe('wordTrace plugin — declarative spec', () => {
 describe('wordTrace — Prep (fixed ordered A–Z words, no rng draws)', () => {
     it('matches the exact page-1 sheet (letter model + beginning word)', () => {
         expect(sheet(g0)).toEqual([
-        {"id":1,"type":"wordTrace","prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple"},
-        {"id":2,"type":"wordTrace","prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird"},
-        {"id":3,"type":"wordTrace","prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat"},
-        {"id":4,"type":"wordTrace","prompt":"Trace the word \"dog\" (begins with \"D\")","answer":"dog","model":"D","trace":"dog"},
-        {"id":5,"type":"wordTrace","prompt":"Trace the word \"eat\" (begins with \"E\")","answer":"eat","model":"E","trace":"eat"},
-        {"id":6,"type":"wordTrace","prompt":"Trace the word \"fish\" (begins with \"F\")","answer":"fish","model":"F","trace":"fish"},
-        {"id":7,"type":"wordTrace","prompt":"Trace the word \"go\" (begins with \"G\")","answer":"go","model":"G","trace":"go"},
-        {"id":8,"type":"wordTrace","prompt":"Trace the word \"hat\" (begins with \"H\")","answer":"hat","model":"H","trace":"hat"},
-        {"id":9,"type":"wordTrace","prompt":"Trace the word \"in\" (begins with \"I\")","answer":"in","model":"I","trace":"in"},
-        {"id":10,"type":"wordTrace","prompt":"Trace the word \"jam\" (begins with \"J\")","answer":"jam","model":"J","trace":"jam"},
-        {"id":11,"type":"wordTrace","prompt":"Trace the word \"kick\" (begins with \"K\")","answer":"kick","model":"K","trace":"kick"},
-        {"id":12,"type":"wordTrace","prompt":"Trace the word \"leg\" (begins with \"L\")","answer":"leg","model":"L","trace":"leg"},
-        {"id":13,"type":"wordTrace","prompt":"Trace the word \"map\" (begins with \"M\")","answer":"map","model":"M","trace":"map"},
-        {"id":14,"type":"wordTrace","prompt":"Trace the word \"net\" (begins with \"N\")","answer":"net","model":"N","trace":"net"},
-        {"id":15,"type":"wordTrace","prompt":"Trace the word \"open\" (begins with \"O\")","answer":"open","model":"O","trace":"open"},
-        {"id":16,"type":"wordTrace","prompt":"Trace the word \"pen\" (begins with \"P\")","answer":"pen","model":"P","trace":"pen"},
-        {"id":17,"type":"wordTrace","prompt":"Trace the word \"queen\" (begins with \"Q\")","answer":"queen","model":"Q","trace":"queen"},
-        {"id":18,"type":"wordTrace","prompt":"Trace the word \"rat\" (begins with \"R\")","answer":"rat","model":"R","trace":"rat"},
-        {"id":19,"type":"wordTrace","prompt":"Trace the word \"sun\" (begins with \"S\")","answer":"sun","model":"S","trace":"sun"},
-        {"id":20,"type":"wordTrace","prompt":"Trace the word \"top\" (begins with \"T\")","answer":"top","model":"T","trace":"top"},
-        {"id":21,"type":"wordTrace","prompt":"Trace the word \"up\" (begins with \"U\")","answer":"up","model":"U","trace":"up"},
-        {"id":22,"type":"wordTrace","prompt":"Trace the word \"van\" (begins with \"V\")","answer":"van","model":"V","trace":"van"},
-        {"id":23,"type":"wordTrace","prompt":"Trace the word \"water\" (begins with \"W\")","answer":"water","model":"W","trace":"water"},
-        {"id":24,"type":"wordTrace","prompt":"Trace the word \"xylophone\" (begins with \"X\")","answer":"xylophone","model":"X","trace":"xylophone"},
-        {"id":25,"type":"wordTrace","prompt":"Trace the word \"yellow\" (begins with \"Y\")","answer":"yellow","model":"Y","trace":"yellow"},
-        {"id":26,"type":"wordTrace","prompt":"Trace the word \"zoo\" (begins with \"Z\")","answer":"zoo","model":"Z","trace":"zoo"}
+        {"prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple","visual":"apple","id":1,"type":"wordTrace"},
+        {"prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird","visual":"bird","id":2,"type":"wordTrace"},
+        {"prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat","visual":"cat","id":3,"type":"wordTrace"},
+        {"prompt":"Trace the word \"dog\" (begins with \"D\")","answer":"dog","model":"D","trace":"dog","visual":"dog","id":4,"type":"wordTrace"},
+        {"prompt":"Trace the word \"eat\" (begins with \"E\")","answer":"eat","model":"E","trace":"eat","id":5,"type":"wordTrace"},
+        {"prompt":"Trace the word \"fish\" (begins with \"F\")","answer":"fish","model":"F","trace":"fish","visual":"fish","id":6,"type":"wordTrace"},
+        {"prompt":"Trace the word \"go\" (begins with \"G\")","answer":"go","model":"G","trace":"go","id":7,"type":"wordTrace"},
+        {"prompt":"Trace the word \"hat\" (begins with \"H\")","answer":"hat","model":"H","trace":"hat","visual":"hat","id":8,"type":"wordTrace"},
+        {"prompt":"Trace the word \"in\" (begins with \"I\")","answer":"in","model":"I","trace":"in","id":9,"type":"wordTrace"},
+        {"prompt":"Trace the word \"jam\" (begins with \"J\")","answer":"jam","model":"J","trace":"jam","id":10,"type":"wordTrace"},
+        {"prompt":"Trace the word \"kick\" (begins with \"K\")","answer":"kick","model":"K","trace":"kick","id":11,"type":"wordTrace"},
+        {"prompt":"Trace the word \"leg\" (begins with \"L\")","answer":"leg","model":"L","trace":"leg","id":12,"type":"wordTrace"},
+        {"prompt":"Trace the word \"map\" (begins with \"M\")","answer":"map","model":"M","trace":"map","visual":"map","id":13,"type":"wordTrace"},
+        {"prompt":"Trace the word \"net\" (begins with \"N\")","answer":"net","model":"N","trace":"net","visual":"net","id":14,"type":"wordTrace"},
+        {"prompt":"Trace the word \"open\" (begins with \"O\")","answer":"open","model":"O","trace":"open","id":15,"type":"wordTrace"},
+        {"prompt":"Trace the word \"pen\" (begins with \"P\")","answer":"pen","model":"P","trace":"pen","visual":"pen","id":16,"type":"wordTrace"},
+        {"prompt":"Trace the word \"queen\" (begins with \"Q\")","answer":"queen","model":"Q","trace":"queen","id":17,"type":"wordTrace"},
+        {"prompt":"Trace the word \"rat\" (begins with \"R\")","answer":"rat","model":"R","trace":"rat","visual":"rat","id":18,"type":"wordTrace"},
+        {"prompt":"Trace the word \"sun\" (begins with \"S\")","answer":"sun","model":"S","trace":"sun","visual":"sun","id":19,"type":"wordTrace"},
+        {"prompt":"Trace the word \"top\" (begins with \"T\")","answer":"top","model":"T","trace":"top","visual":"top","id":20,"type":"wordTrace"},
+        {"prompt":"Trace the word \"up\" (begins with \"U\")","answer":"up","model":"U","trace":"up","id":21,"type":"wordTrace"},
+        {"prompt":"Trace the word \"van\" (begins with \"V\")","answer":"van","model":"V","trace":"van","id":22,"type":"wordTrace"},
+        {"prompt":"Trace the word \"water\" (begins with \"W\")","answer":"water","model":"W","trace":"water","visual":"water","id":23,"type":"wordTrace"},
+        {"prompt":"Trace the word \"xylophone\" (begins with \"X\")","answer":"xylophone","model":"X","trace":"xylophone","id":24,"type":"wordTrace"},
+        {"prompt":"Trace the word \"yellow\" (begins with \"Y\")","answer":"yellow","model":"Y","trace":"yellow","id":25,"type":"wordTrace"},
+        {"prompt":"Trace the word \"zoo\" (begins with \"Z\")","answer":"zoo","model":"Z","trace":"zoo","id":26,"type":"wordTrace"}
 ]);
     });
 
     it('page 2 repeats the A–Z word stream from the top (ids continue at 27)', () => {
         expect(generateDocument(wordTraceSpec, g0, seedFrom([0, 'wordTrace', 0]), 2).pages[1].slice(0, 3)).toEqual([
-        {"id":27,"type":"wordTrace","prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple"},
-        {"id":28,"type":"wordTrace","prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird"},
-        {"id":29,"type":"wordTrace","prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat"}
+        {"prompt":"Trace the word \"apple\" (begins with \"A\")","answer":"apple","model":"A","trace":"apple","visual":"apple","id":27,"type":"wordTrace"},
+        {"prompt":"Trace the word \"bird\" (begins with \"B\")","answer":"bird","model":"B","trace":"bird","visual":"bird","id":28,"type":"wordTrace"},
+        {"prompt":"Trace the word \"cat\" (begins with \"C\")","answer":"cat","model":"C","trace":"cat","visual":"cat","id":29,"type":"wordTrace"}
 ]);
     });
 

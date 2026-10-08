@@ -7,15 +7,27 @@
 // configuration through the DashboardFramework they receive at load time.
 //
 // Grades run 0..12 where 0 = Prep and 1..12 = Year 1..Year 12 (AU/UK labelling).
-// Prep..Year 6 have real content (Australian Curriculum: English v9.0 scope —
-// ACARA content descriptions F–6): Prep = letter awareness/beginning sounds
-// plus handwriting tracing; Y1 = blending, sight words, opposites, rhymes,
-// first spelling & sentence work; Y2 adds syllables, nouns/verbs, past tense
-// and tricky spellings; Y3–Y6 are the upper-primary set (word sets 4–6) with
-// the senior catalogue: conjunctions, apostrophes (possessives + contractions),
-// comma lists, affixes, compound words, direct speech, homographs, pronouns,
-// figurative language, idioms, dialogue punctuation and subject–verb
-// agreement. Grades 7..12 render a "coming soon" placeholder.
+// Prep..Year 6 have real content. The primary catalogue is a STAGED,
+// CUMULATIVE progression (it is curated to mirror the Australian Curriculum
+// F–6 scope, but the dashboard makes no claim of externally verified
+// alignment with any official curriculum):
+//   - Prep = letter awareness/beginning sounds plus handwriting tracing;
+//   - Y1  = the early-reading set (blending, sight words, opposites, rhymes,
+//     first spelling & sentence work);
+//   - Y2  = adds syllables, noun/verb recognition, past tense and tricky
+//     spellings;
+//   - Y3  = adds the INTRODUCTORY grammar set: conjunctions, apostrophes
+//     (possessives + contractions), comma lists, prefixes/suffixes, compound
+//     words, direct speech and pronouns;
+//   - Y4  = adds the first advanced vocabulary types: figurative language and
+//     homographs;
+//   - Y5  = adds the remaining advanced set: idioms, dialogue punctuation and
+//     subject–verb agreement;
+//   - Y6  = the full cumulative catalogue (every Y3-advanced type plus the
+//     deepest word set before high school).
+// No type is ever removed from a later year's list — each year keeps every
+// earlier year's types (cumulative), so a Y6 sheet offers everything a Y3
+// sheet offers. Grades 7..12 render a "coming soon" placeholder.
 //
 // `caps` drives the generators in the worksheet plugins. English worksheets
 // are driven by WORD SETS rather than number ranges, so the caps are
@@ -31,6 +43,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type GradeId = number;
+
+// ── Learning-visual cue band ─────────────────────────────────────────────────
+// Years 1–3 (word tiers 2..4) are the documented band for the picture cues
+// (and tile scaffolds) printed beside early-years words. Tier 1 is Prep — its
+// NON-TRACING sheets stay plain (the Prep word-tracing sheet keeps its word
+// pictures by design: the picture tells the child WHICH word they trace).
+// Tiers 5..6 (Years 4–6) never carry cue metadata, so their printed markup
+// is unchanged. Every generator that may attach a cue/uses tile scaffolding
+// funnels through this one band check.
+export function isEarlyCueBand(caps: Caps): boolean {
+    return caps.wordTier >= 2 && caps.wordTier <= 4;
+}
 
 export type GradeConfig = {
     id: GradeId;
@@ -64,16 +88,36 @@ const EARLY_READING = [
     'letters', 'capital', 'punct', 'homophone', 'plural', 'similar', 'wordgap', 'spelling'
 ] as const;
 
-// The upper-primary catalogue (Years 3–6), in rail order: everything from the
-// early-reading set plus the ACARA v9.0 Y3–6 grammar/punctuation/vocabulary
-// types (see plugins/index.ts for the id ↔ worksheet mapping). Lower grades
-// never list these ids, so the plugins stay grade-gated by the catalogue.
-const UPPER_PRIMARY = [
-    ...EARLY_READING,
-    'syllable', 'grammar', 'tense',
-    'conjunction', 'apostrophe', 'comma', 'affix', 'compound', 'speech',
-    'homograph', 'pronoun', 'figurative', 'idiom', 'advpunct', 'agreement'
+// The Year-2-only extensions of the early-reading set (in rail order).
+const Y2_EXTRA = ['syllable', 'grammar', 'tense'] as const;
+
+// The STAGED upper-primary ladder (see plugins/index.ts for the id ↔
+// worksheet mapping). Each rung adds a small, coherent batch of types on top
+// of every earlier rung — cumulative, so Y6 offers the whole catalogue and
+// no type ever disappears from a later year:
+const Y3_INTRO = [
+    // Introductory Year-3 grammar: clause joiners, apostrophes, comma lists,
+    // word building (prefixes/suffixes + compounds), quoted speech, pronouns.
+    'conjunction', 'apostrophe', 'comma', 'affix', 'compound', 'speech', 'pronoun'
 ] as const;
+const Y4_ADVANCED = [
+    // First advanced vocabulary types (Y4–6 material): figurative language +
+    // same-spelling/different-meaning words.
+    'figurative', 'homograph'
+] as const;
+const Y5_ADVANCED = [
+    // The remaining advanced set (Y5–6 material): idioms, dialogue
+    // punctuation and subject–verb agreement.
+    'idiom', 'advpunct', 'agreement'
+] as const;
+
+// The full Year-3 catalogue: early-reading + Y2 extensions + Y3 intro set.
+const YEAR_3 = [...EARLY_READING, ...Y2_EXTRA, ...Y3_INTRO] as const;
+// Year 4 adds the first advanced vocabulary types on top of the Y3 set.
+const YEAR_4 = [...YEAR_3, ...Y4_ADVANCED] as const;
+// Year 5 adds the remaining advanced set; Year 6 = the complete catalogue.
+const YEAR_5 = [...YEAR_4, ...Y5_ADVANCED] as const;
+const UPPER_PRIMARY: readonly string[] = YEAR_5;
 
 // Grade 0 (Prep) through 6 are fully covered; grades 7..12 are listed so the
 // selector is complete but flagged `implemented: false`.
@@ -121,7 +165,7 @@ const CONFIGS: GradeConfig[] = [
         // past tense and tricky spelling, plus irregular plurals and the
         // extended homophone pairs (its/it's, her/here, are/our, they/their,
         // wear/where, whose/who's).
-        available: [...EARLY_READING, 'syllable', 'grammar', 'tense'],
+        available: [...EARLY_READING, ...Y2_EXTRA],
         caps: {
             wordTier: 3,
             sentenceLen: 5,
@@ -133,11 +177,13 @@ const CONFIGS: GradeConfig[] = [
         short: '3',
         label: 'Year 3',
         implemented: true,
-        // Year 3 — the upper-primary catalogue opens (word set 4, sentences
-        // up to 7 words). ACARA Y3 focus: conjunctions, apostrophes of
+        // Year 3 (word set 4, sentences up to 7 words) introduces the
+        // INTRODUCTORY grammar set — conjunctions, apostrophes of
         // possession/contraction, comma lists, prefixes/suffixes, compound
-        // words, direct speech and pronouns.
-        available: [...UPPER_PRIMARY],
+        // words, direct speech and pronouns — on top of the Y1–Y2 types.
+        // The advanced Y4–Y6 vocabulary types (figurative, idioms, ...) are
+        // NOT yet offered here.
+        available: [...YEAR_3],
         caps: {
             wordTier: 4,
             sentenceLen: 7,
@@ -149,10 +195,10 @@ const CONFIGS: GradeConfig[] = [
         short: '4',
         label: 'Year 4',
         implemented: true,
-        // Year 4 — same catalogue, harder word set 5: tricky spellings
-        // (favourite, neighbour, realise — AU spellings), homographs and
-        // figurative language join the rotation.
-        available: [...UPPER_PRIMARY],
+        // Year 4 keeps everything Y3 offers and adds the first advanced
+        // vocabulary types — figurative language and homographs — on the
+        // harder word set 5 (tricky spellings: favourite, neighbour, realise).
+        available: [...YEAR_4],
         caps: {
             wordTier: 5,
             sentenceLen: 8,
@@ -164,9 +210,9 @@ const CONFIGS: GradeConfig[] = [
         short: '5',
         label: 'Year 5',
         implemented: true,
-        // Year 5 — word set 6: ACARA Y5–6 vocabulary, idioms, dialogue
-        // punctuation and subject–verb agreement.
-        available: [...UPPER_PRIMARY],
+        // Year 5 completes the catalogue: idioms, dialogue punctuation and
+        // subject–verb agreement join the rotation at word set 6.
+        available: [...YEAR_5],
         caps: {
             wordTier: 6,
             sentenceLen: 9,
@@ -178,8 +224,9 @@ const CONFIGS: GradeConfig[] = [
         short: '6',
         label: 'Year 6',
         implemented: true,
-        // Year 6 — the full upper-primary set at its deepest (tier 6,
-        // 10-word sentences): the culmination before high school.
+        // Year 6 — the full cumulative catalogue (all 30 types) at its
+        // deepest (tier 6, 10-word sentences): the culmination before high
+        // school. Same list as Year 5; only the caps deepen.
         available: [...UPPER_PRIMARY],
         caps: {
             wordTier: 6,

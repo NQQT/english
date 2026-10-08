@@ -23,11 +23,22 @@
 //     advpunct (line x reporter x 2 prompt forms) and agreement (subject x
 //     verb-pair bank).
 //
+// QUESTION IDENTITY: a "question" is what the CHILD SEES — the printed
+// prompt, plus the displayed tile order for early-band (Y1–Y3) Sentence
+// Building rows. Those prompts no longer carry the scrambled bank in the
+// text (the bank moved to the `tileWords` scaffold metadata, see
+// SentenceBuildingWorksheet.ts), so counting prompt-text alone would collapse
+// their space to the handful of blank-count patterns. `questionKey` below
+// mirrors the generators' sampleUnique keys: for every OTHER spec
+// `tileWords` is undefined, so the identity is exactly the prompt (unchanged
+// legacy metric).
+//
 // If a pool or variant changes, these exact capacities move — which is what
 // we want: a silent shrink of a worksheet's question space can't slip through.
 //
 // REGENERATION: run `scripts/measure-capacities.ts` (vite-node) to reprint
-// the full table after changing any generator or bank.
+// the full table after changing any generator or bank. KEEP ITS questionKey
+// IN SYNC WITH THE ONE BELOW (both count the same visual identity).
 
 import { describe, it, expect } from 'vitest';
 import { seedFrom, getGradeConfig, createRng, type WorksheetSpec } from '../framework';
@@ -61,6 +72,15 @@ import { figurativeSpec } from './FigurativeWorksheet';
 import { idiomSpec } from './IdiomWorksheet';
 import { advpunctSpec } from './AdvancedPunctuationWorksheet';
 import { agreementSpec } from './AgreementWorksheet';
+
+// Printed-question identity (see the header): prompt text + displayed tile
+// order for early-band sentence rows. Mirrors the generators' sampleUnique
+// keys and the metric in scripts/measure-capacities.ts — keep all three in
+// sync. The '|' separator cannot occur in a word, so the key is unambiguous;
+// for specs without tile metadata it degrades to the bare prompt.
+function questionKey(p: { prompt: string; tileWords?: string[] }): string {
+    return p.tileWords ? `${p.prompt} | ${p.tileWords.join('|')}` : p.prompt;
+}
 
 // Pinned capacities, measured by scripts/measure-capacities.ts at the
 // 100-page ask (spec.perPage x 100 questions). A capacity EQUAL to the ask
@@ -234,14 +254,17 @@ describe('unique sampling — per-worksheet question capacity', () => {
             const seed = seedFrom([grade.id, spec.id, 0]);
             const problems = spec.generate(createRng(seed), grade.caps, ask);
             expect(problems).toHaveLength(ask);
-            const prompts = problems.map((p) => p.prompt);
-            const unique = new Set(prompts);
+            // The uniqueness metric is PRINTED-QUESTION identity (prompt +
+            // tile order) — see questionKey above; counting prompt text alone
+            // would under-count the early-band sentence space.
+            const keys = problems.map(questionKey);
+            const unique = new Set(keys);
             expect(unique.size).toBe(capacity);
             // Uniqueness is a PREFIX property: sampleUnique only releases a
             // question after checking its key, so the first `capacity`
             // questions are pairwise distinct — repeats can only sit in the
             // fallback tail after the space was fully dealt.
-            expect(new Set(prompts.slice(0, capacity)).size).toBe(capacity);
+            expect(new Set(keys.slice(0, capacity)).size).toBe(capacity);
         });
     }
 

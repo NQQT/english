@@ -32,11 +32,12 @@ describe('agreement plugin — declarative spec', () => {
         expect(agreementSpec.scope(g6)).toBe('subjects & verbs that match');
     });
 
-    it('is gated by the grade catalogue (Years 3..6 only, targeting Y5+)', () => {
+    it('is gated by the grade catalogue (Years 5..6 only, targeting Y5+)', () => {
         expect(agreementSpec.offered(getGradeConfig(0))).toBe(false);
         expect(agreementSpec.offered(getGradeConfig(1))).toBe(false);
         expect(agreementSpec.offered(getGradeConfig(2))).toBe(false);
-        expect(agreementSpec.offered(getGradeConfig(3))).toBe(true);
+        expect(agreementSpec.offered(getGradeConfig(3))).toBe(false);
+        expect(agreementSpec.offered(getGradeConfig(4))).toBe(false);
         expect(agreementSpec.offered(g5)).toBe(true);
         expect(agreementSpec.offered(g6)).toBe(true);
         expect(agreementSpec.offered(getGradeConfig(7))).toBe(false);

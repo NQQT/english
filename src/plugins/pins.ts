@@ -32,3 +32,7 @@ export { figurativeSpec } from './FigurativeWorksheet';
 export { idiomSpec } from './IdiomWorksheet';
 export { advpunctSpec } from './AdvancedPunctuationWorksheet';
 export { agreementSpec } from './AgreementWorksheet';
+// The tracing specs are ORDERED (no rng draws) but are pinned in their test
+// files too (WordTracing pins the exact A–Z rows) — included so `visual`
+// metadata added to tracing rows can be regenerated like every other pin.
+export { wordTraceSpec } from './WordTracingWorksheet';
