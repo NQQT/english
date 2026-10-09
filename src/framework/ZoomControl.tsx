@@ -3,12 +3,11 @@
 // exactly what they'll see when the browser-native print dialog shows the same
 // A4 pages).
 //
-// THEME: the group pill sits on the distribution's soft fill (theme.ts) and
-// the selected segment lifts to a white chip.
+// THEME: the group pill sits on the --pill-bg token (app.css) and the selected
+// segment lifts to the --chip-bg chip (white in light mode, slate in dark).
 import React from 'react';
 import { styledComponent } from '@presource/react';
 import { ZOOM_OPTIONS, type ZoomMode } from './page-scale';
-import { THEME } from './theme';
 
 export type ZoomControlProps = {
     // Accessible group label, e.g. "Preview zoom".
@@ -24,9 +23,9 @@ const ZoomGroup = styledComponent('div', {
     gap: '2px',
     padding: '3px',
     borderRadius: '10px',
-    border: `1px solid ${THEME.hairline}`,
+    border: '1px solid var(--hairline)',
     flexShrink: 0,
-    background: THEME.pillBg
+    background: 'var(--pill-bg)'
 });
 
 // One zoom segment; the selected one lifts to a solid chip.
@@ -39,9 +38,11 @@ const ZoomSegment = styledComponent<{ active: boolean }>('button', {
     lineHeight: 1,
     cursor: 'pointer',
     flexShrink: 0,
-    background: ({ active }) => (active ? '#ffffff' : 'transparent'),
-    color: ({ active }) => (active ? '#0f172a' : '#64748b'),
-    boxShadow: ({ active }) => (active ? '0 1px 2px rgba(15,23,42,0.16)' : 'none'),
+    background: ({ active }) => (active ? 'var(--chip-bg)' : 'transparent'),
+    color: ({ active }) => (active ? 'var(--chip-fg)' : 'var(--muted)'),
+    // --shadow-chip is a COMPLETE shadow value (offset+blur+colour token),
+    // unlike --primary-shadow which is a bare colour composed into a shadow.
+    boxShadow: ({ active }) => (active ? 'var(--shadow-chip)' : 'none'),
     transition: 'background 0.12s ease, color 0.12s ease'
 });
 

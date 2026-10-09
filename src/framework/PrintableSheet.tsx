@@ -16,11 +16,15 @@
 // document has more than one page, `pageLabel` (e.g. "Page 2 of 3") is shown
 // in a small footer — both on screen (as the page badge) and in print.
 //
-// The sheet body uses near-black text (`#1a1a1a`) regardless of the app's
-// teal theme: printed sheets stay colour-neutral for any printer. All CSS
-// uses explicit px/mm STRING values (not numbers) on purpose: when a value is
-// static or a function in @presource/react's styledComponent, numbers are
-// converted to rem, which we do not want for print-accurate spacing.
+// The sheet paints through the PAPER TOKENS (CSS custom properties declared
+// in src/app.css): on screen the paper adapts to the Light/Dark theme (dark
+// sheet + light ink in dark mode, so the preview is readable like the rest of
+// the UI), and @media print FORCES the tokens back to white paper + near-black
+// ink (`#1a1a1a` family) regardless of the theme — printed sheets stay
+// colour-neutral for any printer (see app.css print colour-safety block).
+// All CSS uses explicit px/mm STRING values (not numbers) on purpose: when a
+// value is static or a function in @presource/react's styledComponent, numbers
+// are converted to rem, which we do not want for print-accurate spacing.
 //
 // PROBLEM LAYOUT: a normal row is `<index> [picture cue?] <prompt text with
 // write-box/underlined blanks>` + (optional, early-years Sentence Building) a
@@ -64,7 +68,7 @@ export type PrintableSheetProps = {
     // tracing) render in a SINGLE column so every row has the full page
     // width. Default: two-column grid.
     single?: boolean;
-    // Brand line printed in the multi-page footer ("English Sheets"). Comes
+    // Brand line printed in the multi-page footer ("English Worksheets"). Comes
     // from the dashboard framework's configuration, so the sheet component
     // itself stays subject-neutral. Defaults to "Worksheets" for direct use.
     brand?: string;
@@ -72,17 +76,18 @@ export type PrintableSheetProps = {
     testId?: string;
 };
 
-// Page root: white sheet that fills its A4 frame (794×1123px on screen,
+// Page root: the paper sheet filling its A4 frame (794×1123px on screen,
 // 210×297mm in the print tree). Flex column so the footer pins to the page
-// bottom regardless of how much problem content is above it.
+// bottom regardless of how much problem content is above it. Colours are the
+// paper tokens (screen-adaptive, print-forced — see the file header).
 const SheetRoot = styledComponent('div', {
     width: '100%',
     height: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--paper-bg)',
     boxSizing: 'border-box',
     padding: '12mm 12mm 12mm 12mm',
     fontFamily: 'system-ui, "Segoe UI", Arial, sans-serif',
-    color: '#1a1a1a',
+    color: 'var(--paper-ink)',
     display: 'flex',
     flexDirection: 'column'
 });
@@ -97,20 +102,48 @@ const SheetTitle = styledComponent('h1', {
 
 const SheetSubtitle = styledComponent('p', {
     fontSize: '15px',
-    margin: '0 0 14px 0',
-    color: '#4b5563'
+    margin: '0',
+    color: 'var(--paper-sub)'
 });
 
-// Name / Date line a teacher's class would fill in.
-const MetaLine = styledComponent('p', {
+// Header row (R6, mirrors the maths PrintableSheet): title + subtitle on the
+// LEFT, the Name/Date fill-ins pinned to the TOP RIGHT (moved off their own
+// left-aligned line under the subtitle). `gap` + `minWidth: 0` on the left
+// stack keep the two halves from overlapping on narrow (small-zoom) previews:
+// the title side shrinks/ellipses its box, the meta side never does.
+const HeaderRow = styledComponent('div', {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '24px',
+    margin: '0 0 14px 0'
+});
+
+// Left half of the header row: the sheet heading stack.
+const HeaderId = styledComponent('div', {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    minWidth: 0
+});
+
+// Right half of the header row: Name / Date stacked and right-aligned so a
+// teacher's class can fill them in at the top corner of the sheet. Text order
+// is preserved (Name before Date, as the old MetaLine read left-to-right).
+const MetaStack = styledComponent('div', {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: '10px',
+    flexShrink: 0,
     fontSize: '16px',
-    margin: '0 0 12px 0',
-    color: '#374151'
+    color: 'var(--paper-meta)',
+    paddingTop: '2px'
 });
 
 const Rule = styledComponent('hr', {
     border: 'none',
-    borderTop: '2px solid #1a1a1a',
+    borderTop: '2px solid var(--paper-ink)',
     margin: '0 0 16px 0'
 });
 
@@ -119,7 +152,7 @@ const Rule = styledComponent('hr', {
 // by the function value for gridTemplateColumns.
 //
 // FILLING THE WHOLE PAGE: SheetRoot is a flex column on a fixed A4 height, so
-// `flex: 1` grows this grid to exactly the space left below the title/metaline
+    // `flex: 1` grows this grid to exactly the space left below the header row
 // (and above the footer). `gridAutoRows: 1fr` divides that space into EVEN
 // rows and `alignItems: center` vertically centres each question in its row —
 // so no matter how many problems a worksheet generates, the LAST question row
@@ -145,7 +178,7 @@ const ProblemRow = styledComponent('div', {
 
 // Question number, right-aligned in a narrow column.
 const ProblemIndex = styledComponent('span', {
-    color: '#9ca3af',
+    color: 'var(--paper-index)',
     minWidth: '26px',
     textAlign: 'right',
     fontSize: '15px',
@@ -190,7 +223,7 @@ const TraceLine = styledComponent('div', {
     flex: 1,
     minWidth: '0',
     paddingBottom: '12px',
-    borderBottom: '2px dashed #b7c9c4',
+    borderBottom: '2px dashed var(--trace-rule)',
     whiteSpace: 'nowrap'
 });
 
@@ -203,7 +236,7 @@ const ModelText = styledComponent('span', {
     fontSize: '64px',
     fontWeight: 600,
     lineHeight: '1.1',
-    color: '#64748b',
+    color: 'var(--trace-model)',
     userSelect: 'none'
 });
 
@@ -221,8 +254,8 @@ const TraceText = styledComponent('span', {
     fontWeight: 600,
     lineHeight: '1.1',
     letterSpacing: '0.05em',
-    color: '#f1f5f4',
-    WebkitTextStroke: '3px #94a3b8',
+    color: 'var(--trace-fill)',
+    WebkitTextStroke: '3px var(--trace-stroke)',
     userSelect: 'none'
 });
 
@@ -233,7 +266,7 @@ const TraceText = styledComponent('span', {
 const Blank = styledComponent<{ big?: boolean }>('span', {
     display: 'inline-block',
     minWidth: ({ big }) => (big ? '140px' : '38px'),
-    borderBottom: '2px solid #1a1a1a',
+    borderBottom: '2px solid var(--paper-ink)',
     height: '0.8em',
     verticalAlign: 'baseline',
     margin: '0 5px'
@@ -259,7 +292,7 @@ const SheetFooter = styledComponent('div', {
 
 const FooterText = styledComponent('span', {
     fontSize: '11px',
-    color: '#9ca3af'
+    color: 'var(--paper-index)'
 });
 
 // Splits a prompt on "__" and renders each blank as a styled fill-in line, so
@@ -293,12 +326,21 @@ export function PrintableSheet({
 }: PrintableSheetProps) {
     return (
         <SheetRoot data-testid={testId}>
-            <SheetTitle>{title}</SheetTitle>
-            <SheetSubtitle>{subtitle}</SheetSubtitle>
-            <MetaLine>
-                Name: <Blank big />
-                Date: <Blank big />
-            </MetaLine>
+            {/* Header (R6): title/subtitle left, Name/Date top right. */}
+            <HeaderRow>
+                <HeaderId>
+                    <SheetTitle>{title}</SheetTitle>
+                    <SheetSubtitle>{subtitle}</SheetSubtitle>
+                </HeaderId>
+                <MetaStack>
+                    <div>
+                        Name: <Blank big />
+                    </div>
+                    <div>
+                        Date: <Blank big />
+                    </div>
+                </MetaStack>
+            </HeaderRow>
             <Rule />
             <ProblemGrid single={single ?? false}>
                 {problems.map((p) => (

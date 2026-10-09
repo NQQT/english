@@ -25,6 +25,8 @@ export * from './PageStack';
 export * from './PrintableSheet';
 export * from './ZoomControl';
 export * from './GradeSelector';
+// The R5 theme-mode control (System/Light/Dark selector + controller hook).
+export * from './ThemeSelector';
 export * from './store';
 export * from './registry';
 export * from './loader';

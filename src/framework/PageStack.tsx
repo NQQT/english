@@ -15,13 +15,13 @@
 // dot-grid backdrop and is what usePageScale measures (its width = the
 // canvas width) for the 'fit' zoom.
 //
-// THEME: the page field uses the distribution's palette from theme.ts
-// (teal-tinted dot grid for this distribution).
+// THEME: the page field paints through the colour tokens in app.css
+// (--canvas-bg / --canvas-dot: teal-tinted dot grid in light mode, slate in
+// dark) — see framework/theme.ts.
 import React, { useRef } from 'react';
 import { styledComponent } from '@presource/react';
 import { A4_H, A4_W, usePageScale, type ZoomMode } from './page-scale';
 import { PrintableSheet } from './PrintableSheet';
-import { THEME } from './theme';
 import type { Problem } from './document';
 
 export type PageSpec = {
@@ -61,9 +61,10 @@ const StackViewport = styledComponent('div', {
     // Match the canvas frame's corners (the canvas no longer clips its
     // content with overflow:hidden, so the grid background must round itself).
     borderRadius: 'inherit',
-    // Pale teal with a subtle dot grid (PDF-viewer vibe, from THEME).
-    background: THEME.canvasBg,
-    backgroundImage: `radial-gradient(circle, ${THEME.canvasDot} 1px, transparent 1px)`,
+    // Pale teal (light) / deep slate (dark) with a subtle dot grid — the
+    // canvas tokens adapt with the theme, the paper on top stays legible.
+    background: 'var(--canvas-bg)',
+    backgroundImage: 'radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px)',
     backgroundSize: '22px 22px'
 }) as unknown as React.ForwardRefExoticComponent<
     React.RefAttributes<HTMLDivElement> &
@@ -96,10 +97,12 @@ const PageShell = styledComponent<{ scale: number }>('div', {
     flexShrink: 0,
     width: ({ scale }) => `${A4_W * scale}px`,
     height: ({ scale }) => `${A4_H * scale}px`,
-    background: '#ffffff',
+    // Paper token: matches the sheet inside (white light / dark slate dark)
+    // so the shell never flashes a white edge around a dark sheet.
+    background: 'var(--paper-bg)',
     overflow: 'hidden',
     borderRadius: '10px',
-    boxShadow: '0 10px 30px rgba(15,23,42,0.14)'
+    boxShadow: 'var(--shadow-page)'
 });
 
 // Full-size A4 box scaled down inside the shell (anchored top-left so the
@@ -120,9 +123,9 @@ const PageBadge = styledComponent('div', {
     bottom: '10px',
     padding: '3px 10px',
     borderRadius: '999px',
-    border: `1px solid ${THEME.hairline}`,
-    background: 'rgba(255,255,255,0.92)',
-    color: '#64748b',
+    border: '1px solid var(--hairline)',
+    background: 'var(--badge-bg)',
+    color: 'var(--badge-fg)',
     fontSize: '11px',
     fontWeight: 600
 });

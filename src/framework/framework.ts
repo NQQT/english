@@ -78,8 +78,9 @@ export function createDashboardFramework(config: DashboardFrameworkConfig): Dash
 }
 
 // The singleton bundle passed to every worksheet factory in plugins/index.ts.
-// English distribution chrome: "English Sheets" print footer, "Aa" glyph.
+// English distribution chrome: "English Worksheets" print footer (R4 brand —
+// no version on paper, the version belongs to the app title only), "Aa" glyph.
 export const DASHBOARD_FRAMEWORK: DashboardFramework = createDashboardFramework({
-    printBrand: 'English Sheets',
+    printBrand: 'English Worksheets',
     emptyGlyph: 'Aa'
 });

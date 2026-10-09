@@ -42,12 +42,14 @@
 // before clicking it; `allVisiblePluginsLoaded()` below awaits the last
 // Year-1 entry when an assertion needs the FULL rail.
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import React from 'react';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EnglishDashboard } from './EnglishDashboard';
 import { PLUGINS } from '../plugins';
-import { DASHBOARD_FRAMEWORK, getGradeConfig, type DashboardPlugin } from '../framework';
+import { DASHBOARD_FRAMEWORK, getGradeConfig, THEME_STORAGE_KEY, type DashboardPlugin } from '../framework';
 
 // Generous timeout for loader awaits: the loads are chained macrotasks (one
 // per plugin), so a cold test run under load can exceed the 1s default.
@@ -148,8 +150,9 @@ describe('EnglishDashboard — layout', () => {
         // full rail (the first plugin — Sight & Real Words — is available
         // immediately; the rest stream in one by one).
         await allPluginsLoaded();
-        // App title in the header (the "Aa" brand chip is aria-hidden).
-        expect(screen.getByText('English Sheets')).toBeDefined();
+        // App title in the header (the "Aa" brand chip is aria-hidden). R4:
+        // the brand is "English Worksheets" + the package.json version.
+        expect(screen.getByText('English Worksheets v1.0.2')).toBeDefined();
         // Grade selector present (P + 1..12 = 13 radios; 1 is selected by default).
         expect(gradeRadio('1').getAttribute('aria-checked')).toBe('true');
         // Left rail offers the Year 1 catalogue; Syllables/Past Tense are Y2-only.
@@ -516,7 +519,7 @@ describe('EnglishDashboard — print flow (native dialog, preview IS the preview
         fireEvent.click(toolbarPrint());
 
         // The saved-PDF file name should be the worksheet title, not the app
-        // tab title ("English Sheets" from index.html).
+        // tab title ("English Worksheets v{version}" from main.tsx).
         expect(titleDuringPrint).toBe('Year 1 — Sight & Real Words');
         // In real browsers window.print() blocks until the dialog closes, so
         // the previous tab title is restored as soon as it returns.
@@ -598,3 +601,170 @@ describe('EnglishDashboard — print flow (native dialog, preview IS the preview
         expect(printSpy).not.toHaveBeenCalled();
     });
 });
+
+// ── R4: brand + version ───────────────────────────────────────────────────────
+describe('EnglishDashboard — brand + version (R4)', () => {
+    it('the header brand is exactly "English Worksheets v1.0.2"', () => {
+        // Exact name AND exact version (the current package.json version) —
+        // not a fuzzy "contains Worksheets" smoke check.
+        expect(screen.getByText('English Worksheets v1.0.2')).toBeDefined();
+    });
+
+    it('__APP_VERSION__ is the package.json version (no hardcoded version)', () => {
+        // The compile-time global (vite+vitest `define`, read from
+        // package.json) must equal the real package version. (cwd = this
+        // package root under vitest; import.meta.url is a module-server URL
+        // in the test runtime, not a file: URL.)
+        const pkg = JSON.parse(
+            readFileSync(join(process.cwd(), 'package.json'), 'utf8')
+        ) as { version: string };
+        expect(__APP_VERSION__).toBe(pkg.version);
+        expect(__APP_VERSION__).toBe('1.0.2');
+    });
+});
+
+// ── R5: theme control (System / Light / Dark) ────────────────────────────────
+describe('EnglishDashboard — theme control (R5)', () => {
+    // The persisted choice is shared browser state — clear it around every
+    // case so a previous test's pick can't leak into the next render.
+    beforeEach(() => {
+        localStorage.removeItem(THEME_STORAGE_KEY);
+    });
+    afterEach(() => {
+        localStorage.removeItem(THEME_STORAGE_KEY);
+    });
+
+    function themeSelect(): HTMLSelectElement {
+        return screen.getByTestId('theme-select') as HTMLSelectElement;
+    }
+
+    it('renders an accessible Theme select with System/Light/Dark, defaulting to System', () => {
+        // Native select + real <label> (label[for] === select[id]); the
+        // "Theme" text node lives inside that label element.
+        const select = themeSelect();
+        const label = screen.getByText('Theme').closest('label');
+        expect(label).not.toBeNull();
+        expect(label!.getAttribute('for')).toBe(select.id);
+        expect([...select.options].map((o) => o.value)).toEqual(['system', 'light', 'dark']);
+        expect([...select.options].map((o) => o.textContent)).toEqual(['System', 'Light', 'Dark']);
+        expect(select.value).toBe('system');
+        // Default effective theme applied to <html>: jsdom reports no dark
+        // preference, so System resolves to light.
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    });
+
+    it('choosing Dark applies the dark theme and persists the choice', () => {
+        fireEvent.change(themeSelect(), { target: { value: 'dark' } });
+        expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+        expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+        // The select keeps showing the CHOICE (not the effective theme).
+        expect(themeSelect().value).toBe('dark');
+    });
+
+    it('choosing Light overrides a dark OS preference', () => {
+        // OS prefers dark, but the user picks Light => light stays applied.
+        stubMatchMedia(true);
+        try {
+            cleanup();
+            render(<EnglishDashboard />);
+            // System default follows the dark OS first.
+            expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+            fireEvent.change(themeSelect(), { target: { value: 'light' } });
+            expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+            expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+        } finally {
+            restoreMatchMedia();
+        }
+    });
+
+    it('restores the persisted choice on remount', () => {
+        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+        cleanup();
+        render(<EnglishDashboard />);
+        expect(themeSelect().value).toBe('dark');
+        expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    });
+
+    it('an invalid persisted value falls back to System', () => {
+        localStorage.setItem(THEME_STORAGE_KEY, 'neon');
+        cleanup();
+        render(<EnglishDashboard />);
+        expect(themeSelect().value).toBe('system');
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    });
+
+    it('storage unavailable: the dashboard still renders and themes work', () => {
+        // Simulate a browser that THROWS on localStorage access (strict
+        // privacy modes): reading and writing must degrade gracefully.
+        const original = Object.getOwnPropertyDescriptor(window, 'localStorage');
+        Object.defineProperty(window, 'localStorage', {
+            configurable: true,
+            get() {
+                throw new Error('storage blocked');
+            }
+        });
+        try {
+            cleanup();
+            render(<EnglishDashboard />);
+            expect(themeSelect().value).toBe('system');
+            fireEvent.change(themeSelect(), { target: { value: 'dark' } });
+            // Theme still applies for the session even though it cannot persist.
+            expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+        } finally {
+            if (original) Object.defineProperty(window, 'localStorage', original);
+        }
+    });
+
+    it('System mode follows the OS preference live', () => {
+        // matchMedia stub whose preference can flip mid-session; the change
+        // listeners the dashboard registered are invoked to emulate the OS.
+        const listeners = stubMatchMedia(true);
+        try {
+            cleanup();
+            render(<EnglishDashboard />);
+            expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+            // OS flips to light while the choice stays System => live update.
+            matchMediaStubPrefersDark = false;
+            listeners.forEach((cb) => cb());
+            expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+            // A manual override then freezes the theme against further OS flips.
+            fireEvent.change(themeSelect(), { target: { value: 'light' } });
+            matchMediaStubPrefersDark = true;
+            listeners.forEach((cb) => cb());
+            expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+        } finally {
+            restoreMatchMedia();
+        }
+    });
+});
+
+// ── matchMedia stub helpers (theme tests) ────────────────────────────────────
+// Replace window.matchMedia with a controllable stub: `prefersDark` drives
+// `matches`, and registered 'change' callbacks are returned so a test can
+// fire them like the browser would on an OS preference flip.
+let matchMediaStubPrefersDark = false;
+const originalMatchMedia = window.matchMedia;
+
+function stubMatchMedia(prefersDark: boolean): Array<() => void> {
+    matchMediaStubPrefersDark = prefersDark;
+    const listeners: Array<() => void> = [];
+    window.matchMedia = ((query: string) => ({
+        media: query,
+        get matches() {
+            return query === '(prefers-color-scheme: dark)' && matchMediaStubPrefersDark;
+        },
+        addEventListener: (_type: string, cb: () => void) => {
+            listeners.push(cb);
+        },
+        removeEventListener: () => {},
+        addListener: (cb: () => void) => listeners.push(cb),
+        removeListener: () => {}
+    })) as unknown as typeof window.matchMedia;
+    return listeners;
+}
+
+function restoreMatchMedia() {
+    window.matchMedia = originalMatchMedia;
+}

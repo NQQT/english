@@ -7,8 +7,9 @@
 // (store.session.gradeId), so all subscribed framework components and plugin
 // surfaces update synchronously.
 //
-// THEME: the active pill uses the distribution palette from theme.ts
-// (teal-100 fill / teal-200 ring / teal-700 text for this distribution).
+// THEME: the pills paint through the colour tokens in app.css (teal-100 fill /
+// teal-200 ring / teal-700 text in light mode, the dark-palette equivalents in
+// dark mode) — see framework/theme.ts.
 //
 // Responsive: below sm the pill rail wraps; from sm up it is a single
 // scrollable row (scrollbar hidden) so the header never grows a second line.
@@ -18,7 +19,6 @@ import React from 'react';
 import { styledComponent } from '@presource/react';
 import { GRADES } from './grades';
 import { useDashboardStore } from './store';
-import { THEME } from './theme';
 
 // Pill rail: xs wraps to extra rows; sm+ one row that scrolls.
 const GradeRow = styledComponent('div', {
@@ -34,15 +34,15 @@ const GradePill = styledComponent<{ active: boolean }>('button', {
     padding: '0 12px',
     height: '32px',
     flexShrink: 0,
-    border: ({ active }) => (active ? `1px solid ${THEME.activeRing}` : `1px solid ${THEME.hairline}`),
+    border: ({ active }) => (active ? '1px solid var(--active-ring)' : '1px solid var(--hairline)'),
     borderRadius: '999px',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: ({ active }) => (active ? 700 : 600),
     lineHeight: 1,
-    background: ({ active }) => (active ? THEME.activeFill : '#ffffff'),
-    color: ({ active }) => (active ? THEME.activePillText : '#475569'),
-    boxShadow: ({ active }) => (active ? `0 1px 3px ${THEME.primaryPillShadow}` : 'none'),
+    background: ({ active }) => (active ? 'var(--active-fill)' : 'var(--surface)'),
+    color: ({ active }) => (active ? 'var(--active-pill-text)' : 'var(--notice-fg)'),
+    boxShadow: ({ active }) => (active ? '0 1px 3px var(--primary-pill-shadow)' : 'none'),
     transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease'
 });
 

@@ -39,10 +39,12 @@
 import React from 'react';
 import { styledComponent } from '@presource/react';
 
-// Same dark-ink value as the pictogram palette (framework/visuals.tsx INK)
-// so tiles and pictures sit in one print-safe visual family. Strings (not
-// numbers) on purpose: styledComponent function values pass numbers through
-// styleStructure (→ rem), and print spacing wants explicit px
+// The tile ink is the LIGHT reference value of the pictogram palette
+// (framework/visuals.tsx INK) so tiles and pictures sit in one print-safe
+// visual family; at runtime both paint through the --tile-ink / --picto-ink
+// tokens (app.css), which @media print forces back to this dark-ink value.
+// Strings (not numbers) on purpose: styledComponent function values pass
+// numbers through styleStructure (→ rem), and print spacing wants explicit px
 // (see PrintableSheet.tsx header notes).
 export const TILE_INK = '#3f4c63';
 
@@ -52,7 +54,7 @@ export const TILE_INK = '#3f4c63';
 const Box = styledComponent<{ kind: 'letter' | 'word' }>('span', {
     display: 'inline-block',
     boxSizing: 'border-box',
-    border: `2px solid ${TILE_INK}`,
+    border: '2px solid var(--tile-ink)',
     borderRadius: ({ kind }) => (kind === 'letter' ? '4px' : '6px'),
     // A letter box fits one written letter; a word box fits a short word.
     width: ({ kind }) => (kind === 'letter' ? '24px' : '46px'),
@@ -60,7 +62,7 @@ const Box = styledComponent<{ kind: 'letter' | 'word' }>('span', {
     height: '0.85em',
     verticalAlign: 'baseline',
     margin: '0 5px',
-    backgroundColor: '#ffffff'
+    backgroundColor: 'var(--tile-bg)'
 });
 
 // A bordered answer slot the child writes into (write-box blank). `kind`
@@ -85,14 +87,16 @@ const TileList = styledComponent('span', {
 const WordTile = styledComponent('span', {
     display: 'inline-block',
     boxSizing: 'border-box',
-    border: `2px solid ${TILE_INK}`,
+    border: '2px solid var(--tile-ink)',
     borderRadius: '6px',
     padding: '1px 7px',
     margin: '0 5px',
     fontSize: '17px',
     lineHeight: 1.4,
     whiteSpace: 'nowrap',
-    backgroundColor: '#ffffff'
+    // Tile text inherits the paper ink (--paper-ink) from PrintableSheet's
+    // SheetRoot, so words stay legible on the themed paper.
+    backgroundColor: 'var(--tile-bg)'
 });
 
 export function WordTileRun({ words }: { words: string[] }) {

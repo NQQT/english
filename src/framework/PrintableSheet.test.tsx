@@ -12,6 +12,8 @@
 //   (c) the svg contributes ZERO text to the row, so the exact row-text pins
 //       in components/EnglishDashboard.test.tsx survive.
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
@@ -208,5 +210,69 @@ describe('tile scaffolds (write-box blanks + word-tile runs)', () => {
         const root = screen.getByTestId('sheet-root');
         expect(root.querySelectorAll('[data-testid="write-box"]').length).toBe(0);
         expect(root.querySelector('[data-testid="word-tiles"]')).toBeNull();
+    });
+});
+
+// R6 HEADER: the Name/Date fill-ins moved off their own left-aligned line
+// under the subtitle into a TOP-RIGHT meta stack beside the title (mirrors the
+// maths PrintableSheet HeaderRow/MetaStack). Structure is pinned exactly:
+// SheetRoot's first child is the header row, its first child the identity
+// stack (h1 + subtitle), its second the meta stack — so the meta can only
+// ever sit right of the heading, never below it.
+describe('header — Name/Date top-right (R6)', () => {
+    // Collapse the JSX whitespace text nodes around the blanks.
+    function flat(el: Element | null | undefined) {
+        return (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    }
+
+    it('Name/Date live in a meta stack that is the header row right column, Name before Date', () => {
+        mountSheet([legacyRow]);
+        const sheet = screen.getByTestId('sheet-root');
+
+        // Header row = first block of the sheet (before the rule + grid).
+        const header = sheet.children[0];
+        expect(header.tagName).toBe('DIV');
+        // Exactly two columns: identity left, meta right (space-between).
+        expect(header.children.length).toBe(2);
+        const [id, meta] = [header.children[0], header.children[1]];
+
+        // Left column: the title/subtitle stack, unchanged content.
+        expect(id.querySelector('h1')?.textContent).toBe('Test Sheet');
+        expect(id.querySelector('p')?.textContent).toBe('visual cue contract');
+
+        // Right column: Name first, then Date (the old MetaLine read order),
+        // each on its own line; the blanks render as empty fill-ins.
+        expect(meta.children.length).toBe(2);
+        expect(flat(meta.children[0])).toBe('Name:');
+        expect(flat(meta.children[1])).toBe('Date:');
+        expect(flat(meta)).toBe('Name: Date:');
+        // The big fill-in blanks (140px) are the meta's, not in the grid.
+        expect(meta.querySelectorAll('span').length).toBe(2);
+    });
+
+    it('the meta stack cannot overlap the title: it is a flex row with a gap and a shrinkable left column', () => {
+        // Structural no-overlap contract (jsdom resolves no CSS): the header
+        // is a flex row whose meta column is the SECOND flex child — with
+        // justify-content space-between + gap in the stylesheet, the two
+        // columns can only sit side by side. DOM order pins meta after id.
+        mountSheet([legacyRow]);
+        const header = screen.getByTestId('sheet-root').children[0];
+        const order = [...header.children].map((el) => el.tagName + ':' + (el.querySelector('h1') ? 'id' : 'meta'));
+        expect(order).toEqual(['DIV:id', 'DIV:meta']);
+    });
+
+    it('print colour safety: app.css forces the paper tokens to white/dark ink under @media print', () => {
+        // jsdom never applies @media print, so the guarantee is pinned at the
+        // stylesheet source: the print block re-declares BOTH theme roots with
+        // the original white-paper / dark-ink values.
+        // cwd = this package root under vitest (import.meta.url is a
+        // module-server URL in the test runtime, not a file: URL).
+        const css = readFileSync(join(process.cwd(), 'src', 'app.css'), 'utf8');
+        const printBlock = css.slice(css.indexOf('@media print'));
+        expect(printBlock).toContain(':root[data-theme=\'dark\']');
+        expect(printBlock).toContain('--paper-bg: #ffffff');
+        expect(printBlock).toContain('--paper-ink: #1a1a1a');
+        expect(printBlock).toContain('--tile-ink: #3f4c63');
+        expect(printBlock).toContain('--picto-ink: #3f4c63');
     });
 });

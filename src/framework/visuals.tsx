@@ -40,7 +40,12 @@ import { styledComponent } from '@presource/react';
 // worksheet-kit.tsx).
 const PictoSvg = styledComponent('svg', {
     flexShrink: 0,
-    verticalAlign: 'middle'
+    verticalAlign: 'middle',
+    // The ink colour of every cue flows from the paper token (see the palette
+    // note below): the svg strokes/fills use `currentColor`, so the pictogram
+    // stays legible on the themed worksheet paper (dark ink on white in light
+    // mode, light ink on the dark sheet in dark mode, print-forced dark ink).
+    color: 'var(--picto-ink)'
 }) as unknown as React.ForwardRefExoticComponent<
     React.SVGProps<SVGSVGElement> & {
         theme?: any;
@@ -59,9 +64,16 @@ const PictoRow = styledComponent('span', {
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 // Dark slate ink for outlines (reads well on screen AND in greyscale print);
-// pale tints for fills only (a tint prints as a light grey — shapes stay
+// pale tints for fills only (a tint prints as a light grey - shapes stay
 // distinguishable without colour).
-const INK = '#3f4c63';
+//
+// THEME-AWARE INK (R5): INK is `currentColor`, inherited from PictoSvg's
+// `color: var(--picto-ink)` token — #3f4c63 on light paper, a light slate on
+// the dark sheet, and forced back to #3f4c63 under @media print (app.css).
+// SVG presentation ATTRIBUTES cannot evaluate var() directly, so the cues
+// ride the CSS `color` cascade instead. SOFT/TINT are mid/pale values that
+// stay legible on both papers, so they remain literal.
+const INK = 'currentColor';
 const SOFT = '#93a3ba'; // secondary strokes (details, motion lines)
 const TINT = '#e9eef5'; // pale fill
 

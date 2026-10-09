@@ -8,6 +8,12 @@ import { App } from './App';
 // See app.css for the two jobs + the teal theme note.
 import './app.css';
 
+// R4 document title: "English Worksheets v{version}" — the version is the
+// compile-time __APP_VERSION__ global injected from package.json by
+// vite.config.ts (never hardcoded). The worksheet Print flow temporarily
+// retitles the tab to the sheet title and restores whatever is set here.
+document.title = `English Worksheets v${__APP_VERSION__}`;
+
 // Locate the root DOM node and create a React 18 root
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 

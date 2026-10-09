@@ -23,7 +23,7 @@
 // Layout (top-to-bottom, left-to-right) — unchanged from the original:
 //
 //   +------------------------------------------------------------------+
-//   | (Aa) English Sheets       [grade selector] [plugin header slot]  |
+//   | (Aa) English Worksheets v{ver}  [theme] [grade selector] [hdr]  |
 //   +----------------+-------------------------------------------------+
 //   |  PLUGIN LIST    |  toolbar card: [plugin toolbar slot]           |
 //   |  (left rail,    |  canvas: [plugin page slot]                    |
@@ -40,9 +40,11 @@
 // @media print (app.css) this shell (.app-chrome) is hidden and the active
 // plugin's hidden .print-doc tree is revealed.
 //
-// THEME: the English distribution's teal palette lives in framework/theme.ts
-// (the framework chrome reads it); the host shell tints below are the same
-// palette.
+// THEME (R5): every colour below is a CSS custom property token declared in
+// src/app.css (light + dark palettes); framework/ThemeSelector.tsx in the
+// header resolves the user's System/Light/Dark choice and flips the
+// data-theme attribute that swaps them. framework/theme.ts keeps the light
+// palette as the reference + the theme-mode helpers.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
@@ -54,12 +56,12 @@ import {
     usePluginLoader,
     usePluginRegistry,
     GradeSelector,
+    ThemeSelector,
     PluginHeaderHost,
     PluginSidebarHost,
     PluginToolbarHost,
     PluginPageHost,
-    PluginPrintHost,
-    THEME
+    PluginPrintHost
 } from '../framework';
 
 // ──────────────────────────────────────────────────────────────
@@ -69,15 +71,15 @@ import {
 // App root: a normal document box that grows with its content (see app.css).
 // The `app-root` class exists so the @media print rules in app.css can target
 // exactly this box (defensive un-clip on print).
-// Background is the English teal-tinted app canvas — the theme colour of
-// this distribution.
+// Background/text are the app tokens — teal-tinted sea glass in light mode,
+// deep slate in dark mode (R5).
 const AppRoot = styledComponent('div', {
     position: 'relative',
     width: '100%',
     height: 'auto',
     overflow: 'visible',
-    background: '#eef5f3',
-    color: '#0f172a'
+    background: 'var(--app-bg)',
+    color: 'var(--app-fg)'
 });
 
 // White top bar: brand mark + title on the left; the framework grade selector
@@ -92,8 +94,8 @@ const HeaderBar = styledComponent('div', {
     height: () => ({ xs: 'auto', sm: '64px' }),
     padding: () => ({ xs: '10px 20px', sm: '0 20px' }),
     boxSizing: 'border-box',
-    background: '#ffffff',
-    borderBottom: `1px solid ${THEME.hairline}`
+    background: 'var(--surface)',
+    borderBottom: '1px solid var(--hairline)'
 });
 
 // Brand mark: teal gradient chip holding the "Aa" glyph (the English twin of
@@ -117,7 +119,7 @@ const AppTitle = styledComponent('h1', {
     fontSize: '17px',
     fontWeight: 800,
     margin: 0,
-    color: '#0f172a',
+    color: 'var(--app-fg)',
     whiteSpace: 'nowrap',
     letterSpacing: '-0.01em'
 });
@@ -161,10 +163,10 @@ const ToolbarCard = styledComponent('div', {
     padding: '10px 14px',
     flexShrink: 0,
     boxSizing: 'border-box',
-    background: '#ffffff',
-    border: `1px solid ${THEME.hairline}`,
+    background: 'var(--surface)',
+    border: '1px solid var(--hairline)',
     borderRadius: '12px',
-    boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+    boxShadow: 'var(--shadow-card)'
 });
 
 // Left rail frame: the plugin list. From sm up it is position:sticky so it
@@ -176,7 +178,7 @@ const Sidebar = styledComponent('div', {
     gap: '6px',
     padding: '16px',
     boxSizing: 'border-box',
-    background: '#ffffff',
+    background: 'var(--surface)',
     overflowY: 'auto',
     flexDirection: () => ({ xs: 'row', sm: 'column' }),
     flexWrap: () => ({ xs: 'wrap', sm: 'nowrap' }),
@@ -188,8 +190,8 @@ const Sidebar = styledComponent('div', {
     zIndex: 10,
     flexShrink: 0,
     overflowX: () => ({ xs: 'auto', sm: 'hidden' }),
-    borderRight: () => ({ xs: 'none', sm: `1px solid ${THEME.hairline}` }),
-    borderBottom: () => ({ xs: `1px solid ${THEME.hairline}`, sm: 'none' })
+    borderRight: () => ({ xs: 'none', sm: '1px solid var(--hairline)' }),
+    borderBottom: () => ({ xs: '1px solid var(--hairline)', sm: 'none' })
 });
 
 const SidebarHeading = styledComponent('h2', {
@@ -200,7 +202,7 @@ const SidebarHeading = styledComponent('h2', {
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
-    color: '#94a3b8',
+    color: 'var(--faint)',
     margin: '0 0 6px 0',
     flexShrink: 0
 });
@@ -213,8 +215,8 @@ const Canvas = styledComponent('div', {
     width: '100%',
     boxSizing: 'border-box',
     borderRadius: '12px',
-    border: `1px solid ${THEME.hairline}`,
-    background: THEME.canvasBg
+    border: '1px solid var(--hairline)',
+    background: 'var(--canvas-bg)'
 });
 
 // Framework-level empty state: shown when NO plugin is registered at all (all
@@ -236,10 +238,10 @@ const HostEmptyCard = styledComponent('div', {
     alignItems: 'center',
     gap: '8px',
     padding: '32px 40px',
-    background: '#ffffff',
-    border: `1px solid ${THEME.hairline}`,
+    background: 'var(--surface)',
+    border: '1px solid var(--hairline)',
     borderRadius: '16px',
-    boxShadow: '0 4px 16px rgba(15,23,42,0.06)',
+    boxShadow: 'var(--shadow-card-lg)',
     textAlign: 'center'
 });
 
@@ -247,7 +249,7 @@ const HostEmptyCard = styledComponent('div', {
 // inline style).
 const HostEmptyIcon = styledComponent('div', {
     fontSize: '24px',
-    color: THEME.primary
+    color: 'var(--primary)'
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -293,8 +295,15 @@ function EnglishDashboardBody() {
             <div className="app-chrome">
                 <HeaderBar>
                     <BrandMark aria-hidden="true">Aa</BrandMark>
-                    <AppTitle>English Sheets</AppTitle>
+                    {/* R4 brand: "English Worksheets v{version}" — the version
+                        is the compile-time __APP_VERSION__ global injected from
+                        this package's package.json (vite.config.ts define),
+                        never a hardcoded string. */}
+                    <AppTitle>English Worksheets v{__APP_VERSION__}</AppTitle>
                     <HeaderSpacer />
+                    {/* R5 theme control: System (default) / Light / Dark,
+                        persisted, applied via the data-theme token flip. */}
+                    <ThemeSelector />
                     {/* Framework grade selector: shared dashboard configuration
                         that re-gates every plugin's rail entry and re-caps
                         every plugin's generator. */}
@@ -374,10 +383,10 @@ function EnglishDashboardBody() {
 // card.
 const SidebarNoticeCard = styledComponent('div', {
     padding: '14px',
-    background: THEME.railIdleBg,
-    border: `1px solid ${THEME.hairline}`,
+    background: 'var(--rail-idle-bg)',
+    border: '1px solid var(--hairline)',
     borderRadius: '12px',
-    color: '#475569',
+    color: 'var(--notice-fg)',
     fontSize: '14px',
     lineHeight: 1.5,
     width: () => ({ xs: '100%', sm: 'auto' })
@@ -401,7 +410,7 @@ const SidebarLoading = styledComponent('div', {
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
-    color: '#94a3b8',
+    color: 'var(--faint)',
     padding: '6px 2px',
     flexShrink: 0,
     width: () => ({ xs: '100%', sm: 'auto' })

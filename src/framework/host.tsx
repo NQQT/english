@@ -28,7 +28,6 @@ import { styledComponent } from '@presource/react';
 import { useDashboardStore, selectEntry } from './store';
 import { getGradeConfig } from './grades';
 import { buildContext } from './registry';
-import { THEME } from './theme';
 import type { DashboardPlugin, PluginSidebarEntry } from './types';
 
 // Shared props for all hosts: the ordered plugin list from the registry.
@@ -55,7 +54,7 @@ export function PluginHeaderHost({ plugins }: PluginHostProps) {
 
 // List button chrome shared by ALL plugins — the visual consistency layer.
 // (Mirrors the original type-rail button: icon chip + label, teal-tinted
-// fill when active — the English theme palette from theme.ts.)
+// fill when active — the English theme tokens from app.css, theme-aware.)
 const ListButton = styledComponent<{ active: boolean }>('button', {
     display: 'flex',
     alignItems: 'center',
@@ -64,15 +63,15 @@ const ListButton = styledComponent<{ active: boolean }>('button', {
     flexShrink: 0,
     // xs: auto-width chip that can share a wrapped row; sm+ full-width row.
     width: () => ({ xs: 'auto', sm: '100%' }),
-    border: ({ active }) => (active ? `1px solid ${THEME.activeRing}` : '1px solid transparent'),
+    border: ({ active }) => (active ? '1px solid var(--active-ring)' : '1px solid transparent'),
     borderRadius: '10px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: ({ active }) => (active ? 600 : 500),
     textAlign: 'left',
     whiteSpace: 'nowrap',
-    background: ({ active }) => (active ? THEME.activeFill : THEME.railIdleBg),
-    color: ({ active }) => (active ? THEME.activeRailText : '#334155'),
+    background: ({ active }) => (active ? 'var(--active-fill)' : 'var(--rail-idle-bg)'),
+    color: ({ active }) => (active ? 'var(--active-rail-text)' : 'var(--control-fg)'),
     transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease'
 });
 
@@ -86,8 +85,8 @@ const ListIcon = styledComponent<{ active: boolean }>('span', {
     borderRadius: '9px',
     fontSize: '15px',
     userSelect: 'none',
-    background: ({ active }) => (active ? THEME.primary : THEME.activeFill),
-    color: ({ active }) => (active ? '#ffffff' : THEME.primary)
+    background: ({ active }) => (active ? 'var(--primary)' : 'var(--active-fill)'),
+    color: ({ active }) => (active ? '#ffffff' : 'var(--primary)')
 });
 
 const ListLabel = styledComponent('span', {
@@ -113,10 +112,10 @@ function PluginExtraChrome({ plugin }: { plugin: DashboardPlugin }) {
 // meanwhile shows the worksheet kit's generic empty state.
 const NoticeCard = styledComponent('div', {
     padding: '14px',
-    background: THEME.noticeBg,
-    border: `1px solid ${THEME.hairline}`,
+    background: 'var(--rail-idle-bg)',
+    border: '1px solid var(--hairline)',
     borderRadius: '12px',
-    color: '#475569',
+    color: 'var(--notice-fg)',
     fontSize: '14px',
     lineHeight: 1.5,
     width: () => ({ xs: '100%', sm: 'auto' })

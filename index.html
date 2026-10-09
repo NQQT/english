@@ -3,7 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>English Sheets</title>
+        <!-- Static shell title; main.tsx refines it to
+             "English Worksheets v{version}" (version comes from package.json
+             at compile time via __APP_VERSION__ — never hardcoded here). -->
+        <title>English Worksheets</title>
     </head>
     <body>
         <div id="root"></div>
