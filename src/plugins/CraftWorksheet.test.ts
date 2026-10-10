@@ -40,7 +40,7 @@ describe('craft plugin — declarative spec', () => {
         expect(craftSpec.id).toBe('craft');
         expect(craftSpec.label).toBe('Crafting Sentences');
         expect(craftSpec.icon).toBe('⤴');
-        expect(craftSpec.perPage).toBe(5);
+        expect(craftSpec.perPage).toBe(4);
         expect(craftSpec.singleColumn).toBe(true);
     });
 
@@ -68,16 +68,16 @@ describe('craft — Year 3', () => {
             {"prompt":"Join the two sentences with \"and\" to make one sentence:\n\"Dad grilled the sausages.\"  \"mum set the table.\"\n" + RULE,"answer":"Dad grilled the sausages and mum set the table.","id":1,"type":"craft"},
             {"prompt":"Which detail best tells HOW? \"The bus rumbled on.\" (slowly / yesterday / three)","answer":"slowly","id":2,"type":"craft"},
             {"prompt":"Which detail best tells WHERE? \"We found the lost kite.\" (quickly / then / in the tree)","answer":"in the tree","id":3,"type":"craft"},
-            {"prompt":"Add the detail \"loudly\" to the sentence. Write your new sentence:\n\"The kookaburra laughed\"\n" + RULE,"answer":"Example: The kookaburra laughed loudly. (any sensible placement of \"loudly\" is correct)","id":4,"type":"craft"},
-            {"prompt":"Join the two sentences with \"or\" to make one sentence:\n\"We can ride bikes.\"  \"we can walk.\"\n" + RULE,"answer":"We can ride bikes or we can walk.","id":5,"type":"craft"}
+            {"prompt":"Add the detail \"loudly\" to the sentence. Write your new sentence:\n\"The kookaburra laughed\"\n" + RULE,"answer":"Example: The kookaburra laughed loudly. (any sensible placement of \"loudly\" is correct)","id":4,"type":"craft"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
+        // perPage 4 (T15): page 2 starts at stream row 5 ("or" join).
         expect(generateDocument(craftSpec, g3, seedFrom([3, 'craft', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Join the two sentences with \"or\" to make one sentence:\n\"We can ride bikes.\"  \"we can walk.\"\n" + RULE,"answer":"We can ride bikes or we can walk.","id":5,"type":"craft"},
             {"prompt":"Write a sentence using \"and\" to add two actions.\n" + RULE,"answer":"Example: The wind rose and the kite soared. (any sensible sentence meeting the task is correct)","id":6,"type":"craft"},
-            {"prompt":"Write a sentence that tells WHERE you saw a bird.\n" + RULE,"answer":"Example: A rosella perched on the school fence. (any sensible sentence meeting the task is correct)","id":7,"type":"craft"},
-            {"prompt":"Join the two sentences with \"when\" to make one sentence:\n\"Grandma waved.\"  \"the bus pulled away.\"\n" + RULE,"answer":"Grandma waved when the bus pulled away.","id":8,"type":"craft"}
+            {"prompt":"Write a sentence that tells WHERE you saw a bird.\n" + RULE,"answer":"Example: A rosella perched on the school fence. (any sensible sentence meeting the task is correct)","id":7,"type":"craft"}
         ]);
     });
 });
@@ -88,16 +88,16 @@ describe('craft — Year 6', () => {
             {"prompt":"Which sentence is the most FORMAL? (The council really messed up. / The council made an error. / The council stuff-ups were bad.)","answer":"The council made an error.","id":1,"type":"craft"},
             {"prompt":"Which sentence uses a comma correctly after a fronted clause? (After the rain stopped we, set off. / After the rain stopped, we set off. / After the rain, stopped we set off.)","answer":"After the rain stopped, we set off.","id":2,"type":"craft"},
             {"prompt":"Write a complex sentence with an EMBEDDED clause (who/which/that) about a person or place you know.\n" + RULE,"answer":"Example: The librarian, who remembers every student's name, recommended the book. (any sensible sentence meeting the task is correct)","id":3,"type":"craft"},
-            {"prompt":"Which sentence shows BIAS? (Our team played the best game ever. / Both teams scored early. / The match finished 10 to 8.)","answer":"Our team played the best game ever.","id":4,"type":"craft"},
-            {"prompt":"Remove the BIAS:\n\"Nobody in their right mind supports the new rule.\"\n" + RULE,"answer":"Example: Some community members oppose the new rule. (any sensible neutral wording is correct)","id":5,"type":"craft"}
+            {"prompt":"Which sentence shows BIAS? (Our team played the best game ever. / Both teams scored early. / The match finished 10 to 8.)","answer":"Our team played the best game ever.","id":4,"type":"craft"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
+        // perPage 4 (T15): page 2 starts at stream row 5 (remove-the-bias).
         expect(generateDocument(craftSpec, g6, seedFrom([6, 'craft', 0]), 2).pages[1].slice(0, 3)).toEqual([
+            {"prompt":"Remove the BIAS:\n\"Nobody in their right mind supports the new rule.\"\n" + RULE,"answer":"Example: Some community members oppose the new rule. (any sensible neutral wording is correct)","id":5,"type":"craft"},
             {"prompt":"Add the detail \"the sign had faded in the sun\" to the sentence. Write your new sentence:\n\"The sign warned swimmers.\"\n" + RULE,"answer":"Example: The sign, which had faded in the sun, warned swimmers. (any sensible placement of \"the sign had faded in the sun\" is correct)","id":6,"type":"craft"},
-            {"prompt":"Rewrite PRECISELY (replace vague words):\n\"A lot of people reckoned the show was pretty good.\"\n" + RULE,"answer":"Example: Many reviewers considered the show a success. (any sensible precise wording is correct)","id":7,"type":"craft"},
-            {"prompt":"Add the detail \"the students had cleaned the creek\" to the sentence. Write your new sentence:\n\"A volunteer thanked the students.\"\n" + RULE,"answer":"Example: A volunteer thanked the students, who had cleaned the creek. (any sensible placement of \"the students had cleaned the creek\" is correct)","id":8,"type":"craft"}
+            {"prompt":"Rewrite PRECISELY (replace vague words):\n\"A lot of people reckoned the show was pretty good.\"\n" + RULE,"answer":"Example: Many reviewers considered the show a success. (any sensible precise wording is correct)","id":7,"type":"craft"}
         ]);
     });
 
@@ -120,7 +120,7 @@ describe('craft — generator invariants', () => {
             expect(new Set(problems.map((p) => p.prompt)).size).toBe(expected);
         });
 
-        it(`year ${grade.id}: the 6-page window (36 rows) is fully unique`, () => {
+        it(`year ${grade.id}: the 6-page window (24 rows) is fully unique`, () => {
             const six = craftSpec.generate(createRng(seedFrom([grade.id, craftSpec.id, 0])), grade.caps, craftSpec.perPage * 6);
             expect(new Set(six.map((p) => p.prompt)).size).toBe(craftSpec.perPage * 6);
         });

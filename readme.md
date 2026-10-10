@@ -56,7 +56,7 @@ Four substantive families carry the upper-primary progression, each routed by an
 | Writing Projects (plan scaffold + full page of ruled space) | `src/plugins/WritingWorksheet.ts` | Y3 recount/informative/persuasive paragraphs → Y4 text stages + tension → Y5 purpose-specific structures, dialogue, viewpoint → Y6 review, letter, technical and adapted structures |
 | Editing & Proofreading | `src/plugins/EditingWorksheet.ts` | Y3 capitals + end punctuation → Y4 speech marks/confused words → Y5 required commas/apostrophes + subject–verb agreement (+ formal-register rewrites) → Y6 precision, bias and register |
 
-Crafting and Editing print **5 rows per A4 page** (T12: with the teacher key on, 6 rows exceeded the printable grid height on Y4–Y6 pages and the bottom answer lines would clip; an analytical capacity test pins every family/grade worst keyed page inside the 915px budget).
+Crafting prints **4 rows per A4 page** and Editing prints **5** (T12: with the teacher key on, 6 rows exceeded the printable grid height on Y4–Y6 pages and the bottom answer lines would clip; T15: a corrected analytical capacity model — per-line wrapping honouring forced newlines, plus inter-row gaps and key margins — showed 5 keyed Craft rows still clipped under the conservative stress metric, so Craft drops to 4 while Editing's worst page stays well inside the 915px budget at 5).
 
 The existing sheets also progress by level: **Conjunctions** adds subordinate-conjunction blanks (Y4+), subordinate-clause joins (Y5+) and embedded relative clauses (Y6); **Prefixes & Suffixes** adds Greek/Latin root work (Y5+, word-spotting at Y6). Year 3 (and Year 4 for affixes) streams are byte-identical to before the gating was added.
 
