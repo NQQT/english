@@ -28,6 +28,11 @@ export { compoundSpec } from './CompoundWorksheet';
 export { speechSpec } from './SpeechWorksheet';
 export { homographSpec } from './HomographWorksheet';
 export { pronounSpec } from './PronounWorksheet';
+// T5: the four new Y3–6 literacy families.
+export { comprehensionSpec } from './ComprehensionWorksheet';
+export { craftSpec } from './CraftWorksheet';
+export { writingSpec } from './WritingWorksheet';
+export { editingSpec } from './EditingWorksheet';
 export { figurativeSpec } from './FigurativeWorksheet';
 export { idiomSpec } from './IdiomWorksheet';
 export { advpunctSpec } from './AdvancedPunctuationWorksheet';

@@ -189,7 +189,7 @@ describe('plugin state isolation — slices are namespaced and independent', () 
         const store = probeStore!;
 
         // The framework session starts with the dashboard defaults.
-        expect(store.session).toEqual({ gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0 });
+        expect(store.session).toEqual({ gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0, answerKey: false });
 
         // Session mutations never touch plugin slices...
         store.session.gradeId = 2;
@@ -199,7 +199,7 @@ describe('plugin state isolation — slices are namespaced and independent', () 
         // ...and plugin slices never touch the session.
         ensurePluginSlice(store, 'alpha', { counter: 0 });
         store.plugins.alpha.counter = 7;
-        expect(store.session).toEqual({ gradeId: 2, pageCount: 3, zoom: 'fit', refresh: 0 });
+        expect(store.session).toEqual({ gradeId: 2, pageCount: 3, zoom: 'fit', refresh: 0, answerKey: false });
     });
 
     it('store helpers namespace slices by plugin id and delete cleanly', () => {
@@ -305,6 +305,12 @@ const EXPECTED_WORKSHEET_IDS = [
     'speech',
     'homograph',
     'pronoun',
+    // T5: the four new Y3–6 literacy families (registered after the
+    // mid-primary set, before the Y5–6 stylistic senior set).
+    'comprehension',
+    'craft',
+    'writing',
+    'editing',
     'figurative',
     'idiom',
     'advpunct',
@@ -338,7 +344,7 @@ describe('the real worksheet plugins — register through the same pipeline', ()
         mountHost(WORKSHEETS);
 
         // The framework session starts on Year 1, 1 page, fit zoom.
-        expect(probeStore!.session).toEqual({ gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0 });
+        expect(probeStore!.session).toEqual({ gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0, answerKey: false });
 
         // Default selection: the first plugin (Sight & Real Words) — its page
         // renders the Year 1 sight preview (pinned first row, see
@@ -381,32 +387,37 @@ describe('the real worksheet plugins — register through the same pipeline', ()
         // Grade 7 is not implemented: every plugin's gate is closed, so the
         // rail renders the "coming soon" notice instead of entries — and no
         // buttons at all. (Years 3..6 ARE implemented — the staged upper-
-        // primary catalogue: 25 types on Y3, 27 on Y4, 30 on Y5/Y6.)
+        // primary catalogue: 29 types on Y3, 31 on Y4, 34 on Y5/Y6.)
         act(() => {
             probeStore!.session.gradeId = 3;
         });
-        // Year 3 opens the 25-type introductory catalogue (early-reading +
-        // Y2 + the intro Y3 grammar set; advanced Y4/Y5 types are NOT yet
-        // offered; tracing stays Prep-only).
-        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(25);
+        // Year 3 opens the 29-type introductory catalogue (early-reading +
+        // Y2 + the intro Y3 grammar set + the T5 literacy families; advanced
+        // Y4/Y5 types are NOT yet offered; tracing stays Prep-only).
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(29);
         expect(screen.getByRole('button', { name: 'Conjunctions' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Pronouns' })).toBeDefined();
+        // T5: the new families are on the rail from Year 3 up.
+        expect(screen.getByRole('button', { name: 'Reading Comprehension' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Crafting Sentences' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Writing Projects' })).toBeDefined();
+        expect(screen.getByRole('button', { name: 'Editing & Proofreading' })).toBeDefined();
         // The advanced types are staged: not on Y3's rail...
         expect(screen.queryByRole('button', { name: 'Figurative Language' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Idioms' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Letter Tracing' })).toBeNull();
-        // ...Year 4 adds the first advanced vocabulary types (27)...
+        // ...Year 4 adds the first advanced vocabulary types (31)...
         act(() => {
             probeStore!.session.gradeId = 4;
         });
-        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(27);
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(31);
         expect(screen.getByRole('button', { name: 'Figurative Language' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Homographs' })).toBeDefined();
-        // ...and Year 5 completes the 30-type catalogue.
+        // ...and Year 5 completes the 34-type catalogue.
         act(() => {
             probeStore!.session.gradeId = 5;
         });
-        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(30);
+        expect(screen.getByTestId('rail-slot').querySelectorAll('button').length).toBe(34);
         expect(screen.getByRole('button', { name: 'Idioms' })).toBeDefined();
         expect(screen.getByRole('button', { name: 'Verb Agreement' })).toBeDefined();
         act(() => {

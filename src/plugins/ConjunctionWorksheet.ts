@@ -193,18 +193,64 @@ const WHEN_IF_SENTENCES: readonly [string, string][] = [
     ['Turn off the lights __ you leave the room.', 'before']
 ] as const;
 
-// Conjunctions — FIVE procedural kinds:
+// ── T5 LEVEL-GATED BANKS (explicit caps.level branching — ACARA Y4 LA06
+//    complex clauses, Y5 LA05 reason/purpose/condition/concession, Y6 LA05
+//    embedded clauses). Year 3 never draws these, so its stream is unchanged.
+// SUB_FILL: subordinate-conjunction blanks (Year 4+). Each line stores its
+// OWN two distractors so exactly ONE option fits (the logic is curated, not
+// inferred): although/unless/so that/while/as soon as/even though/before.
+const SUB_FILL: readonly [string, string, string, string][] = [
+    ['We still finished the race __ we came last.', 'although', 'unless', 'so that'],
+    ['__ you wear a helmet, you cannot ride your bike.', 'Unless', 'Although', 'While'],
+    ['__ the kettle boils, we can fill the flasks.', 'As soon as', 'Although', 'Unless'],
+    ['Dad checked the map __ we set off.', 'before', 'although', 'unless'],
+    ['__ Grandma was unwell, we visited her every day.', 'While', 'Unless', 'So that'],
+    ['We practised the song twice more __ the finale was perfect.', 'so that', 'although', 'unless'],
+    ['__ the wind dropped, the sails went slack.', 'As soon as', 'Although', 'Unless'],
+    ['He watered the garden __ it was still raining.', 'Even though', 'so that', 'unless']
+] as const;
+// SUB_JOIN (Year 5+): join a main clause with a subordinate clause using a
+// NAMED conjunction — the joined model answer is exactly determined.
+const SUB_JOIN: readonly [string, string, string, string][] = [
+    ['The match went ahead', 'it was raining', 'although', 'The match went ahead although it was raining.'],
+    ['We left early', 'we would not miss the ferry', 'so that', 'We left early so that we would not miss the ferry.'],
+    ['You may use the tablet', 'you have finished your homework', 'as soon as', 'You may use the tablet as soon as you have finished your homework.'],
+    ['The lights stayed on', 'everyone was asleep', 'although', 'The lights stayed on although everyone was asleep.'],
+    ['We will need torches', 'the power goes out', 'if', 'We will need torches if the power goes out.'],
+    ['She saved every dollar', 'she could buy the bike', 'so that', 'She saved every dollar so that she could buy the bike.']
+] as const;
+// EMBED (Year 6 only): fold a second sentence into the first as an embedded
+// relative clause (AC9E6LA05) — curated merged answers, commas included.
+const EMBED: readonly [string, string, string][] = [
+    ['The telegraph station still stands.', 'It was built in 1872.', 'The telegraph station, which was built in 1872, still stands.'],
+    ['My cousin fixed the fence.', 'The fence had broken in the storm.', 'My cousin fixed the fence, which had broken in the storm.'],
+    ['The volunteer thanked the students.', 'The students had planted the garden.', 'The volunteer thanked the students, who had planted the garden.'],
+    ['We found the map.', 'The map was folded in the drawer.', 'We found the map, which was folded in the drawer.'],
+    ['The old coach retired.', 'The coach had trained the club for twenty years.', 'The old coach, who had trained the club for twenty years, retired.'],
+    ['A kookaburra perched on the roof.', 'The roof was made of tin.', 'A kookaburra perched on the roof, which was made of tin.']
+] as const;
+
+// Conjunctions — FIVE procedural kinds (Year 3) extended by THREE
+// level-gated kinds (T5):
 //   0. fill the blank with the fitting when/if/before (3 options, one correct)
 //   1. MC "which conjunction fits best?" over a curated clause pair
 //   2. written answer: "join these clauses with __"
 //   3. EDIT: "Join the two sentences with '<conj>'." (deterministic answer)
 //   4. open-ended COMPOSE: "Write a sentence using '<conj>'." (the key gives
 //      one example and accepts any sensible sentence)
+//   5. (caps.level >= 4) SUB FILL: subordinate-conjunction blank — the
+//      distractors are curated per line so exactly ONE option fits
+//   6. (caps.level >= 5) SUB JOIN: join main + subordinate clause with a
+//      named conjunction (deterministic model answer)
+//   7. (caps.level === 6) EMBED: fold two sentences into one with an
+//      embedded relative clause (who/which), commas in the model answer
 //
 // NON-REPEATING SAMPLING: every question passes through sampleUnique keyed on
 // the printed prompt; pair x prompt-form x MC-option-order keeps the space
-// past 100 pages.
-function generateConjunction(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+// past 100 pages. The level-gated decks are created ONLY for levels that
+// draw them, so the Year-3 rng stream (and every Year-3 pin) is byte-identical
+// to the pre-T5 generator.
+function generateConjunction(rng: Rng, caps: Caps, count: number): RawProblem[] {
     // One flat deck of [left, right, conjunction] triples over the curated
     // pairs, so coverage travels the whole bank before any repeat.
     const pairDeck = createLocalDeck(rng, [
@@ -215,15 +261,43 @@ function generateConjunction(rng: Rng, _caps: Caps, count: number): RawProblem[]
     ]);
     const whenDeck = createLocalDeck(rng, WHEN_IF_SENTENCES);
     const orDeck = createLocalDeck(rng, OR_PAIRS);
+    // T5: explicit level branching (caps.level), never wordTier inference.
+    // Decks exist only where their kinds can be drawn.
+    const maxKind = caps.level >= 6 ? 7 : caps.level >= 5 ? 6 : caps.level >= 4 ? 5 : 4;
+    const subFillDeck = caps.level >= 4 ? createLocalDeck(rng, SUB_FILL) : null;
+    const subJoinDeck = caps.level >= 5 ? createLocalDeck(rng, SUB_JOIN) : null;
+    const embedDeck = caps.level >= 6 ? createLocalDeck(rng, EMBED) : null;
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 4);
+            const kind = rng.int(0, maxKind);
             if (kind === 0) {
                 // When/if/before blank: pick the fitting word (3 options).
                 const [sentence, answer] = whenDeck.take();
                 const options = shuffleLocal(rng, [answer, 'but', 'or']);
                 return { prompt: `${sentence} (${options.join(', ')})`, answer };
+            }
+            if (kind === 5 && subFillDeck) {
+                // SUB FILL (Y4+): subordinate conjunction, curated distractors.
+                const [sentence, answer, d1, d2] = subFillDeck.take();
+                const options = shuffleLocal(rng, [answer, d1, d2]);
+                return { prompt: `${sentence} (${options.join(', ')})`, answer };
+            }
+            if (kind === 6 && subJoinDeck) {
+                // SUB JOIN (Y5+): deterministic complex-sentence model.
+                const [main, sub, conj, joined] = subJoinDeck.take();
+                return {
+                    prompt: `Join into one complex sentence with "${conj}": "${main}." "${sub}."`,
+                    answer: joined
+                };
+            }
+            if (kind === 7 && embedDeck) {
+                // EMBED (Y6): embedded relative clause (AC9E6LA05).
+                const [sentence, extra, merged] = embedDeck.take();
+                return {
+                    prompt: `Combine into ONE sentence with an embedded clause (who/which): "${sentence}" + "${extra}"`,
+                    answer: merged
+                };
             }
             if (kind === 4) {
                 // OPEN-ENDED compose: the example is a curated pair for that
@@ -308,7 +382,16 @@ export const conjunctionSpec: WorksheetSpec = {
     perPage: 6,
     singleColumn: true,
     offered: (grade: GradeConfig) => grade.available.includes('conjunction'),
-    scope: () => 'and, but, or, so, because',
+    // T5: the scope line exposes the level-gated progression (the generator
+    // branches on the same caps.level knob).
+    scope: (grade: GradeConfig) =>
+        grade.caps.level >= 6
+            ? 'and, but, or, so, because + subordinate + embedded clauses'
+            : grade.caps.level >= 5
+                ? 'and, but, or, so, because + subordinate clauses'
+                : grade.caps.level >= 4
+                    ? 'and, but, or, so, because + although, unless, so that'
+                    : 'and, but, or, so, because',
     generate: generateConjunction
 };
 

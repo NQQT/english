@@ -15,6 +15,7 @@ import {
     pluralSpec, similarSpec, wordgapSpec, spellingSpec, syllableSpec,
     grammarSpec, tenseSpec, conjunctionSpec, apostropheSpec, commaSpec,
     affixSpec, compoundSpec, speechSpec, homographSpec, pronounSpec,
+    comprehensionSpec, craftSpec, writingSpec, editingSpec,
     figurativeSpec, idiomSpec, advpunctSpec, agreementSpec, wordTraceSpec
 } from '../src/plugins/pins';
 
@@ -24,6 +25,7 @@ const SPECS = [
     pluralSpec, similarSpec, wordgapSpec, spellingSpec, syllableSpec,
     grammarSpec, tenseSpec, conjunctionSpec, apostropheSpec, commaSpec,
     affixSpec, compoundSpec, speechSpec, homographSpec, pronounSpec,
+    comprehensionSpec, craftSpec, writingSpec, editingSpec,
     figurativeSpec, idiomSpec, advpunctSpec, agreementSpec, wordTraceSpec
 ];
 

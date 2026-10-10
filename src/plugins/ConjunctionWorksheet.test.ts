@@ -53,9 +53,13 @@ describe('conjunction plugin — declarative spec', () => {
         expect(conjunctionSpec.singleColumn).toBe(true);
     });
 
-    it('describes its scope (and, but, or, so, because)', () => {
+    it('describes its scope per level (coordinating at Y3, gated additions above)', () => {
+        // T5: scope mirrors the caps.level gating in the generator; Year 3
+        // keeps the original coordinating-conjunction line.
         expect(conjunctionSpec.scope(g3)).toBe('and, but, or, so, because');
-        expect(conjunctionSpec.scope(g6)).toBe('and, but, or, so, because');
+        expect(conjunctionSpec.scope(getGradeConfig(4))).toBe('and, but, or, so, because + although, unless, so that');
+        expect(conjunctionSpec.scope(getGradeConfig(5))).toBe('and, but, or, so, because + subordinate clauses');
+        expect(conjunctionSpec.scope(g6)).toBe('and, but, or, so, because + subordinate + embedded clauses');
     });
 
     it('is gated by the grade catalogue (Years 3..6 only)', () => {
@@ -95,22 +99,25 @@ describe('conjunction — Year 3', () => {
 });
 
 describe('conjunction — Year 6', () => {
+    // T5 re-pin: the level-gated kinds (SUB_FILL/SUB_JOIN/EMBED) join the
+    // Year-6 draw, so the dealt stream changed. Rows eyeballed: the embedded
+    // clause answer is exactly the two source sentences merged with who/which.
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g6)).toEqual([
-            {"prompt":"Join the two sentences with \"and\": \"The bell rang.\" \"The students sang a song.\"","answer":"The bell rang and the students sang a song.","id":1,"type":"conjunction"},
-            {"prompt":"Which conjunction fits best: Sam told a funny joke __ the whole table laughed (so, and, but)","answer":"so","id":2,"type":"conjunction"},
-            {"prompt":"Join with the best conjunction: The garden needs water __ it has not rained for weeks","answer":"because","id":3,"type":"conjunction"},
-            {"prompt":"Which conjunction fits best: The storm was coming __ the kids ran inside (because, so, but)","answer":"so","id":4,"type":"conjunction"},
-            {"prompt":"Which conjunction fits best: She drank a big glass of water __ she was very thirsty (but, and, because)","answer":"because","id":5,"type":"conjunction"},
-            {"prompt":"Which conjunction fits best: I stayed up late __ I still finished my project (so, but, and)","answer":"but","id":6,"type":"conjunction"}
+            {"prompt":"Join with the best conjunction: The bell rang __ the students sang a song","answer":"and","id":1,"type":"conjunction"},
+            {"prompt":"Write a sentence that uses the joining word \"but\".","answer":"Example: She forgot her glasses but the teacher helped her read. (any sensible sentence using \"but\" is correct)","id":2,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: Sam told a funny joke __ the whole table laughed","answer":"so","id":3,"type":"conjunction"},
+            {"prompt":"Combine into ONE sentence with an embedded clause (who/which): \"My cousin fixed the fence.\" + \"The fence had broken in the storm.\"","answer":"My cousin fixed the fence, which had broken in the storm.","id":4,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: The garden needs water __ it has not rained for weeks","answer":"because","id":5,"type":"conjunction"},
+            {"prompt":"We always visit Nanna __ Sunday. (but, when, or)","answer":"when","id":6,"type":"conjunction"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(conjunctionSpec, g6, seedFrom([6, 'conjunction', 0]), 2).pages[1].slice(0, 3)).toEqual([
-            {"prompt":"Write a sentence that uses the joining word \"but\".","answer":"Example: We packed our bags but we missed the bus. (any sensible sentence using \"but\" is correct)","id":7,"type":"conjunction"},
-            {"prompt":"Join the two sentences with \"and\": \"Mia finished her book.\" \"Jack finished his.\"","answer":"Mia finished her book and Jack finished his.","id":8,"type":"conjunction"},
-            {"prompt":"We always visit Nanna __ Sunday. (when, or, but)","answer":"when","id":9,"type":"conjunction"}
+            {"prompt":"Write a sentence that uses the joining word \"and\".","answer":"Example: She likes reading and her brother likes drawing. (any sensible sentence using \"and\" is correct)","id":7,"type":"conjunction"},
+            {"prompt":"Join with the best conjunction: The storm was coming __ the kids ran inside","answer":"so","id":8,"type":"conjunction"},
+            {"prompt":"Which conjunction fits best: She drank a big glass of water __ she was very thirsty (because, but, so)","answer":"because","id":9,"type":"conjunction"}
         ]);
     });
 

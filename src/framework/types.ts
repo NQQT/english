@@ -100,6 +100,12 @@ export type DashboardSession = {
     zoom: ZoomMode;
     // Bump = "Randomize" → new seed, same page count.
     refresh: number;
+    // T5 TEACHER ANSWER KEY: when true, every sheet (preview AND print)
+    // prints the model answer / marking guidance under each question.
+    // Defaults to FALSE — the student print stays answer-free by default,
+    // and open-ended answers print their success criteria instead of a
+    // single false "correct" answer.
+    answerKey?: boolean;
 };
 
 // ── The plugin definition itself ─────────────────────────────────────────────
@@ -143,8 +149,17 @@ export type RawProblem = {
     // The question text as printed. Blanks are written as "__". For tracing
     // sheets (letterTrace/wordTrace/numberTrace) this is the instruction line
     // (not printed — the sheet prints the trace target instead).
+    // T5: the prompt may contain NEWLINES ('\n') — the printed row renders
+    // with white-space: pre-wrap (PrintableSheet ProblemText), so prose
+    // families (comprehension passages, writing tasks) print multi-line
+    // blocks. A run of "__" tokens on its own line prints as a ruled
+    // WRITING LINE (the fill-in blanks sit on one baseline), which is how
+    // the upper-primary families give students real composition space.
     prompt: string;
-    // The model answer. May be several values separated by commas.
+    // The model answer. May be several values separated by commas. T5: for
+    // open-ended tasks the answer is MARKING GUIDANCE — an example plus an
+    // "(any sensible ... is correct)" acceptance note; it only reaches the
+    // paper when the teacher answer key is on (session.answerKey).
     answer: string;
     // Optional learning VISUAL: a pictogram-registry KEY (framework/visuals.tsx,
     // e.g. 'apple', 'fire', 'action') the sheet prints as a small picture next

@@ -39,7 +39,10 @@ const PREFIX_ITEMS: [string, string, string, string][] = [
     ['re', 'fill', 'refill', 'again'],
     ['re', 'play', 'replay', 'again'],
     ['dis', 'agree', 'disagree', 'not'],
-    ['dis', 'appear', 'disappear', 'opposite'],
+    // T9 narrow correction: the dis-/disappear gloss was 'opposite'; the
+    // prefix means 'not' here (matches the bank's other dis- items). Text
+    // only — the rng stream and every dealt row are unchanged.
+    ['dis', 'appear', 'disappear', 'not'],
     ['dis', 'honest', 'dishonest', 'not'],
     ['pre', 'view', 'preview', 'before'],
     ['pre', 'heat', 'preheat', 'before'],
@@ -134,7 +137,28 @@ const AFFIX_SENTENCES: [string, string, string[]][] = [
     ['silently', 'The cat crept __ past the sleeping dog.', ['rudely', 'sweetly']]
 ];
 
-// Affixes — SEVEN procedural kinds (upper primary):
+// ── T5 LEVEL-GATED: Greek/Latin ROOTS (Year 5+; AC9E5LA08 Greek and Latin
+// roots + precise vocabulary, AC9E6LY09 technical roots). Items:
+// [root, meaning, example word made from the root]. Distractors for the MC
+// kinds are drawn from OTHER roots' example words, so no option accidentally
+// contains the tested root.
+const ROOT_ITEMS: readonly [string, string, string][] = [
+    ['port', 'carry', 'transport'],
+    ['spec', 'look', 'spectator'],
+    ['dict', 'say', 'predict'],
+    ['bio', 'life', 'biology'],
+    ['geo', 'earth', 'geography'],
+    ['therm', 'heat', 'thermal'],
+    ['phon', 'sound', 'telephone'],
+    ['graph', 'write', 'autograph'],
+    ['aqua', 'water', 'aquarium'],
+    ['chron', 'time', 'chronic'],
+    ['ped', 'foot', 'pedestrian'],
+    ['struct', 'build', 'structure']
+] as const;
+
+// Affixes — SEVEN procedural kinds (upper primary) extended by THREE
+// level-gated root kinds (T5, Year 5+):
 //   0. written: "what does the prefix/suffix mean in '<word>'?" (gloss)
 //   1. MC: which word contains the dealt prefix/suffix (3 options)
 //   2. written: "add the prefix/suffix to '<base>'" (spelling answer)
@@ -143,18 +167,64 @@ const AFFIX_SENTENCES: [string, string, string[]][] = [
 //   5. MC APPLY: which bank word fits the curated sentence frame
 //   6. open-ended COMPOSE: "write a word with the prefix/suffix X" — the key
 //      gives one bank example and accepts any sensible word
+//   7. (caps.level >= 5) ROOT MEANING MC: "what does the root X mean in W?"
+//   8. (caps.level >= 5) ROOT COMPOSE: "write a word that uses the root X"
+//      (example + acceptance note)
+//   9. (caps.level === 6) ROOT SPOT MC: "which word uses the root X?"
 //
 // NON-REPEATING SAMPLING: items are dealt from decks and every question
-// passes through sampleUnique keyed on the printed prompt.
-function generateAffix(rng: Rng, _caps: Caps, count: number): RawProblem[] {
+// passes through sampleUnique keyed on the printed prompt. The root decks
+// are created ONLY for levels that draw them, so the Year-3/Year-4 rng
+// streams (and their pins) are byte-identical to the pre-T5 generator.
+function generateAffix(rng: Rng, caps: Caps, count: number): RawProblem[] {
     const prefixDeck = localDeck(rng, PREFIX_ITEMS);
     const suffixDeck = localDeck(rng, SUFFIX_ITEMS);
     const sentenceDeck = localDeck(rng, AFFIX_SENTENCES);
+    // T5: explicit level branching via caps.level (never wordTier inference).
+    const maxKind = caps.level >= 6 ? 9 : caps.level >= 5 ? 8 : 6;
+    const rootDeck = caps.level >= 5 ? localDeck(rng, ROOT_ITEMS) : null;
     // MC kind 3 glosses drawn from the item's own bank (same affix position).
     return sampleUnique(
         count,
         () => {
-            const kind = rng.int(0, 6);
+            const kind = rng.int(0, maxKind);
+            if (kind === 7 && rootDeck) {
+                // ROOT MEANING (Y5+): the root's meaning beside two meanings
+                // from OTHER roots (all distinct glosses in this bank).
+                const [root, meaning, example] = rootDeck.take();
+                const others = ROOT_ITEMS.filter((i) => i[1] !== meaning);
+                const o1 = rng.pick(others)[1];
+                let o2 = rng.pick(others)[1];
+                if (o2 === o1) o2 = others[(others.findIndex((i) => i[1] === o1) + 1) % others.length][1];
+                const shown = shuffleLocal(rng, [meaning, o1, o2]);
+                return {
+                    prompt: `What does the root "${root}" mean in "${example}"? (${shown.join(', ')})`,
+                    answer: meaning
+                };
+            }
+            if (kind === 8 && rootDeck) {
+                // ROOT COMPOSE (Y5+): open production from the root.
+                const [root, meaning, example] = rootDeck.take();
+                return {
+                    prompt: `Write a word that uses the root "${root}" (meaning "${meaning}").`,
+                    answer: `Example: ${example} (any real word using the root "${root}" is correct)`
+                };
+            }
+            if (kind === 9 && rootDeck) {
+                // ROOT SPOT (Y6): which word contains the root — distractors
+                // are other roots' example words (no substring collision:
+                // every root here is unique across the bank).
+                const [root, meaning, example] = rootDeck.take();
+                const others = ROOT_ITEMS.filter((i) => i[0] !== root && !i[2].includes(root));
+                const o1 = rng.pick(others)[2];
+                let o2 = rng.pick(others)[2];
+                if (o2 === o1) o2 = others[(others.findIndex((i) => i[2] === o1) + 1) % others.length][2];
+                const shown = shuffleLocal(rng, [example, o1, o2]);
+                return {
+                    prompt: `Which word uses the root "${root}" (meaning "${meaning}")? (${shown.join(', ')})`,
+                    answer: example
+                };
+            }
             if (kind === 5) {
                 // APPLY: the one bank word that fits the sentence frame,
                 // beside two frame-specific distractors.
@@ -274,7 +344,13 @@ export const affixSpec: WorksheetSpec = {
     icon: '±',
     perPage: 8,
     offered: (grade: GradeConfig) => grade.available.includes('affix'),
-    scope: () => 'word building blocks',
+    // T5: the scope line mirrors the caps.level gating in the generator.
+    scope: (grade: GradeConfig) =>
+        grade.caps.level >= 6
+            ? 'prefixes, suffixes + Greek/Latin roots'
+            : grade.caps.level >= 5
+                ? 'prefixes, suffixes + Greek/Latin roots'
+                : 'word building blocks',
     generate: generateAffix
 };
 

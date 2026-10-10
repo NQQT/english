@@ -43,6 +43,9 @@ export type PageStackProps = {
     single?: boolean;
     // Brand line for the in-sheet multi-page print footer (framework config).
     brand?: string;
+    // T5 teacher answer key: when true every page prints its answer lines
+    // (see PrintableSheet.answerKey). Default false = student sheet.
+    answerKey?: boolean;
     // Test id for the page field root (e.g. "sheet-preview").
     testId?: string;
     // Per-page test id prefix; page i+1 gets `${pageTestId}${i+1}`.
@@ -130,7 +133,7 @@ const PageBadge = styledComponent('div', {
     fontWeight: 600
 });
 
-export function PageStack({ title, subtitle, pages, zoom, single, brand, testId, pageTestId }: PageStackProps) {
+export function PageStack({ title, subtitle, pages, zoom, single, brand, answerKey, testId, pageTestId }: PageStackProps) {
     // Ref to the page field — measured live (its width) for the 'fit' zoom.
     const viewportRef = useRef<HTMLDivElement>(null);
     const scale = usePageScale(viewportRef, zoom);
@@ -153,6 +156,7 @@ export function PageStack({ title, subtitle, pages, zoom, single, brand, testId,
                                 pageLabel={page.pageLabel}
                                 single={single}
                                 brand={brand}
+                                answerKey={answerKey}
                             />
                         </PageScaleBox>
                         {/* On-screen multi-page position badge. */}

@@ -71,6 +71,14 @@ import { compoundSpec } from './CompoundWorksheet';
 import { speechSpec } from './SpeechWorksheet';
 import { homographSpec } from './HomographWorksheet';
 import { pronounSpec } from './PronounWorksheet';
+// T5: Editing is the only new family whose bank reaches the 100-page printed
+// bar (500/500 at every offered grade — T12 reduced its perPage 6→5 for the
+// keyed A4 height budget, so the ask is 500). Comprehension and Writing are
+// finite banks BY DESIGN (6 passages / 6 projects per year, one per page —
+// long documents re-deal whole tasks, like the tracing sheets), and
+// Crafting's per-year pool is ~44 questions; all three are pinned in their
+// own test files at their design bars instead.
+import { editingSpec } from './EditingWorksheet';
 import { figurativeSpec } from './FigurativeWorksheet';
 import { idiomSpec } from './IdiomWorksheet';
 import { advpunctSpec } from './AdvancedPunctuationWorksheet';
@@ -127,6 +135,7 @@ const SPECS: { spec: WorksheetSpec; grades: number[] }[] = [
     { spec: speechSpec, grades: [3, 4, 5, 6] },
     { spec: homographSpec, grades: [4, 5, 6] },
     { spec: pronounSpec, grades: [3, 4, 5, 6] },
+    { spec: editingSpec, grades: [3, 4, 5, 6] },
     { spec: figurativeSpec, grades: [4, 5, 6] },
     { spec: idiomSpec, grades: [5, 6] },
     { spec: advpunctSpec, grades: [5, 6] },
@@ -154,7 +163,11 @@ const SEMANTIC: { spec: WorksheetSpec; gradeId: number; capacity: number }[] = [
     { spec: wordgapSpec, gradeId: 3, capacity: 352 },
     { spec: wordgapSpec, gradeId: 5, capacity: 363 },
     { spec: conjunctionSpec, gradeId: 3, capacity: 410 },
-    { spec: conjunctionSpec, gradeId: 5, capacity: 406 },
+    // T5 re-pin: the level-gated kinds (SUB_FILL/SUB_JOIN) split the 600-row
+    // ask across 7 kinds, so the OLD space is sampled at a lower share and
+    // the measured semantic count at this fixed ask dips (406 -> 394) even
+    // though the underlying pool grew. Year 3 is untouched (no gated kinds).
+    { spec: conjunctionSpec, gradeId: 5, capacity: 394 },
     { spec: apostropheSpec, gradeId: 3, capacity: 196 },
     { spec: apostropheSpec, gradeId: 5, capacity: 196 },
     { spec: commaSpec, gradeId: 3, capacity: 578 },

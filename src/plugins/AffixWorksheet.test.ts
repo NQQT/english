@@ -46,9 +46,12 @@ describe('affix plugin — declarative spec', () => {
         expect(affixSpec.perPage).toBe(8);
     });
 
-    it('describes its scope (word building blocks)', () => {
+    it('describes its scope per level (affixes at Y3/Y4, + roots at Y5/Y6)', () => {
+        // T5: scope mirrors the caps.level gating in the generator; the
+        // Year-3/Year-4 line is unchanged.
         expect(affixSpec.scope(g3)).toBe('word building blocks');
-        expect(affixSpec.scope(g6)).toBe('word building blocks');
+        expect(affixSpec.scope(getGradeConfig(4))).toBe('word building blocks');
+        expect(affixSpec.scope(g6)).toBe('prefixes, suffixes + Greek/Latin roots');
     });
 
     it('is gated by the grade catalogue (Years 3..6 only)', () => {
@@ -87,24 +90,27 @@ describe('affix — Year 3', () => {
 });
 
 describe('affix — Year 6', () => {
+    // T5 re-pin: the Greek/Latin root kinds (7/8/9) join the Year-6 draw, so
+    // the dealt stream changed. Rows eyeballed: every root distractor is from
+    // a different root and never contains the tested root substring.
     it('matches the exact page-1 sheet', () => {
         expect(sheet(g6)).toEqual([
-            {"prompt":"Write a word that has the prefix \"pre\".","answer":"Example: preschool (any real word with the prefix \"pre\" is correct)","id":1,"type":"affix"},
-            {"prompt":"What does the prefix \"un\" mean in \"unlock\"?","answer":"reverse","id":2,"type":"affix"},
-            {"prompt":"Write a word that has the suffix \"ful\".","answer":"Example: colourful (any real word with the suffix \"ful\" is correct)","id":3,"type":"affix"},
-            {"prompt":"What does the prefix \"dis\" do? (not, opposite, again)","answer":"opposite","id":4,"type":"affix"},
-            {"prompt":"Which word fits: The cat crept __ past the sleeping dog. (silently, rudely, sweetly)","answer":"silently","id":5,"type":"affix"},
-            {"prompt":"Which word has the suffix \"ing\"? (misspell, interview, teaching)","answer":"teaching","id":6,"type":"affix"},
-            {"prompt":"Write a word that has the prefix \"dis\".","answer":"Example: disobey (any real word with the prefix \"dis\" is correct)","id":7,"type":"affix"},
-            {"prompt":"What does the prefix \"non\" mean in \"nonsense\"?","answer":"not","id":8,"type":"affix"}
+            {"prompt":"Which word has the suffix \"ing\"? (unkind, teaching, redo)","answer":"teaching","id":1,"type":"affix"},
+            {"prompt":"Write a word that uses the root \"struct\" (meaning \"build\").","answer":"Example: structure (any real word using the root \"struct\" is correct)","id":2,"type":"affix"},
+            {"prompt":"What does the root \"dict\" mean in \"predict\"? (say, foot, life)","answer":"say","id":3,"type":"affix"},
+            {"prompt":"What does the prefix \"un\" do? (half, too much, reverse)","answer":"reverse","id":4,"type":"affix"},
+            {"prompt":"Write a word that uses the root \"ped\" (meaning \"foot\").","answer":"Example: pedestrian (any real word using the root \"ped\" is correct)","id":5,"type":"affix"},
+            {"prompt":"What does the prefix \"dis\" mean in \"disappear\"?","answer":"not","id":6,"type":"affix"},
+            {"prompt":"Which word uses the root \"graph\" (meaning \"write\")? (autograph, structure, aquarium)","answer":"autograph","id":7,"type":"affix"},
+            {"prompt":"What does the root \"port\" mean in \"transport\"? (write, carry, build)","answer":"carry","id":8,"type":"affix"}
         ]);
     });
 
     it('page 2 continues the exact stream', () => {
         expect(generateDocument(affixSpec, g6, seedFrom([6, 'affix', 0]), 2).pages[1].slice(0, 3)).toEqual([
-            {"prompt":"Write a word that has the suffix \"able\".","answer":"Example: movable (any real word with the suffix \"able\" is correct)","id":9,"type":"affix"},
-            {"prompt":"Which word fits: Be __ when you carry the glass jug. (careful, careless, colourful)","answer":"careful","id":10,"type":"affix"},
-            {"prompt":"Split \"supermarket\" into its prefix and base word.","answer":"super + market","id":11,"type":"affix"}
+            {"prompt":"Add the suffix \"ise\" to \"organ\".","answer":"organise","id":9,"type":"affix"},
+            {"prompt":"What does the prefix \"non\" mean in \"nonsense\"?","answer":"not","id":10,"type":"affix"},
+            {"prompt":"Which word uses the root \"spec\" (meaning \"look\")? (pedestrian, biology, spectator)","answer":"spectator","id":11,"type":"affix"}
         ]);
     });
 

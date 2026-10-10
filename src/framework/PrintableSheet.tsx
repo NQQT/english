@@ -72,6 +72,11 @@ export type PrintableSheetProps = {
     // from the dashboard framework's configuration, so the sheet component
     // itself stays subject-neutral. Defaults to "Worksheets" for direct use.
     brand?: string;
+    // T5 TEACHER ANSWER KEY: when true, each non-tracing row prints its
+    // model answer / marking guidance on a small italic line under the
+    // question. Defaults to FALSE — student sheets stay answer-free (every
+    // pre-existing row-text pin depends on this default).
+    answerKey?: boolean;
     // Stable test id for the root element.
     testId?: string;
 };
@@ -279,6 +284,22 @@ const TileLine = styledComponent('span', {
     whiteSpace: 'pre-wrap'
 });
 
+// T5 TEACHER ANSWER KEY line: a small italic answer/guidance line printed
+// under a question ONLY when the sheet is mounted with answerKey (teacher
+// mode). Student print keeps the default (false) and never sees these.
+// display:block on a span keeps the DOM nesting valid (it lives inside the
+// ProblemText span); pre-wrap lets multi-part answers (comprehension a/b/c)
+// print one per line. 13px keeps it clearly subordinate to the 20px question.
+const AnswerLine = styledComponent('span', {
+    display: 'block',
+    marginTop: '4px',
+    fontSize: '13px',
+    fontStyle: 'italic',
+    lineHeight: 1.4,
+    color: 'var(--paper-sub)',
+    whiteSpace: 'pre-wrap'
+});
+
 // Footer shown only for multi-page documents: brand line on the left,
 // "Page i of n" on the right, pinned to the page bottom.
 const SheetFooter = styledComponent('div', {
@@ -322,6 +343,7 @@ export function PrintableSheet({
     pageLabel,
     single,
     brand,
+    answerKey,
     testId
 }: PrintableSheetProps) {
     return (
@@ -383,6 +405,17 @@ export function PrintableSheet({
                                     <TileLine>
                                         <WordTileRun words={p.tileWords} />
                                     </TileLine>
+                                )}
+                                {/* T5 teacher answer key: the model answer /
+                                    marking guidance under the question. Off
+                                    by default (student sheets answer-free);
+                                    tracing rows never reach this branch (the
+                                    trace target IS the answer, already
+                                    printed). */}
+                                {answerKey && (
+                                    <AnswerLine data-testid="answer-line">
+                                        Answer: {p.answer}
+                                    </AnswerLine>
                                 )}
                             </ProblemText>
                         )}

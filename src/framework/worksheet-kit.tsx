@@ -197,6 +197,23 @@ function createToolbar(spec: WorksheetSpec) {
                     >
                         Randomize
                     </GhostButton>
+                    {/* T5 TEACHER ANSWER KEY toggle: flips session.answerKey
+                        (framework session — shared by every worksheet, like
+                        grade/pages). ON prints the model answer / marking
+                        guidance under each question in BOTH preview and
+                        print; OFF (the default) keeps student sheets
+                        answer-free. It is a VIEW setting, so it stays live
+                        even when the current selection has no document. */}
+                    <GhostButton
+                        dimmed={false}
+                        aria-pressed={session.answerKey ? 'true' : 'false'}
+                        data-testid="toolbar-answer-key"
+                        onClick={() => {
+                            session.answerKey = !session.answerKey;
+                        }}
+                    >
+                        Answer key
+                    </GhostButton>
                     <PrimaryButton
                         dimmed={!hasProblems}
                         aria-disabled={!hasProblems || undefined}
@@ -260,6 +277,7 @@ function createPage(spec: WorksheetSpec, config: DashboardFrameworkConfig) {
                         zoom={zoom}
                         single={spec.singleColumn}
                         brand={config.printBrand}
+                        answerKey={session.answerKey}
                         testId="sheet-preview"
                         pageTestId="sheet-preview-page"
                     />
@@ -298,6 +316,9 @@ function createPage(spec: WorksheetSpec, config: DashboardFrameworkConfig) {
 function createPrint(spec: WorksheetSpec, config: DashboardFrameworkConfig) {
     function WorksheetPrint() {
         const { doc, title, subtitle } = useWorksheetDocument(spec);
+        // The print tree mirrors the preview EXACTLY, including the teacher
+        // answer key (session is framework state shared by both surfaces).
+        const session = useDashboardStore().session;
 
         const total = doc.pages.length;
 
@@ -319,6 +340,7 @@ function createPrint(spec: WorksheetSpec, config: DashboardFrameworkConfig) {
                             pageLabel={total > 1 ? `Page ${i + 1} of ${total}` : undefined}
                             single={spec.singleColumn}
                             brand={config.printBrand}
+                            answerKey={session.answerKey}
                         />
                     </div>
                 ))}

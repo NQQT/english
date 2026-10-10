@@ -62,6 +62,12 @@ import { CompoundWorksheet } from './CompoundWorksheet';
 import { SpeechWorksheet } from './SpeechWorksheet';
 import { HomographWorksheet } from './HomographWorksheet';
 import { PronounWorksheet } from './PronounWorksheet';
+// T5: the four new Y3–6 literacy families (reading comprehension, sentence
+// crafting, writing planning/composing, editing/proofreading).
+import { ComprehensionWorksheet } from './ComprehensionWorksheet';
+import { CraftWorksheet } from './CraftWorksheet';
+import { WritingWorksheet } from './WritingWorksheet';
+import { EditingWorksheet } from './EditingWorksheet';
 import { FigurativeWorksheet } from './FigurativeWorksheet';
 import { IdiomWorksheet } from './IdiomWorksheet';
 import { AdvancedPunctuationWorksheet } from './AdvancedPunctuationWorksheet';
@@ -103,6 +109,13 @@ export const PLUGINS: PluginFactory[] = [
     SpeechWorksheet,
     HomographWorksheet,
     PronounWorksheet,
+    // T5 new families sit after the mid-primary set and before the Y5–6
+    // stylistic senior set; all four are offered from Year 3 up (grades.ts
+    // Y3_LITERACY batch).
+    ComprehensionWorksheet,
+    CraftWorksheet,
+    WritingWorksheet,
+    EditingWorksheet,
     FigurativeWorksheet,
     IdiomWorksheet,
     AdvancedPunctuationWorksheet,

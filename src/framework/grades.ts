@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
+﻿// ─────────────────────────────────────────────────────────────────────────────
 // FRAMEWORK — grade catalogue (the dashboard's configuration).
 //
 // Part of the DASHBOARD FRAMEWORK, not of any worksheet plugin: the grades
@@ -18,13 +18,20 @@
 //     spellings;
 //   - Y3  = adds the INTRODUCTORY grammar set: conjunctions, apostrophes
 //     (possessives + contractions), comma lists, prefixes/suffixes, compound
-//     words, direct speech and pronouns;
+//     words, direct speech and pronouns — PLUS the four T5 upper-primary
+//     resource families: Reading Comprehension, Crafting Sentences, Writing
+//     Projects and Editing & Proofreading (original passage-based reading,
+//     scaffolded sentence work, plan-and-compose writing and proofreading,
+//     each deepening every year via the explicit `level` cap);
 //   - Y4  = adds the first advanced vocabulary types: figurative language and
 //     homographs;
 //   - Y5  = adds the remaining advanced set: idioms, dialogue punctuation and
-//     subject–verb agreement;
+//     subject–verb agreement; the T5 families deepen to their Year-5 variants
+//     (viewpoint/persuasive tasks, Greek/Latin roots, subordinate clauses);
 //   - Y6  = the full cumulative catalogue (every Y3-advanced type plus the
-//     deepest word set before high school).
+//     deepest word set before high school); the T5 families carry their own
+//     Year-6 variants (evaluation/bias tasks, embedded clauses, formal-tone
+//     editing), so Year 6 sheets are NOT identical to Year 5.
 // No type is ever removed from a later year's list — each year keeps every
 // earlier year's types (cumulative), so a Y6 sheet offers everything a Y3
 // sheet offers. Grades 7..12 render a "coming soon" placeholder.
@@ -40,6 +47,14 @@
 //   - sentenceLen: max number of words in a sentence-building line
 //   - tricky:      Year 2+ forms — irregular plurals, tricky long words and
 //                  extended homophone pairs become available
+//   - level:       EXPLICIT year-level cap (0 = Prep, 3..6 = Years 3–6). The
+//                  T5 resource families (comprehension / crafting / writing /
+//                  editing) and the level-gated kinds in Conjunctions and
+//                  Prefixes & Suffixes branch on THIS number instead of
+//                  inferring difficulty from wordTier/sentenceLen — a small
+//                  explicit knob so Year 5 and Year 6 variants can genuinely
+//                  differ even where the older caps are identical. Generators
+//                  that predate it simply ignore the field.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type GradeId = number;
@@ -76,6 +91,10 @@ export type GradeConfig = {
         // Unlocks Year 2+ tricky forms (irregular plurals, tricky spelling,
         // extended homophone pairs).
         tricky: boolean;
+        // EXPLICIT year-level cap (T5): 0 = Prep, 3..6 = Years 3–6. The new
+        // resource families and the level-gated kinds branch on this value —
+        // never on fragile wordTier/sentenceLen inference.
+        level: number;
     };
 };
 
@@ -100,6 +119,11 @@ const Y3_INTRO = [
     // word building (prefixes/suffixes + compounds), quoted speech, pronouns.
     'conjunction', 'apostrophe', 'comma', 'affix', 'compound', 'speech', 'pronoun'
 ] as const;
+// T5 upper-primary resource families (join at Year 3, deepen EVERY year via
+// the explicit caps.level — Year 5 and Year 6 carry their own variants):
+// original-passage reading comprehension, scaffolded sentence/paragraph
+// crafting, plan-and-compose writing projects, and editing/proofreading.
+const Y3_LITERACY = ['comprehension', 'craft', 'writing', 'editing'] as const;
 const Y4_ADVANCED = [
     // First advanced vocabulary types (Y4–6 material): figurative language +
     // same-spelling/different-meaning words.
@@ -111,8 +135,9 @@ const Y5_ADVANCED = [
     'idiom', 'advpunct', 'agreement'
 ] as const;
 
-// The full Year-3 catalogue: early-reading + Y2 extensions + Y3 intro set.
-const YEAR_3 = [...EARLY_READING, ...Y2_EXTRA, ...Y3_INTRO] as const;
+// The full Year-3 catalogue: early-reading + Y2 extensions + Y3 intro set +
+// the T5 literacy resource families.
+const YEAR_3 = [...EARLY_READING, ...Y2_EXTRA, ...Y3_INTRO, ...Y3_LITERACY] as const;
 // Year 4 adds the first advanced vocabulary types on top of the Y3 set.
 const YEAR_4 = [...YEAR_3, ...Y4_ADVANCED] as const;
 // Year 5 adds the remaining advanced set; Year 6 = the complete catalogue.
@@ -136,7 +161,8 @@ const CONFIGS: GradeConfig[] = [
         caps: {
             wordTier: 1,
             sentenceLen: 2,
-            tricky: false
+            tricky: false,
+            level: 0
         },
     },
     {
@@ -153,7 +179,8 @@ const CONFIGS: GradeConfig[] = [
         caps: {
             wordTier: 2,
             sentenceLen: 4,
-            tricky: false
+            tricky: false,
+            level: 1
         },
     },
     {
@@ -169,7 +196,8 @@ const CONFIGS: GradeConfig[] = [
         caps: {
             wordTier: 3,
             sentenceLen: 5,
-            tricky: true
+            tricky: true,
+            level: 2
         },
     },
     {
@@ -180,14 +208,16 @@ const CONFIGS: GradeConfig[] = [
         // Year 3 (word set 4, sentences up to 7 words) introduces the
         // INTRODUCTORY grammar set — conjunctions, apostrophes of
         // possession/contraction, comma lists, prefixes/suffixes, compound
-        // words, direct speech and pronouns — on top of the Y1–Y2 types.
-        // The advanced Y4–Y6 vocabulary types (figurative, idioms, ...) are
-        // NOT yet offered here.
+        // words, direct speech and pronouns — PLUS the four T5 resource
+        // families (comprehension, crafting, writing, editing) on their
+        // Year-3 (level 3) variants. The advanced Y4–Y6 vocabulary types
+        // (figurative, idioms, ...) are NOT yet offered here.
         available: [...YEAR_3],
         caps: {
             wordTier: 4,
             sentenceLen: 7,
-            tricky: true
+            tricky: true,
+            level: 3
         },
     },
     {
@@ -202,7 +232,8 @@ const CONFIGS: GradeConfig[] = [
         caps: {
             wordTier: 5,
             sentenceLen: 8,
-            tricky: true
+            tricky: true,
+            level: 4
         },
     },
     {
@@ -211,12 +242,16 @@ const CONFIGS: GradeConfig[] = [
         label: 'Year 5',
         implemented: true,
         // Year 5 completes the catalogue: idioms, dialogue punctuation and
-        // subject–verb agreement join the rotation at word set 6.
+        // subject–verb agreement join the rotation at word set 6. The T5
+        // resource families run their Year-5 (level 5) variants here —
+        // evaluate/compare comprehension, subordinate-clause crafting,
+        // persuasive writing and Greek/Latin-root affix work.
         available: [...YEAR_5],
         caps: {
             wordTier: 6,
             sentenceLen: 9,
-            tricky: true
+            tricky: true,
+            level: 5
         },
     },
     {
@@ -224,23 +259,28 @@ const CONFIGS: GradeConfig[] = [
         short: '6',
         label: 'Year 6',
         implemented: true,
-        // Year 6 — the full cumulative catalogue (all 30 types) at its
+        // Year 6 — the full cumulative catalogue (all 34 types) at its
         // deepest (tier 6, 10-word sentences): the culmination before high
-        // school. Same list as Year 5; only the caps deepen.
+        // school. The id list matches Year 5, but the T5 resource families
+        // branch on caps.level 6 into their OWN Year-6 variants (bias/
+        // viewpoint comprehension, embedded clauses + formal tone writing,
+        // formality/bias editing, technical roots), so Y5 and Y6 sheets are
+        // genuinely different, not a caps-only re-skin.
         available: [...UPPER_PRIMARY],
         caps: {
             wordTier: 6,
             sentenceLen: 10,
-            tricky: true
+            tricky: true,
+            level: 6
         },
     },
     // Grades 7..12 — selector entries only; no content generated yet.
-    { id: 7, short: '7', label: 'Year 7', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
-    { id: 8, short: '8', label: 'Year 8', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
-    { id: 9, short: '9', label: 'Year 9', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
-    { id: 10, short: '10', label: 'Year 10', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
-    { id: 11, short: '11', label: 'Year 11', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
-    { id: 12, short: '12', label: 'Year 12', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false } },
+    { id: 7, short: '7', label: 'Year 7', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
+    { id: 8, short: '8', label: 'Year 8', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
+    { id: 9, short: '9', label: 'Year 9', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
+    { id: 10, short: '10', label: 'Year 10', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
+    { id: 11, short: '11', label: 'Year 11', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
+    { id: 12, short: '12', label: 'Year 12', implemented: false, available: [], caps: { wordTier: 0, sentenceLen: 0, tricky: false, level: 0 } },
 ];
 
 export const GRADES: readonly GradeConfig[] = CONFIGS;

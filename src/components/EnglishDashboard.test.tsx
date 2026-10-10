@@ -187,19 +187,35 @@ describe('EnglishDashboard — layout', () => {
         // registration order (PluginSidebarHost). Each button renders its icon
         // chip + label as adjacent spans, so the raw text is icon + label.
         // (WORKSHEETS = the factory list built through the loader pipeline.)
-        const expected =
-            'English Type' +
-            WORKSHEETS.filter((p) => {
-                const offered = p.isOffered;
-                return offered ? offered(getGradeConfig(1)) : true;
-            })
-                .map((p) => (p.entries[0].icon ?? '') + p.entries[0].label)
-                .join('');
-        expect(text(rail)).toBe(expected);
+        // T5: the exact-text pin runs over the RAIL BUTTONS only — the
+        // sidebar also carries the (intentional) progression guidance card,
+        // so whole-sidebar text is no longer the rail's contract.
+        const offered = WORKSHEETS.filter((p) => {
+            const gate = p.isOffered;
+            return gate ? gate(getGradeConfig(1)) : true;
+        });
+        const buttons = Array.from(rail.querySelectorAll('button'));
+        expect(buttons.length).toBe(offered.length);
+        const expected = offered.map((p) => (p.entries[0].icon ?? '') + p.entries[0].label).join('');
+        expect(buttons.map((b) => b.textContent ?? '').join('')).toBe(expected);
         // The Blending button renders exactly icon glyph + label (raw
         // "abBlending"), i.e. no count badge text anywhere in the button.
         const blending = screen.getByRole('button', { name: 'Blending' });
         expect(text(blending)).toBe('abBlending');
+    });
+
+    it('shows the progression guidance card at the foot of the rail', async () => {
+        // T5: an always-visible teacher-facing card explaining the ladder and
+        // the honest AC v9 source note (no endorsement / no full-coverage
+        // claim). Pinned exactly so wording drift is a conscious edit.
+        await allPluginsLoaded();
+        const card = screen.getByTestId('progression-guide');
+        expect(text(card)).toContain('How it progresses');
+        expect(text(card)).toContain('one cumulative ladder');
+        expect(text(card)).toContain('scaffolded supports to core tasks to stretch challenges');
+        expect(text(card)).toContain('Australian Curriculum v9 (English)');
+        expect(text(card)).toContain('not an official ACARA product');
+        expect(text(card)).toContain('speaking, listening and digital creation are not printed here');
     });
 });
 
@@ -465,6 +481,38 @@ describe('EnglishDashboard — randomize (re-roll the seed in place)', () => {
         expect((screen.getByTestId('page-count') as HTMLInputElement).value).toBe('4');
         expect(screen.getByTestId('sheet-preview-page4')).toBeDefined();
         expect(screen.getByTestId('sheet-preview').textContent).toContain('Page 4 of 4');
+    });
+});
+
+describe('EnglishDashboard — teacher answer key toggle', () => {
+    it('off by default; clicking reveals model answers in the preview', () => {
+        // T5: the toolbar toggle writes the framework session's answerKey
+        // knob; PrintableSheet renders "Answer: ..." lines only when true.
+        const toggle = screen.getByTestId('toolbar-answer-key');
+        // Student default: the preview sheet is answer-free.
+        expect(toggle.getAttribute('aria-pressed')).toBe('false');
+        expect(text(screen.getByTestId('sheet-preview-page1'))).not.toContain('Answer:');
+
+        fireEvent.click(toggle);
+        expect(toggle.getAttribute('aria-pressed')).toBe('true');
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('Answer:');
+
+        // Click again: back to the answer-free student sheet.
+        fireEvent.click(toggle);
+        expect(toggle.getAttribute('aria-pressed')).toBe('false');
+        expect(text(screen.getByTestId('sheet-preview-page1'))).not.toContain('Answer:');
+    });
+
+    it('the answer key is shared session state, not per-worksheet state', async () => {
+        // Turn the key on, then switch worksheets: the new worksheet's
+        // preview shows answers too (the knob lives in store.session).
+        const toggle = screen.getByTestId('toolbar-answer-key');
+        fireEvent.click(toggle);
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Blending' }, { timeout: LOAD_TIMEOUT })
+        );
+        expect(text(screen.getByTestId('sheet-preview-page1'))).toContain('Answer:');
+        expect(screen.getByTestId('toolbar-answer-key').getAttribute('aria-pressed')).toBe('true');
     });
 });
 

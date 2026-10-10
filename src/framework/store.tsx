@@ -59,11 +59,12 @@ export type DashboardStoreStructure = {
 
 // The pristine store every fresh provider mount starts from. The session
 // defaults mirror the dashboard's English configuration: Year 1, one page,
-// fit zoom, unrandomized.
+// fit zoom, unrandomized, and the TEACHER ANSWER KEY OFF (student print is
+// answer-free by default — see types.ts DashboardSession.answerKey).
 const INITIAL_STORE: DashboardStoreStructure = {
     active: { pluginId: '', entryId: '' },
     plugins: {},
-    session: { gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0 }
+    session: { gradeId: 1, pageCount: 1, zoom: 'fit', refresh: 0, answerKey: false }
 };
 
 // A reactive cell: the mutable target, its deep proxy, a version counter and

@@ -276,3 +276,74 @@ describe('header — Name/Date top-right (R6)', () => {
         expect(printBlock).toContain('--picto-ink: #3f4c63');
     });
 });
+
+// T5 teacher answer key (see PrintableSheet.tsx AnswerLine): the sheet
+// renders "Answer: <answer>" under each NON-trace question only when the
+// caller passes answerKey=true. Default (omitted/false) must stay exactly
+// the legacy answer-free student sheet — that is what every pre-existing
+// row-text pin in this file already proves.
+describe('teacher answer key', () => {
+    function mountKeyed(problems: Problem[], answerKey: boolean | undefined) {
+        return render(
+            <PrintableSheet
+                title="Key Sheet"
+                subtitle="answer key contract"
+                problems={problems}
+                testId="sheet-root"
+                {...(answerKey === undefined ? {} : { answerKey })}
+            />
+        );
+    }
+
+    it('answerKey=true prints the model answer under every non-trace row', () => {
+        mountKeyed([legacyRow, pluralThree], true);
+        const lines = screen.getAllByTestId('answer-line');
+        // Exact text per row, in order — the answer line is the row's last
+        // child (under the question), not a separate grid column.
+        expect(lines.map((el) => el.textContent)).toEqual([
+            'Answer: b',
+            'Answer: dog'
+        ]);
+    });
+
+    it('answerKey omitted or false renders no answer lines (student default)', () => {
+        for (const key of [undefined, false]) {
+            cleanup();
+            mountKeyed([legacyRow, pluralThree], key);
+            expect(screen.queryAllByTestId('answer-line')).toHaveLength(0);
+            // Row text stays the legacy "<id>.<prompt>" exactly — no answer
+            // text leaks onto the student sheet.
+            const sheet = screen.getByTestId('sheet-root');
+            expect(sheet.textContent).toContain('2.Which letter does "box" start with?');
+            expect(sheet.textContent).toContain('4.What is the singular of "dogs"?');
+            expect(sheet.textContent).not.toContain('Answer:');
+        }
+    });
+
+    it('tracing rows never get an answer line (the trace target is the answer)', () => {
+        mountKeyed([traceWithVisual, traceLegacy], true);
+        expect(screen.queryAllByTestId('answer-line')).toHaveLength(0);
+    });
+
+    it('T9 height safety: the key grows rows IN PLACE — one grid row per problem', () => {
+        // Structural contract (jsdom cannot measure print height): enabling
+        // the key adds NO extra grid rows and NO rows move — every answer
+        // line is nested inside its own problem row, so a keyed page grows
+        // only by its rows' own content. The longest new sheets (reading
+        // comprehension / writing projects) run perPage=1 single-column, so
+        // one keyed task still occupies exactly one auto-height row on one
+        // A4 page. Manual visual print check is the disclosed gap.
+        mountKeyed([legacyRow, pluralThree, traceLegacy], true);
+        const sheet = screen.getByTestId('sheet-root');
+        const grid = sheet.children[2]; // HeaderRow, Rule, ProblemGrid, [footer]
+        expect(grid.children.length).toBe(3); // exactly one row per problem
+        const lines = screen.getAllByTestId('answer-line');
+        expect(lines.length).toBe(2); // the trace row stays answer-free
+        for (const line of lines) {
+            // AnswerLine → ProblemText → ProblemRow → ProblemGrid.
+            expect(line.parentElement!.parentElement!.parentElement).toBe(grid);
+        }
+        // The trace row (third grid child) contains no answer text.
+        expect(grid.children[2].textContent).not.toContain('Answer:');
+    });
+});

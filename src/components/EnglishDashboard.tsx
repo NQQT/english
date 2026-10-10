@@ -330,6 +330,36 @@ function EnglishDashboardBody() {
                                 {/* Progressive loading: factories still
                                     pending — hint under the loaded entries. */}
                                 {!pluginsDone && <SidebarLoading>Loading…</SidebarLoading>}
+                                {/* T5 DISCOVERABLE PROGRESSION + SOURCE NOTE:
+                                    a concise, always-visible card at the foot
+                                    of the rail explaining HOW the catalogue
+                                    progresses (cumulative years, scaffold →
+                                    core → stretch inside the upper-primary
+                                    families) and WHAT it is informed by
+                                    (Australian Curriculum v9 English scope —
+                                    honestly: original resources, not an
+                                    official ACARA product, no full-coverage
+                                    claim). Teachers/students never have to
+                                    open the readme to understand the app. */}
+                                <ProgressionCard data-testid="progression-guide">
+                                    <ProgressionHeading>How it progresses</ProgressionHeading>
+                                    <ProgressionText>
+                                        Each year keeps every earlier worksheet and adds new
+                                        types — Prep to Year 6 is one cumulative ladder.
+                                    </ProgressionText>
+                                    <ProgressionText>
+                                        Upper-primary sheets (comprehension, crafting, writing,
+                                        editing) move from scaffolded supports to core tasks to
+                                        stretch challenges within every year.
+                                    </ProgressionText>
+                                    <ProgressionText>
+                                        Informed by the Australian Curriculum v9 (English)
+                                        Year 3–6 content descriptions — original resources, not
+                                        an official ACARA product, and no claim of full
+                                        coverage (speaking, listening and digital creation are
+                                        not printed here).
+                                    </ProgressionText>
+                                </ProgressionCard>
                             </>
                         ) : pluginsDone ? (
                             // Loading finished with ZERO plugins installed —
@@ -414,4 +444,39 @@ const SidebarLoading = styledComponent('div', {
     padding: '6px 2px',
     flexShrink: 0,
     width: () => ({ xs: '100%', sm: 'auto' })
+});
+
+// ── T5 progression + source guidance card (rail footer) ─────────────────────
+// Always-visible explainer under the worksheet list: the year ladder logic,
+// the scaffold→core→stretch design of the new upper-primary families, and an
+// honest AC v9 source note. Screen chrome only — never printed. Width rules
+// mirror the rail's responsive behaviour (full-width block on the xs chip
+// strip, natural column width on sm+).
+const ProgressionCard = styledComponent('div', {
+    marginTop: '10px',
+    padding: '12px',
+    boxSizing: 'border-box',
+    background: 'var(--rail-idle-bg)',
+    border: '1px solid var(--hairline)',
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    width: () => ({ xs: '100%', sm: 'auto' }),
+    flexShrink: 0
+});
+
+const ProgressionHeading = styledComponent('div', {
+    fontSize: '11px',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: 'var(--faint)'
+});
+
+const ProgressionText = styledComponent('p', {
+    fontSize: '12px',
+    lineHeight: 1.5,
+    color: 'var(--muted)',
+    margin: 0
 });
