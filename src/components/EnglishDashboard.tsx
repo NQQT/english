@@ -84,6 +84,16 @@ const AppRoot = styledComponent('div', {
 
 // White top bar: brand mark + title on the left; the framework grade selector
 // (shared configuration) and the active plugin's optional header on the right.
+//
+// R1 (mobile fit): on xs the bar WRAPS onto stacked rows — brand + title on the
+// first row, the theme field on the next, and the grade selector on its own
+// full-width row (its width:100% forces the line break) — instead of one
+// cramped nowrap row whose unshrinkable siblings (34px brand + ~230px nowrap
+// title + ~130px theme field) pushed the grade pills offscreen and caused
+// horizontal overflow on 320–430px viewports. sm+ restores the original
+// single 64px row (flex-wrap:nowrap), so desktop chrome — and the sticky
+// toolbar's top:64px anchor that assumes exactly that header height — are
+// untouched (R2).
 const HeaderBar = styledComponent('div', {
     position: 'sticky',
     top: 0,
@@ -91,6 +101,7 @@ const HeaderBar = styledComponent('div', {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    flexWrap: () => ({ xs: 'wrap', sm: 'nowrap' }),
     height: () => ({ xs: 'auto', sm: '64px' }),
     padding: () => ({ xs: '10px 20px', sm: '0 20px' }),
     boxSizing: 'border-box',
@@ -121,7 +132,17 @@ const AppTitle = styledComponent('h1', {
     margin: 0,
     color: 'var(--app-fg)',
     whiteSpace: 'nowrap',
-    letterSpacing: '-0.01em'
+    letterSpacing: '-0.01em',
+    // R1 (mobile fit): on xs the (never-wrapping) title may SHRINK below its
+    // text width (min-width:0 — flex items default to min-width:auto, which
+    // made the ~230px nowrap title unshrinkable) and clips with an ellipsis
+    // instead of pushing the header row past the viewport if the rendered
+    // font is wider than the estimate. sm+ restores the original auto-width,
+    // unclipped title (min-width:auto / overflow:visible), so the desktop
+    // header is unchanged (R2).
+    minWidth: () => ({ xs: 0, sm: 'auto' }),
+    overflow: () => ({ xs: 'hidden', sm: 'visible' }),
+    textOverflow: () => ({ xs: 'ellipsis', sm: 'clip' })
 });
 
 const HeaderSpacer = styledComponent('div', {
@@ -293,7 +314,9 @@ function EnglishDashboardBody() {
                 @media print rules in app.css swap it for .print-doc (which
                 the active plugin renders outside this shell). */}
             <div className="app-chrome">
-                <HeaderBar>
+                {/* data-testid pins the header for the generated-CSS mobile-fit
+                    regression suite (EnglishDashboard.test.tsx, R1). */}
+                <HeaderBar data-testid="header-bar">
                     <BrandMark aria-hidden="true">Aa</BrandMark>
                     {/* R4 brand: "English Worksheets v{version}" — the version
                         is the compile-time __APP_VERSION__ global injected from

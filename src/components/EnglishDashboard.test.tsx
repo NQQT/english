@@ -788,6 +788,145 @@ describe('EnglishDashboard — theme control (R5)', () => {
     });
 });
 
+// ── R1: mobile fit (responsive header contract) ──────────────────────────────
+// jsdom performs NO real flexbox layout, so pixel-box behaviour at 320/360/390
+// /430px cannot be honestly asserted here. What CAN be pinned deterministically
+// is the GENERATED CSS that the styledComponent factory emits for the header
+// shell, the app title and the grade rail: the exact responsive rules that
+// (a) let the header wrap into stacked rows and give the grade rail its own
+// full-width row on xs viewports (0–599px), and (b) restore the original
+// single-row 64px desktop header at sm+ (min-width: 600px, R2). Emotion (non-
+// speedy in the vitest environment) writes the literal authored rules into
+// <style> textContent, so these assertions read real generated CSS — not jsdom
+// layout approximations. (Live-viewport verification of the actual rendered
+// boxes needs a real browser; see the task report for that limitation.)
+describe('EnglishDashboard — mobile fit (R1 responsive header contract)', () => {
+    // All Emotion-authored CSS currently in the document, whitespace-stripped
+    // so matching is spacing-insensitive. Falls back to CSSOM cssText in case
+    // the sheet ever runs in speedy mode (rules exist only in cssRules there).
+    function emotionCss(): string {
+        let css = '';
+        document.querySelectorAll('style').forEach((tag) => {
+            css += tag.textContent ?? '';
+        });
+        if (!css) {
+            Array.from(document.styleSheets).forEach((sheet) => {
+                try {
+                    Array.from((sheet as CSSStyleSheet).cssRules).forEach((rule) => {
+                        css += rule.cssText ?? '';
+                    });
+                } catch {
+                    // Inaccessible sheet — nothing to add.
+                }
+            });
+        }
+        return css.replace(/\s+/g, '');
+    }
+
+    // The Emotion-generated class of an element (element className may also
+    // carry unrelated classes such as "scrollbar-hidden").
+    function emotionClassOf(el: Element): string {
+        return Array.from(el.classList).find((c) => /^css-/.test(c)) ?? '';
+    }
+
+    // Every flat declaration block authored for ONE class, in authored order:
+    // [base(static props), xs(min-width:0px), sm(min-width:600px)] for these
+    // components — function breakpoint props resolve into the media blocks,
+    // and styleMedia emits exactly one block per used breakpoint.
+    function classRules(css: string, cls: string): string[] {
+        const matches: string[] = [];
+        const rx = new RegExp('\\.' + cls + '\\{([^{}]*)\\}', 'g');
+        let m: RegExpExecArray | null;
+        while ((m = rx.exec(css)) !== null) matches.push(m[1]);
+        return matches;
+    }
+
+    // Prove the xs/sm values are really scoped inside their media queries (not
+    // floating as unscoped rules), with the base block authored first.
+    function expectMediaScopes(css: string, cls: string) {
+        expect(css).toContain(`@media(min-width:0px){.${cls}{`);
+        expect(css).toContain(`@media(min-width:600px){.${cls}{`);
+    }
+
+    it('the header wraps onto stacked rows on xs and restores the single 64px row at sm+', () => {
+        const header = screen.getByTestId('header-bar');
+        const cls = emotionClassOf(header);
+        const css = emotionCss();
+        const rules = classRules(css, cls);
+        // Exactly base + xs + sm blocks for the header shell.
+        expect(rules.length).toBe(3);
+        expectMediaScopes(css, cls);
+        // Base (all viewports): the original flex chrome.
+        expect(rules[0]).toContain('display:flex');
+        expect(rules[0]).toContain('gap:12px');
+        expect(rules[0]).toContain('position:sticky');
+        // xs: the fix — header rows WRAP, auto height, compact padding.
+        expect(rules[1]).toContain('flex-wrap:wrap');
+        expect(rules[1]).toContain('height:auto');
+        expect(rules[1]).toContain('padding:10px20px');
+        // sm+ (R2): the original single-row 64px header is restored unchanged.
+        expect(rules[2]).toContain('flex-wrap:nowrap');
+        expect(rules[2]).toContain('height:64px');
+        expect(rules[2]).toContain('padding:020px');
+    });
+
+    it('the app title may shrink with an ellipsis on xs and stays unclipped at sm+', () => {
+        const title = screen.getByText('English Worksheets v1.0.2');
+        const cls = emotionClassOf(title);
+        const css = emotionCss();
+        const rules = classRules(css, cls);
+        expect(rules.length).toBe(3);
+        expectMediaScopes(css, cls);
+        // Base: the unchanged nowrap desktop title.
+        expect(rules[0]).toContain('white-space:nowrap');
+        expect(rules[0]).toContain('font-size:17px');
+        // xs: shrinkable (min-width:0 — flex items default to min-width:auto)
+        // and gracefully clipped instead of overflowing the header row.
+        // (Emotion serializes a numeric 0 without a unit: "min-width:0".)
+        expect(rules[1]).toContain('min-width:0');
+        expect(rules[1]).toContain('overflow:hidden');
+        expect(rules[1]).toContain('text-overflow:ellipsis');
+        // sm+ (R2): original auto-width, unclipped title.
+        expect(rules[2]).toContain('min-width:auto');
+        expect(rules[2]).toContain('overflow:visible');
+        expect(rules[2]).toContain('text-overflow:clip');
+    });
+
+    it('the grade rail takes its own full-width row on xs and the inline scrollable row at sm+', () => {
+        const rail = screen.getByRole('radiogroup', { name: 'Grade level' });
+        const cls = emotionClassOf(rail);
+        const css = emotionCss();
+        const rules = classRules(css, cls);
+        expect(rules.length).toBe(3);
+        expectMediaScopes(css, cls);
+        // Base: the original rail chrome (flex, shrinkable below its content).
+        expect(rules[0]).toContain('display:flex');
+        expect(rules[0]).toContain('min-width:0'); // numeric 0 → unitless in Emotion
+        // xs: the fix — full-width row (forces the header line break) and
+        // pills wrapping across rows instead of spilling offscreen.
+        expect(rules[1]).toContain('width:100%');
+        expect(rules[1]).toContain('flex-wrap:wrap');
+        // sm+ (R2): original inline auto-width, single scrollable row.
+        expect(rules[2]).toContain('width:auto');
+        expect(rules[2]).toContain('flex-wrap:nowrap');
+    });
+
+    it('the grade rail stays fully usable on mobile: all 13 pills render and select', () => {
+        // Behaviour companion to the CSS contract: the wrapped xs rail keeps
+        // every grade pill in the accessibility tree and clickable (a
+        // collapsed/offscreen rail would lose them in real layout — this pins
+        // the semantics the layout must preserve).
+        const pills = screen.getAllByRole('radio');
+        expect(pills.length).toBe(13);
+        expect(pills.map((p) => p.textContent)).toEqual([
+            'P', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'
+        ]);
+        fireEvent.click(pills[2]!); // "2" = Year 2
+        expect(pills[2]!.getAttribute('aria-checked')).toBe('true');
+        expect(pills[1]!.getAttribute('aria-checked')).toBe('false');
+    });
+});
+
 // ── matchMedia stub helpers (theme tests) ────────────────────────────────────
 // Replace window.matchMedia with a controllable stub: `prefersDark` drives
 // `matches`, and registered 'change' callbacks are returned so a test can

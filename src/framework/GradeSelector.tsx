@@ -21,11 +21,20 @@ import { GRADES } from './grades';
 import { useDashboardStore } from './store';
 
 // Pill rail: xs wraps to extra rows; sm+ one row that scrolls.
+//
+// R1 (mobile fit): on xs the rail takes the FULL header row — width:100%
+// forces a flex line break inside the now-wrapping HeaderBar — so the pills
+// can no longer be squeezed toward zero width by the unshrinkable brand/title
+// and theme-field siblings (minWidth:0 alone let the row collapse and spill
+// its pills outside the header, causing the mobile overflow) and wrap across
+// as many rows as the viewport needs. sm+ restores the original inline
+// auto-width, single-row scrollable rail (R2).
 const GradeRow = styledComponent('div', {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     minWidth: 0,
+    width: () => ({ xs: '100%', sm: 'auto' }),
     flexWrap: () => ({ xs: 'wrap', sm: 'nowrap' }),
     overflowX: () => ({ xs: 'visible', sm: 'auto' })
 });
